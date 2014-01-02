@@ -22,8 +22,26 @@ EXPORT Identification(DATASET(Types.UniObservation) obs,
     Types.t_time_ord period;
     Types.t_time_ord lag_per;
     Types.t_value v;
+    UNSIGNED2 k;
   END;
   EXPORT DATASET(Types.PACF_ACF) Correlations(UNSIGNED2 lags) := FUNCTION
+    z_bar := AVE(post_difference, dependent);
+    N := MAX(post_differences, period);
+    LagRec explode(ObsRec rec, UNSIGNED c) := TRANSFORM
+      k := (c-1) DIV 2;
+      adj := (c-1) % 2;
+      SELF.period := IF(rec.period + k <= N, rec.period, SKIP);
+      SELF.lag_per := rec.period + k + IF(k=0, 0, adj);
+      SELF.v := rec.dependent - z_bar;
+      SELF.k := k;
+    END;
+    exploded := NORMALIZE(post_differences, 2*(lags+1), explode(LEFT, COUNTER));
+    s_exploded := SORT(exploded, k, lag_period, period);
+    LogRec mult(LagRec prec, lagRec curr) := TRANSFORM
+      SELF.v := IF(prev.v <> 0.0, prev.v * curr.v, curr.v);
+      SELF := curr;
+    END;
+    products := ROLLUP(s_exploded, mult(LEFT,RIGHT), k, lag_period);
     RETURN DATASET([], Types.PACF_ACF);
   END;
   EXPORT DATASET(Types.CorrRec) ACF(UNSIGNED2 lags) := FUNCTION
