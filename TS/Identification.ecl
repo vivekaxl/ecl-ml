@@ -1,4 +1,4 @@
-﻿// Model Identification.  Produces autocorrelation function and
+// Model Identification.  Produces autocorrelation function and
 //the partial autocorrelation function datasets.
 IMPORT PBblas;
 IMPORT TS.Types;
