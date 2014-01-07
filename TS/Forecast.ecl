@@ -1,4 +1,4 @@
-﻿// Apply the model to generate forecast observations.  All of the
+// Apply the model to generate forecast observations.  All of the
 //observations are used for the forecasts for each of the model
 //specifications provided.
 IMPORT TS;
