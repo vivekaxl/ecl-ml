@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Generate time series data for demonstration of TS attributes.  Generates four
  * series of values.  A lag period is inferred by the number of start values. The
  * series generated are: flat (a random walk); a slope constructed by adding the
