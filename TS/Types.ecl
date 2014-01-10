@@ -1,12 +1,16 @@
-//
+﻿//
 IMPORT PBblas;
 EXPORT Types := MODULE
   EXPORT t_time_ord := UNSIGNED4;
   EXPORT t_value := PBblas.Types.value_t;
   EXPORT t_value_set := PBblas.Types.matrix_t;
+  EXPORT t_model_id := UNSIGNED2;
   EXPORT UniObservation := RECORD
     t_time_ord period;
     t_value dependent;
+  END;
+  EXPORT ForecastObs := RECORD(UniObservation)
+    t_model_id model_id;
   END;
   EXPORT CorrRec := RECORD
     UNSIGNED2 lag;
@@ -14,17 +18,32 @@ EXPORT Types := MODULE
     REAL8 t_like;   // Similar to t statistic, Box-Jenkins
   END;
   EXPORT PACF_ACF := RECORD
-    UNSIGNED2 lag;
-    REAL8 ac;           // Auto corr, k
+    UNSIGNED2 lag;      // k
+    REAL8 ac;           // Auto corr, k-th
     REAL8 ac_t_like;    // t like Box Jenkins statistic
-    REAL8 pac;          // partial auto corr, kk
+    REAL8 pac;          // partial auto corr, kk-th
     REAL8 pac_t_like;   // t-like Box-Jenkins statistic
   END;
-  EXPORT Model_Parameters := RECORD
-    UNSIGNED1 ar_terms;
-    UNSIGNED1 ma_terms;
+  EXPORT Co_efficient := RECORD
+    t_value cv;
+    UNSIGNED2 lag;
+  END;
+  EXPORT Ident_Spec := RECORD
+    UNSIGNED2 model_id;
     UNSIGNED2 degree;
-    t_value_set  ar_param;
-    t_value_set ma_params;
+  END;
+  EXPORT Model_Spec := RECORD(Ident_Spec)
+    UNSIGNED2 ar_terms;
+    UNSIGNED2 ma_terms;
+    BOOLEAN constant_term;
+  END;
+  EXPORT Model_Parameters := RECORD(Model_Spec)
+    DATASET(Co_efficient) ar;
+    DATASET(Co_efficient) ma;
+    t_value constant;
+  END;
+  EXPORT Model_Score := RECORD(Model_Parameters)
+    REAL8 s_measure; // square root of SSE/(N - number of parameters)
+    REAL8 Q_measure; // Box-Pierce Chi Square
   END;
 END;
