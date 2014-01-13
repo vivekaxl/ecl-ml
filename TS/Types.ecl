@@ -1,4 +1,4 @@
-﻿//
+//
 IMPORT PBblas;
 EXPORT Types := MODULE
   EXPORT t_time_ord := UNSIGNED4;
@@ -9,15 +9,17 @@ EXPORT Types := MODULE
     t_time_ord period;
     t_value dependent;
   END;
-  EXPORT ForecastObs := RECORD(UniObservation)
+  EXPORT ModelObs := RECORD(UniObservation)
     t_model_id model_id;
   END;
   EXPORT CorrRec := RECORD
+    t_model_id model_id;
     UNSIGNED2 lag;
     REAL8 corr;     // auto correlation or partial auto correlation
     REAL8 t_like;   // Similar to t statistic, Box-Jenkins
   END;
   EXPORT PACF_ACF := RECORD
+    t_model_id model_id;
     UNSIGNED2 lag;      // k
     REAL8 ac;           // Auto corr, k-th
     REAL8 ac_t_like;    // t like Box Jenkins statistic
