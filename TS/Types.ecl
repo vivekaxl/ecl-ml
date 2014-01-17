@@ -42,7 +42,7 @@ EXPORT Types := MODULE
   EXPORT Model_Parameters := RECORD(Model_Spec)
     DATASET(Co_efficient) ar;
     DATASET(Co_efficient) ma;
-    t_value constant;
+    t_value c;
   END;
   EXPORT Model_Score := RECORD(Model_Parameters)
     REAL8 s_measure; // square root of SSE/(N - number of parameters)
