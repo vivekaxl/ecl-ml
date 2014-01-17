@@ -4,7 +4,8 @@ ModelObs := Types.ModelObs;
 Spec := Types.Ident_Spec;
 EXPORT DATASET(ModelObs)
        DifferenceSeries(DATASET(ModelObs) obs,
-                        DATASET(Spec) degree) := FUNCTION
+                        DATASET(Spec) degree,
+                        BOOLEAN keepInitial=FALSE) := FUNCTION
   ObsRec := RECORD(ModelObs)
     UNSIGNED2 degree;
   END;
@@ -19,7 +20,8 @@ EXPORT DATASET(ModelObs)
     SELF.dependent := IF(no_diff, curr.dependent, curr.dependent-prev.dependent);
     SELF := curr;
   END;
-  diff1 := ITERATE(marked, deltaObs(LEFT, RIGHT, 1))(period>degree);
-  rslt := ITERATE(diff1, deltaObs(LEFT, RIGHT, 2))(period>degree);
+  diff1 := ITERATE(marked, deltaObs(LEFT, RIGHT, 1));
+  diff2 := ITERATE(diff1, deltaObs(LEFT, RIGHT, 2));
+  rslt := PROJECT(diff2(keepInitial OR period>degree), ModelObs);
   RETURN rslt;
 END;

@@ -7,12 +7,7 @@ ModelObs := Types.ModelObs;
 
 EXPORT Identification(DATASET(Types.UniObservation) series,
                       DATASET(Types.Ident_Spec) spec) := MODULE
-  // Mark the series with the model
-  ModelObs byModel(Types.UniObservation obs, Types.Ident_Spec sp) := TRANSFORM
-    SELF.model_id := sp.model_id;
-    SELF := obs;
-  END;
-  SHARED model_obs := NORMALIZE(series, spec, byModel(LEFT, RIGHT));
+  SHARED model_obs := TS.SeriesByModel(series, spec);
   SHARED post_difference := TS.DifferenceSeries(model_obs, spec);
   SHARED LagRec := RECORD
     Types.t_model_id model_id;
