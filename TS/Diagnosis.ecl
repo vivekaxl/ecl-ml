@@ -1,9 +1,10 @@
-//
+﻿//
 IMPORT TS;
 Model_Score := TS.Types.Model_Score;
 Model_Parm := TS.Types.Model_Parameters;
 ObsRec := TS.Types.UniObservation;
 ModelObs := TS.Types.ModelObs;
+Parameter_Extension := TS.Types.Parameter_Extension;
 Co_eff := TS.Types.CO_efficient;
 EXPORT DATASET(Model_Score)
        Diagnosis(DATASET(TS.Types.UniObservation) obs,
@@ -12,28 +13,8 @@ EXPORT DATASET(Model_Score)
   byModel := TS.SeriesByModel(obs, models);
   diffed := TS.DifferenceSeries(byModel, models, keepInitial:=TRUE);
   // Score the models
-  ModelWork := RECORD
-    TS.Types.t_model_id model_id;
-    UNSIGNED2 terms;
-    TS.Types.t_value c;
-    TS.Types.t_value mu;
-    DATASET(Co_eff) theta_phi;
-    DATASET(Co_eff) phi;
-  END;
-  Co_eff mrgF(Co_eff theta, Co_eff phi) := TRANSFORM
-    SELF.lag := IF(theta.lag<>0, theta.lag, phi.lag);
-    SELF.cv := theta.cv + phi.cv;
-  END;
-  ModelWork calcExtend(Model_Parm prm) := TRANSFORM
-    SELF.terms := MAX(prm.ar_terms, prm.ma_terms) + prm.degree + 1;
-    SELF.mu := IF(prm.ar_terms>0, prm.c*(1.0-SUM(prm.ar,cv)), prm.c);
-    SELF.theta_phi := JOIN(prm.ar, prm.ma, LEFT.lag=RIGHT.lag,
-                           mrgF(LEFT,RIGHT), FULL OUTER);
-    SELF.phi := prm.ma;
-    SELF := prm;
-  END;
-  extend_specs := PROJECT(models, calcExtend(LEFT));
-  WorkRec := RECORD(ModelWork)
+  extend_specs := TS.ExtendedParameters(models);
+  WorkRec := RECORD(Parameter_Extension)
     TS.Types.t_time_ord period;
     TS.Types.t_value dependent;
     TS.Types.t_value estimate;
@@ -42,7 +23,7 @@ EXPORT DATASET(Model_Score)
     DATASET(ObsRec) act;
     DATASET(ObsRec) fcst;
   END;
-  WorkRec makeBase(ModelObs obs, ModelWork mod) := TRANSFORM
+  WorkRec makeBase(ModelObs obs, Parameter_Extension mod) := TRANSFORM
     SELF.estimate := 0.0;
     SELF := obs;
     SELF := mod;
