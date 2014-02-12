@@ -48,4 +48,12 @@ EXPORT Types := MODULE
     REAL8 s_measure; // square root of SSE/(N - number of parameters)
     REAL8 Q_measure; // Box-Pierce Chi Square
   END;
+  EXPORT Parameter_Extension := RECORD
+    t_model_id model_id;
+    UNSIGNED2 terms;
+    t_value c;
+    t_value mu;
+    DATASET(Co_efficient) theta_phi;
+    DATASET(Co_efficient) phi;
+  END;
 END;
