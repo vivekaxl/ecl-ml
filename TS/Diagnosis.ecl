@@ -19,6 +19,15 @@ EXPORT DATASET(Model_Score)
     TS.Types.t_value dependent;
     TS.Types.t_value estimate;
   END;
+  DATASET(ObsRec) jumpStart(UNSIGNED t, REAL8 mu) := FUNCTION
+    ObsRec genObs() := TRANSFORM
+      SELF.period := 0;
+      SELF.dependent := mu;
+    END;
+    dummy := DATASET([{1}], {UNSIGNED1 x});
+    rslt := NORMALIZE(dummy, t, genObs());
+    RETURN rslt;
+  END;
   HistRec := RECORD
     DATASET(ObsRec) act;
     DATASET(ObsRec) fcst;
@@ -28,7 +37,22 @@ EXPORT DATASET(Model_Score)
     SELF := obs;
     SELF := mod;
   END;
-  withModel := JOIN(diffed, extend_specs, LEFT.model_id=RIGHT.model_id,
+  withParm := JOIN(diffed, extend_specs, LEFT.model_id=RIGHT.model_id,
                      makeBase(LEFT,RIGHT), LOOKUP);
+  grpdModObs := GROUP(SORT(withParm, model_id, period), model_id);
+  UpdRec(WorkRec wr, HistRec hr) := MODULE
+    SHARED act := IF(EXISTS(hr.act), hr.act, jumpStart(wr.terms, wr.mu));
+    SHARED fct := IF(EXISTS(hr.fcst), hr.fcst, jumpStart(wr.terms, wr.mu));
+    SHARED actN:= DATASET([{wr.period, wr.dependent}], ObsRec) & act;
+    EXPORT HistRec histUpd() := TRANSFORM
+      SELF.act := CHOOSEN(actN, wr.terms);
+      SELF := [];
+    END;
+    EXPORT WorkRec obsUpd() := TRANSFORM
+      SELF := [];
+    END;
+  END;
+  initH := ROW({DATASET([],ObsRec), DATASET([], ObsRec)}, HistRec);
+  withEst := PROCESS(grpdModObs, initH, UpdRec(LEFT,RIGHT).obsUpd(), UpdRec(LEFT,RIGHT).histUpd());
   RETURN DATASET([], Model_Score);
 END;
