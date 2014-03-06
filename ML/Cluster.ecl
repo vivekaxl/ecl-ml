@@ -1,4 +1,4 @@
-﻿//-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 // Module used to cluster perform clustering on data in the NumericField
 // format.  Includes functions for calculating distance using many different
 // algorithms, determining centroid allegiance based on those distances, and
@@ -244,7 +244,7 @@ EXPORT Cluster := MODULE
     // method specified by the user for this module
     SHARED dDistanceDelta(UNSIGNED n01=n-1,UNSIGNED n02=n,DATASET(lIterations) d):=FUNCTION
       iMax01:=MAX(dResult(n01,d),id);
-      dDistances:=Distances(dResult(n01,d),PROJECT(dResult(n02,d),TRANSFORM(Types.NumericField,SELF.id:=LEFT.id+iMax01;SELF:=LEFT;)));
+      dDistances:=Distances(dResult(n01,d),PROJECT(dResult(n02,d),TRANSFORM(Types.NumericField,SELF.id:=LEFT.id+iMax01;SELF:=LEFT;)),fDist);
       RETURN PROJECT(dDistances(x=y-iMax01),TRANSFORM({Types.NumericField AND NOT [number];},SELF.id:=LEFT.x;SELF:=LEFT;));
     END;
 
@@ -260,7 +260,7 @@ EXPORT Cluster := MODULE
       // set the current centroids to the results of the most recent iteration
       dCentroids:=PROJECT(d,TRANSFORM(Types.NumericField,SELF.value:=LEFT.values[c];SELF:=LEFT;));
       // get all document-to-centroid distances, and determine centroid allegiance
-      dDistances:=Distances(d01,dCentroids);
+      dDistances:=Distances(d01,dCentroids,fDist);
       dClosest:=Closest(dDistances);
       // Get a count of the number of documents allied to each centroid
       dClusterCounts:=TABLE(dClosest,{y;UNSIGNED c:=COUNT(GROUP);},y,FEW);
@@ -280,7 +280,7 @@ EXPORT Cluster := MODULE
       RETURN IF(bConverged,d,dAdded);
     END;
     dIterationResults:=LOOP(d02Prep,n,fIterate(ROWS(LEFT),COUNTER));
-    SHARED dIterations:=IF(iOffset>0,PROJECT(dIterationResults,TRANSFORM(lIterations,SELF.id:=LEFT.id-iOffset;SELF:=LEFT;)),dIterationResults);
+    SHARED dIterations:=IF(iOffset>0,PROJECT(dIterationResults,TRANSFORM(lIterations,SELF.id:=LEFT.id-iOffset;SELF:=LEFT;)),dIterationResults):INDEPENDENT;
 
     // Show the fully traced result set
     EXPORT lIterations AllResults:=dIterations;
