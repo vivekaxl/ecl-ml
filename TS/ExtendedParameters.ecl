@@ -1,4 +1,5 @@
-﻿IMPORT TS;
+// Entend model parameters into co-efficients for application and extract mu
+IMPORT TS;
 IMPORT TS.Types;
 Model_Parameters := Types.Model_Parameters;
 Co_efficient := Types.Co_efficient;
