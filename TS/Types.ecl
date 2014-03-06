@@ -50,10 +50,14 @@ EXPORT Types := MODULE
   END;
   EXPORT Parameter_Extension := RECORD
     t_model_id model_id;
+    UNSIGNED2 degree;
     UNSIGNED2 terms;
     t_value c;
     t_value mu;
     DATASET(Co_efficient) theta_phi;
     DATASET(Co_efficient) phi;
+  END;
+  EXPORT Obs_Estimated := RECORD(ModelObs)
+    t_value estimate := 0.0;
   END;
 END;
