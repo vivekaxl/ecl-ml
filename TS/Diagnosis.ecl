@@ -1,6 +1,5 @@
-//
+﻿//
 IMPORT TS;
-//IMPORT TS.Types;
 Model_Score := TS.Types.Model_Score;
 Model_Parm := TS.Types.Model_Parameters;
 
