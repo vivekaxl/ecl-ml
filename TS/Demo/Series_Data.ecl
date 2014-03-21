@@ -17,7 +17,7 @@ EXPORT Series_Data(UNSIGNED2 test_records=100,
     REAL8 prev_prev_val;
     REAL8 accum;
   END;
-  REAL8 genNoise := (RANDOM()%1000)/1000;
+  REAL8 genNoise := (RANDOM()%1000)/10000;
   w0 := DATASET([{0}], {UNSIGNED2 x});
   w1 := NORMALIZE(w0, test_records, TRANSFORM(Work0, SELF.rec_id:=COUNTER));
   s_init := ROW({start_val-incr_val, start_val-2*incr_val, 0.0}, State_Rec);

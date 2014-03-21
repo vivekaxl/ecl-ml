@@ -1,4 +1,4 @@
-// Model Identification.  Produces autocorrelation function and
+﻿// Model Identification.  Produces autocorrelation function and
 //the partial autocorrelation function datasets.
 IMPORT PBblas;
 IMPORT TS.Types;
@@ -46,31 +46,39 @@ EXPORT Identification(DATASET(Types.UniObservation) series,
                       addStats(LEFT, RIGHT), LOOKUP);
     LagRec explode(ObsRec rec, UNSIGNED c) := TRANSFORM
       k := (c-1) DIV 2;
-      adj := (c-1) % 2;
-      SELF.period := IF(rec.period + k <= rec.N, rec.period, SKIP);
-      SELF.lag_per := rec.period + k + IF(k=0, 0, adj);
+      adj := ((c-1) % 2)*k; //no adjustment for this column then adj for lag
+      SELF.period := IF(rec.period-adj>0 AND rec.period+k-adj<=rec.N, rec.period, SKIP);
+      SELF.lag_per := rec.period - adj;
       SELF.v := rec.dependent - rec.z_bar;
       SELF.k := k;
       SELF.model_id := rec.model_id;
       SELF.N := rec.N;
     END;
-    exploded := NORMALIZE(withStats, 2*(lags+1), explode(LEFT, COUNTER));
-    s_exploded := SORT(exploded, model_id, k, lag_per, period);
+    // replicate for t and t+k multiply, use 0 for var (t and t)
+    // t_k = SUM((z_i-zbar)*(z_i+k - zbar);i=1,N-k)
+    exploded_t := NORMALIZE(withStats, 2*(lags+1), explode(LEFT, COUNTER));
+    s_exploded := SORT(exploded_t, model_id, k, lag_per, period);
     LagRec mult(LagRec prev, LagRec curr) := TRANSFORM
       SELF.v := prev.v * curr.v;
       SELF := curr;
     END;
-    products := ROLLUP(s_exploded, mult(LEFT,RIGHT), model_id, k, lag_per);
-    r_k_denom := products(k=0);
+    prod_terms := ROLLUP(s_exploded, mult(LEFT,RIGHT), model_id, k, lag_per);
+    LagRec sumt(Lagrec prev, LagRec curr) := TRANSFORM
+      SELF.v := prev.v + curr.v;
+      SELF := curr;
+    END;
+    sum_terms := ROLLUP(prod_terms, sumt(LEFT,RIGHT), model_id, k);
+    r_k_denom := sum_terms(k=0);
+    r_k_numer := sum_terms(k>0);
     ACF_Rec makeACF(LagRec rec, LagRec denom) := TRANSFORM
       SELF.k := rec.k;
-      SELF.ac := rec.v / denom.v;
+      SELF.ac := rec.v / denom.v;   // the r_k value
       SELF.sq := (rec.v*rec.v) / (denom.v*denom.v);
       SELF.sum_sq := 0.0;
       SELF.model_id := rec.model_id;
       SELF.N := rec.N;
     END;
-    pre_sumsq := JOIN(products(k>0), r_k_denom, LEFT.model_id=RIGHT.model_id,
+    pre_sumsq := JOIN(r_k_numer, r_k_denom, LEFT.model_id=RIGHT.model_id,
                       makeACF(LEFT, RIGHT), LOOKUP);
     ACF_Rec accum_sq(ACF_rec prev, ACF_rec curr) := TRANSFORM
       SELF.sum_sq := IF(prev.model_id=curr.model_id, prev.sum_sq + prev.sq, 0);
@@ -84,14 +92,16 @@ EXPORT Identification(DATASET(Types.UniObservation) series,
       SELF.v := acf.ac;
       SELF.model_id := acf.model_id;
     END;
-    Cell mult_k_kj(Cell r_k, Cell r_kj) := TRANSFORM
+    Cell mult_k_kj(Cell r_k, Cell r_kj, UNSIGNED i) := TRANSFORM
       SELF.v := r_k.v * r_kj.v;
       SELF.x := r_kj.x + 1;
-      SELF.y := r_kj.x + 1;
+      SELF.y := MAP(r_k.x=r_kj.y AND r_k.x=i-r_kj.y => 3,   // both
+                    r_k.x=r_kj.y                    => 2,   // divisor
+                    1);
       SELF.model_id := r_k.model_id;
     END;
     Cell make_rkk(Cell r_k, DATASET(Cell) pairs) := TRANSFORM
-      SELF.v := (r_k.v - SUM(pairs, v)) / (1.0 - SUM(pairs, v));
+      SELF.v := (r_k.v - SUM(pairs(y<>2), v)) / (1.0 - SUM(pairs(y<>1), v));
       SELF.x := r_k.x;
       SELF.y := r_k.x;
       SELF.model_id := r_k.model_id;
@@ -112,8 +122,9 @@ EXPORT Identification(DATASET(Types.UniObservation) series,
     init_partial := DATASET([], Cell);
     loop_body(DATASET(Cell) work, UNSIGNED i) := FUNCTION
       work_pairs := JOIN(rk_cells(x<i), work(x=i-1),
-                        LEFT.model_id=RIGHT.model_id AND LEFT.x=i-RIGHT.y,
-                        mult_k_kj(LEFT,RIGHT), LOOKUP);
+                        LEFT.model_id=RIGHT.model_id
+                        AND (LEFT.x=i-RIGHT.y OR LEFT.x=RIGHT.y),
+                        mult_k_kj(LEFT,RIGHT, i), ALL);
       r_kk := DENORMALIZE(rk_cells(x=i), work_pairs,
                           LEFT.model_id=RIGHT.model_id AND LEFT.x=RIGHT.x, GROUP,
                           make_rkk(LEFT, ROWS(RIGHT)));
