@@ -720,14 +720,29 @@ Configuration Input
   EXPORT RandomForest(t_Count treeNum, t_Count fsNum, REAL Purity=1.0, INTEGER1 Depth=32):= MODULE
     EXPORT model_Map :=	DATASET([{'id','ID'},{'node_id','1'},{'level','2'},{'number','3'},{'value','4'},{'new_node_id','5'},{'group_id',6}], {STRING orig_name; STRING assigned_name;});
     EXPORT STRING model_fields := 'node_id,level,number,value,new_node_id,group_id';	// need to use field map to call FromField later
+    EXPORT modelC_Map :=	DATASET([{'id','ID'},{'node_id','1'},{'level','2'},{'number','3'},{'value','4'},{'high_fork','5'},{'new_node_id','6'},{'group_id',7}], {STRING orig_name; STRING assigned_name;});
+    EXPORT STRING modelC_fields := 'node_id,level,number,value,high_fork,new_node_id,group_id';	// need to use field map to call FromField later
+
     EXPORT LearnD(DATASET(Types.DiscreteField) Indep, DATASET(Types.DiscreteField) Dep) := FUNCTION
       nodes := Ensemble.SplitFeatureSampleGI(Indep, Dep, treeNum, fsNum, Purity, Depth);
       AppendID(nodes, id, model);
       ToField(model, out_model, id, model_fields);
       RETURN out_model;
     END;
+    EXPORT LearnC(DATASET(Types.NumericField) Indep, DATASET(Types.DiscreteField) Dep) := FUNCTION
+      nodes := Ensemble.SplitFeatureSampleGIBin(Indep, Dep, treeNum, fsNum, Purity, Depth);
+      AppendID(nodes, id, model);
+      ToField(model, out_model, id, modelC_fields);
+      RETURN out_model;
+    END;
+    // Transform NumericFiled "mod" to Ensemble.gSplitF "discrete tree nodes" model format using field map model_Map
     EXPORT Model(DATASET(Types.NumericField) mod) := FUNCTION
       ML.FromField(mod, Ensemble.gSplitF, o, model_Map);
+      RETURN o;
+    END;
+    // Transform NumericFiled "mod" to Ensemble.gSplitC "binary tree nodes" model format using field map modelC_Map
+    EXPORT ModelC(DATASET(Types.NumericField) mod) := FUNCTION
+      ML.FromField(mod, Ensemble.gSplitC, o, modelC_Map);
       RETURN o;
     END;
     // The function returns instance's class probability distribution for each class value
@@ -735,7 +750,19 @@ Configuration Input
     EXPORT ClassProbabilityDistributionD(DATASET(Types.DiscreteField) Indep,DATASET(Types.NumericField) mod) := FUNCTION
       ML.FromField(mod, Ensemble.gSplitF, nodes, model_Map);	// need to use model_Map previously build when Learning (ToField)
       leafs := nodes(new_node_id = 0);	// from final nodes
-      splitData_raw:= Ensemble.gSplitInstances(nodes, Indep);
+      splitData_raw:= Ensemble.gSplitInstD(nodes, Indep);
+      splitData:= DISTRIBUTE(splitData_raw, id);
+      gClass:= JOIN(splitData, leafs, LEFT.new_node_id = RIGHT.node_id AND LEFT.group_id = RIGHT.group_id,
+                TRANSFORM(Types.DiscreteField, SELF.id:= LEFT.id, SELF.number := 1, SELF.value:= RIGHT.value), LOOKUP);
+      accClass:= TABLE(gClass, {id, number, value, cnt:= COUNT(GROUP)}, id, number, value, LOCAL);
+      tClass := TABLE(accClass, {id, number, tot:= SUM(GROUP, cnt)}, id, number, LOCAL);
+      sClass:= JOIN(accClass, tClass, LEFT.number=RIGHT.number AND LEFT.id=RIGHT.id, LOCAL);
+      RETURN PROJECT(sClass, TRANSFORM(l_result, SELF.conf:= LEFT.cnt/LEFT.tot, SELF:= LEFT, SELF:=[]), LOCAL);
+    END;
+    EXPORT ClassProbabilityDistributionC(DATASET(Types.NumericField) Indep,DATASET(Types.NumericField) mod) := FUNCTION
+      ML.FromField(mod, Ensemble.gSplitC, nodes, modelC_Map);	// need to use modelC_Map previously build when Learning (ToField)
+      leafs := nodes(new_node_id = 0);	// from final nodes
+      splitData_raw:= Ensemble.gSplitInstC(nodes, Indep);
       splitData:= DISTRIBUTE(splitData_raw, id);
       gClass:= JOIN(splitData, leafs, LEFT.new_node_id = RIGHT.node_id AND LEFT.group_id = RIGHT.group_id,
                 TRANSFORM(Types.DiscreteField, SELF.id:= LEFT.id, SELF.number := 1, SELF.value:= RIGHT.value), LOOKUP);
@@ -753,6 +780,15 @@ Configuration Input
       finalClass:=DEDUP(sClass, id, LOCAL);
       RETURN PROJECT(finalClass, TRANSFORM(l_result, SELF:= LEFT, SELF:=[]), LOCAL);
     END;
+    EXPORT ClassifyC(DATASET(Types.NumericField) Indep,DATASET(Types.NumericField) mod) := FUNCTION
+      // get class probabilities for each instance
+      dClass:= ClassProbabilityDistributionC(Indep, mod);
+      // select the class with greatest probability for each instance
+      sClass := SORT(dClass, id, -conf, LOCAL);
+      finalClass:=DEDUP(sClass, id, LOCAL);
+      RETURN PROJECT(finalClass, TRANSFORM(l_result, SELF:= LEFT, SELF:=[]), LOCAL);
+    END;
+
     // The function calculate the Area Under the ROC curve based on:
     // - classProbDistclass : probability distribution for each instance
     // - positiveClass      : the class of interest
@@ -812,14 +848,15 @@ Configuration Input
       END;
       // Transform all into ROC curve points
       rocPoints:= PROJECT(accnew, TRANSFORM(curvePoint, SELF.id:=COUNTER, SELF.thresho:=LEFT.score,
-                                  SELF.fpr:= LEFT.fp_cnt/totNeg, SELF.tpr:= LEFT.tp_cnt/totPos, SELF:=LEFT));
+                                  SELF.fpr:= LEFT.fp_cnt/totNeg, SELF.tpr:= LEFT.tp_cnt/totPos, SELF.AUC:=IF(totNeg=0,1,0) ,SELF:=LEFT));
       // Calculate the area under the curve (cumulative iteration)
       curvePoint rocArea(curvePoint l, curvePoint r) := TRANSFORM
         deltaPos  := if(l.tpr > r.tpr, l.tpr - r.tpr, 0.0);
         deltaNeg  := if( l.fpr > r.fpr, l.fpr - r.fpr, 0.0);
         SELF.deltaPos := deltaPos;
         SELF.deltaNeg := deltaNeg;
-        SELF.AUC      := l.AUC + deltaPos * (l.cumNeg + 0.5* deltaNeg);
+        // A classification without incorrectly classified instances must return AUC = 1
+        SELF.AUC      := IF(r.fpr=0 AND l.tpr=0 AND r.tpr=1, 1, l.AUC) + deltaPos * (l.cumNeg + 0.5* deltaNeg);
         SELF.cumNeg   := l.cumNeg + deltaNeg;
         SELF:= r;
       END;
