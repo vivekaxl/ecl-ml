@@ -183,7 +183,7 @@ EXPORT Ensemble := MODULE
     leafs := mod(new_node_id = 0);	// from final nodes
     Ind   := DISTRIBUTE(Indep, HASH(id));
     join0 := JOIN(Ind, splits, LEFT.number = RIGHT.number AND RIGHT.high_fork = IF(LEFT.value > RIGHT.value, 1, 0), LOOKUP, MANY);
-    sort0 := SORT(join0, group_id, id, level, number, node_id, new_node_id, LOCAL);
+    sort0 := SORT(join0, group_id, id, level, node_id, LOCAL);
     dedup0:= DEDUP(sort0, LEFT.group_id = RIGHT.group_id AND LEFT.id = RIGHT.id AND LEFT.new_node_id != RIGHT.node_id, KEEP 1, LEFT, LOCAL);
     dedup1:= DEDUP(dedup0, LEFT.group_id = RIGHT.group_id AND LEFT.id = RIGHT.id AND LEFT.new_node_id = RIGHT.node_id, KEEP 1, RIGHT, LOCAL);
     RETURN dedup1;
@@ -208,9 +208,11 @@ EXPORT Ensemble := MODULE
     node_prop := JOIN(node_dep, node_dep_tot,  LEFT.group_id = RIGHT.group_id AND LEFT.node_id =RIGHT.node_id,
                   TRANSFORM(r, SELF.Prop := LEFT.cnt/RIGHT.tot, SELF.tot:= RIGHT.tot, SELF := LEFT));
     // Compute 1-gini coefficient for each node for each field for each value
-    gini_node:= TABLE(node_prop,{node_id, TotalCnt := SUM(GROUP,Cnt), Gini := 1-SUM(GROUP,Prop*Prop)}, node_id);
-    PureEnough := gini_node(1-Purity >= gini);
-    leafsNodes  := JOIN(PureEnough, this_set_all , LEFT.node_id=RIGHT.node_id, TRANSFORM(gNodeInstCont, SELF.id:=0, SELF.number:=0, SELF.value:=0, SELF:=RIGHT), PARTITION RIGHT, KEEP(1));
+    gini_node:= TABLE(node_prop,{node_id, TotalCnt := SUM(GROUP,Cnt), Gini := 1-SUM(GROUP,Prop*Prop)}, node_id, FEW);
+    PureEnough := gini_node(gini >= Purity);
+    s_node_prop:= SORT(node_prop, group_id, node_id, -cnt);
+    d_node_prop:= DEDUP(s_node_prop, group_id, node_id);
+    leafsNodes := JOIN(d_node_prop, PureEnough, LEFT.node_id=RIGHT.node_id, TRANSFORM(gNodeInstCont, SELF.id:=0, SELF.number:=0, SELF.value:=0, SELF.level:= p_level,SELF:=LEFT), FEW);
     // splitting the instances that did not reach a leaf node
     this_set_out:= JOIN(this_set_all, PureEnough, LEFT.node_id=RIGHT.node_id, TRANSFORM(LEFT), LEFT ONLY, LOOKUP);
     this_set  := JOIN(this_set_out, featSet, LEFT.group_id = RIGHT.gNum AND LEFT.number= RIGHT.number, TRANSFORM(LEFT), LOOKUP);  
