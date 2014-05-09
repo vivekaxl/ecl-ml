@@ -305,7 +305,8 @@ EXPORT Ensemble := MODULE
     depth   := MIN(126, maxLevel); // Max number of iterations when building trees (max 126 levels)
     // sampling with replacement the original dataset to generate treeNum Datasets
     grList:= ML.Sampling.GenerateNSampleList(treeNum, N); // the number of records will be N * treeNum
-    groupDep:= JOIN(Dep, grList, LEFT.id = RIGHT.oldId, GroupDepRecords(LEFT, RIGHT)); // if grList were not too big we should use lookup
+    groupDep0:= JOIN(dep, grList, LEFT.id = RIGHT.oldId, GroupDepRecords(LEFT, RIGHT));
+    groupDep:=DISTRIBUTE(groupDep0, HASH(id));
     ind0 := ML.Utils.Fat(Indep); // Ensure no sparsity in independents
     gNodeInstCont init(Types.NumericField ind, DepGroupedRec depG) := TRANSFORM
       SELF.group_id := depG.group_id;
@@ -315,9 +316,9 @@ EXPORT Ensemble := MODULE
       SELF.id := depG.new_id;
       SELF := ind;
     END;
-    ind1 := JOIN(ind0, groupDep, LEFT.id = RIGHT.id, init(LEFT,RIGHT)); // If we were prepared to force DEP into memory then ,LOOKUP would go quicker
+    ind1 := JOIN(ind0, groupDep, LEFT.id = RIGHT.id, init(LEFT,RIGHT), LOCAL); 
     // generating best feature_selection-gini_impurity splits, loopfilter level = COUNTER let pass only the nodes to be splitted for any current level
-    res := LOOP(ind1, LEFT.level=COUNTER, COUNTER < depth , RndFeatSelBinPartitionGIBased(ROWS(LEFT), treeNum, fsNum, totFeat, COUNTER, Purity));
+    res := LOOP(ind1,  LEFT.level=COUNTER AND LEFT.level<= depth, RndFeatSelBinPartitionGIBased(ROWS(LEFT), treeNum, fsNum, totFeat, COUNTER, Purity));
     // Turning LOOP results into splits and leaf nodes
     gSplitC toNewNode(gNodeInstCont NodeInst) := TRANSFORM
       SELF.new_node_id  := IF(NodeInst.number>0, NodeInst.depend, 0);
