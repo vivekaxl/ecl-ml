@@ -1,4 +1,5 @@
-﻿IMPORT TS;
+//Extend parameters for forecast
+IMPORT TS;
 IMPORT TS.Types;
 Model_Parameters := Types.Model_Parameters;
 Co_efficient := Types.Co_efficient;

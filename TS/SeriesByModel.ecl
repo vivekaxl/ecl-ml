@@ -1,4 +1,4 @@
-// Expand a series into a series fro each model
+// Expand a series into a series for each model
 IMPORT TS;
 ObsRec := TS.Types.UniObservation;
 ModelObs := TS.Types.ModelObs;
