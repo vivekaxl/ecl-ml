@@ -1,25 +1,30 @@
-//Produce a series from a differenced series of degree 0, 1, or 2
-IMPORT TS;
-ModelObs := TS.Types.ModelObs;
-Spec := TS.Types.Ident_Spec;
-EXPORT AccumSeries(DATASET(TS.Types.ModelObs) obs,
-                        DATASET(TS.Types.Ident_Spec) degree) := FUNCTION
-  ObsRec := RECORD(TS.Types.ModelObs)
+﻿//Produce a series from a differenced series of degree 0 to 5
+IMPORT TS.Types;
+ModelObs := Types.ModelObs;
+Spec := Types.Ident_Spec;
+EXPORT AccumSeries(DATASET(Types.ModelObs) obs,
+                        DATASET(Types.Ident_Spec) degree_spec) := FUNCTION
+  ObsRec := RECORD(Types.ModelObs)
     UNSIGNED2 degree;
   END;
   ObsRec markDegree(ModelObs obs, Spec sp) := TRANSFORM
     SELF.degree := sp.degree;
     SELF := obs;
   END;
-  marked := JOIN(obs, degree, LEFT.model_id=RIGHT.model_id,
+  degreeOK := ASSERT(degree_spec, degree<6, 'degree > 5 not supported', FAIL);
+  marked := JOIN(obs, degreeOK, LEFT.model_id=RIGHT.model_id,
                  markDegree(LEFT, RIGHT), LOOKUP);
   ObsRec accumObs(ObsRec prev, ObsRec curr, UNSIGNED2 pass) := TRANSFORM
-    no_accum := pass > curr.degree OR prev.model_id <> curr.model_id;
-    SELF.dependent := IF(no_accum, curr.dependent, curr.dependent+prev.dependent);
+    no_accum := pass > curr.degree OR curr.degree+1-pass >= curr.period;
+    base := IF(prev.model_id<>curr.model_id, 0, prev.dependent);
+    SELF.dependent := IF(no_accum, curr.dependent, curr.dependent + base);
     SELF := curr;
   END;
   accum1 := ITERATE(marked, accumObs(LEFT, RIGHT, 1));
   accum2 := ITERATE(accum1, accumObs(LEFT, RIGHT, 2));
-  rslt := PROJECT(accum2, ModelObs);
+  accum3 := ITERATE(accum2, accumObs(LEFT, RIGHT, 3));
+  accum4 := ITERATE(accum3, accumObs(LEFT, RIGHT, 4));
+  accum5 := ITERATE(accum4, accumObs(LEFT, RIGHT, 5));
+  rslt := PROJECT(accum5, ModelObs);
   RETURN rslt;
 END;
