@@ -1,4 +1,4 @@
-// Model Identification.  Produces autocorrelation function and
+﻿// Model Identification.  Produces autocorrelation function and
 //the partial autocorrelation function datasets.
 IMPORT PBblas;
 IMPORT TS.Types;
@@ -20,6 +20,7 @@ EXPORT Identification(DATASET(Types.UniObservation) series,
   SHARED ACF_Rec := RECORD
     Types.t_model_id model_id;
     UNSIGNED2 k;
+    REAL8 av;           // Auto cov, k
     REAL8 ac;           // Auto corr, k
     REAL8 sq;
     REAL8 sum_sq;       // sum of r-squared, k-1 of them
@@ -72,6 +73,7 @@ EXPORT Identification(DATASET(Types.UniObservation) series,
     r_k_numer := sum_terms(k>0);
     ACF_Rec makeACF(LagRec rec, LagRec denom) := TRANSFORM
       SELF.k := rec.k;
+      SELF.av := rec.v;
       SELF.ac := rec.v / denom.v;   // the r_k value
       SELF.sq := (rec.v*rec.v) / (denom.v*denom.v);
       SELF.sum_sq := 0.0;
@@ -138,7 +140,9 @@ EXPORT Identification(DATASET(Types.UniObservation) series,
     partials := LOOP(init_partial, lags, loop_body(ROWS(LEFT), COUNTER));
     Types.PACF_ACF calc_t(ACF_Rec acf, Cell pacf) := TRANSFORM
       work := 1 / SQRT(acf.N);
+      SELF.lags:= lags;
       SELF.lag := acf.k;
+      SELF.av := acf.av;
       SELF.ac := acf.ac;
       SELF.pac := pacf.v;
       SELF.ac_t_like := acf.ac/(SQRT(1+2*acf.sum_sq) * work);
