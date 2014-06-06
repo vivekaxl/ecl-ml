@@ -10,6 +10,10 @@
 // epsilon parameter.
 IMPORT TS;
 IMPORT PBblas;
+//Aliases
+value_t := PBblas.Types.value_t;
+dim_t := PBblas.Types.dimension_t;
+matrix_t := PBblas.Types.matrix_t;
 // Intermediate types
 Model_cell := RECORD(PBblas.Types.Layout_Cell)
   TS.Types.t_model_id model_id;
@@ -18,34 +22,34 @@ END;
 Extend_Spec := RECORD(TS.Types.Model_Spec)
   UNSIGNED2 obs_cnt;
   UNSIGNED2 lag := 0;
-  PBblas.Types.value_t mean;
-  PBblas.Types.value_t total;
-  PBblas.Types.value_t var;
+  value_t mean;
+  value_t total;
+  value_t var;
 END;
 Init_Work := RECORD(TS.Types.Model_Spec)
   UNSIGNED2 obs_cnt;
-  PBblas.Types.value_t mean;
-  PBblas.Types.value_t total;
-  PBblas.Types.value_t var;
-  PBblas.Types.matrix_t dep_set;
-  PBblas.Types.matrix_t lag_set;
-  PBblas.Types.matrix_t betas;
-  PBblas.Types.matrix_t residual;
-  PBblas.Types.matrix_t rlag_set;
-  PBblas.Types.matrix_t yw_set;
-  PBblas.Types.matrix_t cov_set;
-  PBblas.Types.matrix_t ma_coef;
+  value_t mean;
+  value_t total;
+  value_t var;
+  matrix_t dep_set;
+  matrix_t lag_set;
+  matrix_t betas;
+  matrix_t residual;
+  matrix_t rlag_set;
+  matrix_t yw_set;
+  matrix_t cov_set;
+  matrix_t ma_coef;
 END;
 Irls_Work := RECORD(TS.Types.Model_Spec)
   UNSIGNED2 row_cnt;
-  PBblas.Types.value_t mean;
-  PBblas.Types.value_t total;
-  PBblas.Types.value_t var;
-  PBblas.Types.value_t delta;
-  PBblas.Types.matrix_t dep_set;
-  PBblas.Types.matrix_t betas;
-  PBblas.Types.matrix_t full_x;
-  PBblas.Types.matrix_t w;
+  value_t mean;
+  value_t total;
+  value_t var;
+  value_t delta;
+  matrix_t dep_set;
+  matrix_t betas;
+  matrix_t full_x;
+  matrix_t w;
 END;
 //
 EXPORT //DATASET(TS.Types.Model_Parameters)
@@ -178,7 +182,7 @@ EXPORT //DATASET(TS.Types.Model_Parameters)
   Model_Cell makeDiag(Model_Cell cell) := TRANSFORM
     SELF.v := 1.0;
     SELF.x := cell.x;
-    SELF.y := cell.x; // make diag, cell.y is 1
+    SELF.y := cell.x; // make diag, cell.y is x
     SELF := cell;
   END;
   x_diag := PROJECT(av_vals, makeDiag(LEFT));
@@ -226,15 +230,15 @@ EXPORT //DATASET(TS.Types.Model_Parameters)
                           rollCells(LEFT, ROWS(RIGHT), Target.rlag_set),
                           NOSORT);
   Work_Val := RECORD
-    PBblas.Types.value_t cv;
+    value_t cv;
   END;
   Trim_dat := RECORD
-    PBblas.Types.dimension_t m_rows;
-    PBblas.Types.dimension_t m_cols;
-    PBblas.Types.dimension_t first_row;
-    PBblas.Types.dimension_t first_col;
-    PBblas.Types.dimension_t last_row;
-    PBblas.Types.dimension_t last_col;
+    dim_t m_rows;
+    dim_t m_cols;
+    dim_t first_row;
+    dim_t first_col;
+    dim_t last_row;
+    dim_t last_col;
   END;
   Work_Val scrnVals(Work_Val wv, Trim_dat td, UNSIGNED cnt) := TRANSFORM
     this_row := ((cnt-1)  %  td.m_rows) + 1;
@@ -261,14 +265,40 @@ EXPORT //DATASET(TS.Types.Model_Parameters)
     SELF.full_x := lag_set + iw.rlag_set;;
     SELF.dep_set := dep_set;
     SELF.betas := initBetas;
-    SELF.w := PBblas.Block.make_diag(target_row_cnt);   // initial weights are 1.0
+    SELF.w := PBblas.Block.make_vector(target_row_cnt);   // initial weights are 1.0
     SELF := iw;
   END;
   init_irls := PROJECT(with_lagr, cvt2Irls(LEFT));
   // iteratively adjust parameters
   // Solve X' W X B = X' Y
   // Adjust W, W(i) = 1/MAX(0.00001,ABS(Y(i) - X(i)*B(i)))
+  value_t newWi(value_t v, dim_t r, dim_t c) := 1.0/MAX(0.00001, ABS(v));
   Irls_Work reweight(Irls_Work iw) := TRANSFORM
+    w_in := PBblas.Block.make_Diag(iw.row_cnt, 1.0, iw.w);
+    columns := iw.ar_terms + iw.ma_terms
+             + IF(iw.ar_terms>0 AND iw.constant_term, 1, 0);
+    XtY  := PBblas.BLAS.dgemm(TRUE, FALSE, columns, 1, iw.row_cnt,
+                              1.0, iw.full_x, iw.dep_set, 0.0);
+    XtW  := PBblas.BLAS.dgemm(TRUE, FALSE, columns, iw.row_cnt, iw.row_cnt,
+                              1.0, iw.full_x, w_in, 0.0);
+    XtWX := PBblas.BLAS.dgemm(FALSE, FALSE, columns, columns, iw.row_cnt,
+                              1.0, XtW, iw.full_x, 0.0);
+    LU_W := PBblas.Block.dgetf2(columns, columns, XtWX);
+    s1_w := PBblas.BLAS.dtrsm(PBblas.Types.Side.Ax, PBblas.Types.Triangle.Lower,
+                              FALSE, PBblas.Types.Diagonal.UnitTri,
+                              columns, 1, columns, 1.0, LU_W, XtY);
+    NewB := PBblas.BLAS.dtrsm(PBblas.Types.Side.Ax, PBblas.Types.Triangle.Upper,
+                              FALSE, PBblas.Types.Diagonal.NotUnitTri,
+                              columns, 1, columns, 1.0, LU_W, s1_w);
+    bdif := PBblas.BLAS.daxpy(columns, -1.0, NewB, 1, iw.betas, 1);
+    estm := PBblas.BLAS.dgemm(FALSE, FALSE, iw.row_cnt, 1, columns,
+                              1.0, iw.full_x, NewB, 0.0);
+    rerr := PBblas.BLAS.daxpy(iw.row_cnt, -1.0, estm, 1, iw.dep_set, 1);
+    rsum := PBblas.BLAS.dasum(iw.row_cnt, rerr, 1);
+    wraw := PBblas.Block.Apply2Cells(iw.row_cnt, 1, rerr, newWi);
+    SELF.w := PBblas.BLAS.dscal(iw.row_cnt, rsum, wraw, 1);
+    SELF.delta := PBblas.BLAS.dasum(columns, bdif, 1);
+    SELF.betas := NewB;
     SELF := iw;
   END;
   Irls_Body(DATASET(Irls_Work) ds) := PROJECT(ds, reweight(LEFT));
@@ -279,11 +309,12 @@ EXPORT //DATASET(TS.Types.Model_Parameters)
     SELF.lag := c;
   END;
   TS.Types.Model_Parameters cvt2Parms(Irls_Work iw) := TRANSFORM
-    ar_cnt := iw.ar_terms + IF(iw.constant_term, 1, 0);
-    ar_coef:= CHOOSEN(DATASET(iw.betas, {REAL8 cv}), ar_cnt, 1);
+    ar_cnt := iw.ar_terms + IF(iw.ar_terms>0 AND iw.constant_term, 1, 0);
+    first_ar := IF(iw.constant_term, 2, 1);
+    ar_coef:= CHOOSEN(DATASET(iw.betas, {REAL8 cv}), ar_cnt, first_ar);
     ma_coef:= CHOOSEN(DATASET(iw.betas, {REAL8 cv}), iw.ma_terms, 1 + ar_cnt);
-    SELF.c := IF(iw.constant_term, iw.betas[1], 0.0);
-    SELF.ar:= IF(iw.ar_terms>0,PROJECT(ar_coef[2..], cvt2Coef(LEFT,COUNTER)));
+    SELF.c := IF(iw.constant_term, IF(iw.ar_terms>0, iw.betas[1], iw.mean), 0.0);
+    SELF.ar:= IF(iw.ar_terms>0,PROJECT(ar_coef, cvt2Coef(LEFT,COUNTER)));
     SELF.ma:= IF(iw.ma_terms>0,PROJECT(ma_coef, cvt2Coef(LEFT,COUNTER)));
     SELF := iw;
   END;
