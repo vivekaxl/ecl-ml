@@ -52,7 +52,7 @@ Irls_Work := RECORD(TS.Types.Model_Spec)
   matrix_t w;
 END;
 //
-EXPORT //DATASET(TS.Types.Model_Parameters)
+EXPORT DATASET(TS.Types.Model_Parameters)
        Estimation(DATASET(TS.Types.UniObservation) obs,
                   DATASET(TS.Types.Model_Spec) spec,
                   UNSIGNED2 maxIter=100, REAL4 epsilon=0.001) := FUNCTION

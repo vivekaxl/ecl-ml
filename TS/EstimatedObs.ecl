@@ -1,4 +1,4 @@
-﻿// Calculate the estimate values for history and future
+// Calculate the estimate values for history and future
 IMPORT TS;
 IMPORT TS.Types;
 ModelObs := TS.Types.ModelObs;
