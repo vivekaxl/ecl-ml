@@ -277,16 +277,16 @@ EXPORT DATASET(TS.Types.Model_Parameters)
     w_in := PBblas.Block.make_Diag(iw.row_cnt, 1.0, iw.w);
     columns := iw.ar_terms + iw.ma_terms
              + IF(iw.ar_terms>0 AND iw.constant_term, 1, 0);
-    XtY  := PBblas.BLAS.dgemm(TRUE, FALSE, columns, 1, iw.row_cnt,
-                              1.0, iw.full_x, iw.dep_set, 0.0);
     XtW  := PBblas.BLAS.dgemm(TRUE, FALSE, columns, iw.row_cnt, iw.row_cnt,
                               1.0, iw.full_x, w_in, 0.0);
+    XtWY := PBblas.BLAS.dgemm(FALSE, FALSE, columns, 1, iw.row_cnt,
+                              1.0, XtW, iw.dep_set, 0.0);
     XtWX := PBblas.BLAS.dgemm(FALSE, FALSE, columns, columns, iw.row_cnt,
                               1.0, XtW, iw.full_x, 0.0);
     LU_W := PBblas.Block.dgetf2(columns, columns, XtWX);
     s1_w := PBblas.BLAS.dtrsm(PBblas.Types.Side.Ax, PBblas.Types.Triangle.Lower,
                               FALSE, PBblas.Types.Diagonal.UnitTri,
-                              columns, 1, columns, 1.0, LU_W, XtY);
+                              columns, 1, columns, 1.0, LU_W, XtWY);
     NewB := PBblas.BLAS.dtrsm(PBblas.Types.Side.Ax, PBblas.Types.Triangle.Upper,
                               FALSE, PBblas.Types.Diagonal.NotUnitTri,
                               columns, 1, columns, 1.0, LU_W, s1_w);
