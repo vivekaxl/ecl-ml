@@ -6,7 +6,7 @@ dimension_t := PBblas.Types.dimension_t;
 partition_t := PBblas.Types.partition_t;
 IMPORT ML.MAT;
 
-EXPORT AutoMap(dimension_t m_rows, dimension_t m_cols,
+EXPORT AutoBVMap(dimension_t m_rows, dimension_t m_cols,
                   dimension_t f_b_rows=0, dimension_t f_b_cols=0, UNSIGNED maxrows=5000, UNSIGNED maxcols=(INTEGER)(CLUSTERSIZE*1.5)) 
 		:= MODULE(PBblas.IMatrix_Map)
 	

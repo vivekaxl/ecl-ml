@@ -703,8 +703,8 @@ EXPORT Logistic_sparse(REAL8 Ridge=0.00001, REAL8 Epsilon=0.000000001, UNSIGNED2
     - MaxIter: an optional parameter that defines a maximum number of iterations
     - prows: an optional parameter used to set the number of rows in partition blocks (Should be used in conjuction with pcols)
     - pcols: an optional parameter used to set the number of cols in partition blocks (Should be used in conjuction with prows)
-    - Maxrows: an optional parameter used to set maximum rows allowed per block when using AutoMap
-    - Maxcols: an optional parameter used to set maximum cols allowed per block when using AutoMap
+    - Maxrows: an optional parameter used to set maximum rows allowed per block when using AutoBVMap
+    - Maxcols: an optional parameter used to set maximum cols allowed per block when using AutoBVMap
 
     The inputs to the Logis module are:
   a) A training dataset X of discretized independant variables
@@ -729,9 +729,9 @@ EXPORT Logistic_sparse(REAL8 Ridge=0.00001, REAL8 Epsilon=0.000000001, UNSIGNED2
          havemaxcol := maxcols > 0;
          havemaxrowcol := havemaxrow and havemaxcol;
          
-         derivemap := IF(havemaxrowcol, PBblas.AutoMap(mX_n, mX_m,prows,pcols,maxrows, maxcols),
-                      IF(havemaxrow, PBblas.AutoMap(mX_n, mX_m,prows,pcols,maxrows),
-                      IF(havemaxcol, PBblas.AutoMap(mX_n, mX_m,prows,pcols,,maxcols),PBblas.AutoMap(mX_n, mX_m,prows,pcols))));
+         derivemap := IF(havemaxrowcol, PBblas.AutoBVMap(mX_n, mX_m,prows,pcols,maxrows, maxcols),
+                      IF(havemaxrow, PBblas.AutoBVMap(mX_n, mX_m,prows,pcols,maxrows),
+                      IF(havemaxcol, PBblas.AutoBVMap(mX_n, mX_m,prows,pcols,,maxcols),PBblas.AutoBVMap(mX_n, mX_m,prows,pcols))));
 
         sizeRec := RECORD
             PBblas.Types.dimension_t m_rows;
@@ -943,9 +943,10 @@ EXPORT Logistic_sparse(REAL8 Ridge=0.00001, REAL8 Epsilon=0.000000001, UNSIGNED2
         havemaxrowcol := havemaxrow and havemaxcol;
         
         //Map for Matrix X. Map will be used to derive all other maps in ClassifyC
-        derivemap := IF(havemaxrowcol, PBblas.AutoMap(mXloc_n, mXloc_m,prows,pcols,maxrows, maxcols),
-                     IF(havemaxrow, PBblas.AutoMap(mXloc_n, mXloc_m,prows,pcols,maxrows),
-                     IF(havemaxcol, PBblas.AutoMap(mXloc_n, mXloc_m,prows,pcols,,maxcols),PBblas.AutoMap(mXloc_n, mXloc_m,prows,pcols))));
+        derivemap := IF(havemaxrowcol, PBblas.AutoBVMap(mXloc_n, mXloc_m,prows,pcols,maxrows, maxcols),
+                        IF(havemaxrow, PBblas.AutoBVMap(mXloc_n, mXloc_m,prows,pcols,maxrows),
+                           IF(havemaxcol, PBblas.AutoBVMap(mXloc_n, mXloc_m,prows,pcols,,maxcols),
+                           PBblas.AutoBVMap(mXloc_n, mXloc_m,prows,pcols))));
                     
         
         sizeRec := RECORD

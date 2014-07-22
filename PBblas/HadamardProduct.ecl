@@ -18,21 +18,9 @@ value_t := Types.value_t;
 
 EXPORT DATASET(Part)
       HadamardProduct(IMatrix_Map x_map, DATASET(Part) X, DATASET(Part) Y) := FUNCTION
-  Product(PBblas.Types.value_t val1, PBblas.Types.value_t val2,
-        PBblas.Types.dimension_t r, PBblas.Types.dimension_t c) := val1 * val2;
-  
-  outrec := RECORD
-      {value_t xv};
-      {value_t yv};
-    END;
+  Product(PBblas.Types.value_t val1, PBblas.Types.value_t val2) := val1 * val2;
   
   Elem := {value_t v};  //short-cut record def
-  Elem applyProduct(outRec myCombSet,Part p, UNSIGNED pos) := TRANSFORM
-    r := ((pos-1)  %  p.part_rows) + p.first_row;
-    c := ((pos-1) DIV p.part_rows) + p.first_col;
-    SELF.v := Product(myCombSet.xv, myCombSet.yv, r, c)
-  END;
-  
   
   x_check := ASSERT(X, node_id=Thorlib.node(), Constants.Distribution_Error, FAIL);
   y_check := ASSERT(Y, node_id=Thorlib.node(), Constants.Distribution_Error, FAIL);
@@ -50,19 +38,15 @@ EXPORT DATASET(Part)
                     FAIL(UNSIGNED4, Dimension_IncompatZ, Dimension_Incompat));
   
   elemsX := DATASET(xrec.mat_part, Elem);
-    elemsY := DATASET(yrec.mat_part, Elem);
+  elemsY := DATASET(yrec.mat_part, Elem);
     
-    combinedSets := COMBINE(elemsX, elemsY, TRANSFORM(outrec, SELF.xv := LEFT.v;
-                              SELF.yv := RIGHT.v;
-                              SELF := [] ));
+  new_elems := COMBINE(elemsX, elemsY, TRANSFORM(Elem, SELF.v := Product(LEFT.v,RIGHT.v)));
 
-  new_elems := PROJECT(combinedSets, applyProduct(LEFT, xrec, COUNTER));   
-    
-    SELF.mat_part := MAP(haveX AND haveY =>  SET(new_elems, v),
-                         haveX           => PBblas.MakeR8Set(xrec.part_rows, xrec.part_cols, xrec.first_row, xrec.first_col,
-                                            DATASET([], PBblas.Types.Layout_Cell), 0, 0.0),
-                         PBblas.MakeR8Set(yrec.part_rows, yrec.part_cols, yrec.first_row, yrec.first_col,
-                              DATASET([], PBblas.Types.Layout_Cell), 0, 0.0));
+  SELF.mat_part := MAP(haveX AND haveY =>  SET(new_elems, v),
+                       haveX           => PBblas.MakeR8Set(xrec.part_rows, xrec.part_cols, xrec.first_row, xrec.first_col,
+                                          DATASET([], PBblas.Types.Layout_Cell), 0, 0.0),
+                       PBblas.MakeR8Set(yrec.part_rows, yrec.part_cols, yrec.first_row, yrec.first_col,
+                            DATASET([], PBblas.Types.Layout_Cell), 0, 0.0));
     SELF := xrec;
   
   END;

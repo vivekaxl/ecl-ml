@@ -1,5 +1,5 @@
 //This test can be used to determine a suggested size for matrix partitions
-//Only the first two params of AutoMap are needed for this. (NumRows,NumCols)
+//Only the first two params of AutoBVMap are needed for this. (NumRows,NumCols)
 //That last two params can be include if you want to change the maximum 
 //number of rows/cols per partition. (NumRows,NumCols,,,MaxRows,MaxCols)
 //Can be used to determine inputs for partition sizes for that use the AutoMap function
@@ -9,8 +9,8 @@
 
 IMPORT PBblas;
 
-mXmap := PBblas.AutoMap(100000,29);
-//mXmap := PBblas.AutoMap(100000,29,,,5000,(INTEGER)(CLUSTERSIZE*1.5));
+mXmap := PBblas.AutoBVMap(100000,29);
+//mXmap := PBblas.AutoBVMap(100000,29,,,5000,(INTEGER)(CLUSTERSIZE*1.5));
 
 sizeRec := RECORD
 			PBblas.Types.dimension_t m_rows;
