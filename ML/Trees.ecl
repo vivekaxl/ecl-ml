@@ -8,6 +8,10 @@ EXPORT Trees := MODULE
   EXPORT t_node := INTEGER4; // Assumes a maximum of 32 levels presently
 	SHARED t_Index:= INTEGER4;
   EXPORT t_level := UNSIGNED2; // Would allow up to 2^256 levels
+  EXPORT model_Map :=	DATASET([{'id','ID'},{'node_id','1'},{'level','2'},{'number','3'},{'value','4'},{'new_node_id','5'},{'support','6'}], {STRING orig_name; STRING assigned_name;});
+  EXPORT STRING model_fields := 'node_id,level,number,value,new_node_id,support';	// need to use field map to call FromField later
+  EXPORT modelC_Map :=	DATASET([{'id','ID'},{'node_id','1'},{'level','2'},{'number','3'},{'value','4'},{'high_fork','5'},{'new_node_id','6'}], {STRING orig_name; STRING assigned_name;});
+  EXPORT STRING modelC_fields := 'node_id,level,number,value,high_fork,new_node_id';	// need to use field map to call FromField later
   EXPORT Node := RECORD
     t_node node_id; // The node-id for a given point
     t_level level; // The level for a given point
@@ -638,7 +642,28 @@ EXPORT Trees := MODULE
 
 		RETURN C45PruneTree(raw_tree, testIndep, testDep);
 	END;
-
+  EXPORT ToDiscreteTree(DATASET(SplitF) nodes) := FUNCTION
+    AppendID(nodes, id, model);
+    ToField(model, out_model, id, model_fields);
+    RETURN out_model;
+  END;
+  EXPORT ModelD(DATASET(Types.NumericField) mod) := FUNCTION
+    ML.FromField(mod, SplitF,o, model_Map);
+    RETURN o;
+  END;
+  EXPORT ClassifyD(DATASET(Types.DiscreteField) Indep,DATASET(Types.NumericField) mod) := FUNCTION
+    ML.FromField(mod, SplitF, nodes, model_Map);	// need to use model_Map previously build when Learning (ToField)
+    leafs := nodes(new_node_id = 0);	// from final nodes
+    splitData:= SplitInstances(nodes, Indep);
+    l_result final_class(RECORDOF(splitData) l, RECORDOF(leafs) r ):= TRANSFORM
+      SELF.id 		:= l.id;
+      SELF.number	:= 1;
+      SELF.value	:= r.value;
+      SELF.conf				:= 0;		// added to fit in l_result, not used so far
+      SELF.closest_conf:= 0;	// added to fit in l_result, not used so far
+    END;
+    RETURN JOIN(splitData, leafs, LEFT.new_node_id = RIGHT.node_id, final_class(LEFT, RIGHT), LOOKUP);
+  END;
 //  Methods to handle Continuous Data with Decision Trees
 
   // Function that splits the tree (continuos independent values) based on Info Gain Ratio crtiteria
@@ -843,5 +868,30 @@ EXPORT Trees := MODULE
     dedup0:= DEDUP(sort0, LEFT.id = RIGHT.id AND LEFT.new_node_id != RIGHT.node_id, KEEP 1, LEFT, LOCAL);
     dedup1:= DEDUP(dedup0, LEFT.id = RIGHT.id AND LEFT.new_node_id = RIGHT.node_id, KEEP 1, RIGHT, LOCAL);
     RETURN dedup1;
+  END;
+  EXPORT ToNumericTree(DATASET(SplitC) nodes) := FUNCTION
+    AppendID(nodes, id, model);
+    ToField(model, out_model, id, modelC_fields);
+    RETURN out_model;
+  END;
+  EXPORT ModelC(DATASET(Types.NumericField) mod) := FUNCTION
+    ML.FromField(mod, SplitC,o, modelC_Map);
+    RETURN o;
+  END;
+  EXPORT ClassifyC(DATASET(Types.NumericField) Indep,DATASET(Types.NumericField) mod) := FUNCTION
+    // Transform NumericFiled "mod" to Trees.SplitC "nodes" model format using field map modelC_Map
+    ML.FromField(mod, SplitC, nodes, modelC_Map);
+    leafs := nodes(new_node_id = 0);                    // Get leaf nodes from model
+    // Locate instances into deepest split node based upon independent values
+    splitData:= SplitBinInstances(nodes, Indep);
+    // Locate instances into final leaf node and get Dependent value
+    l_result final_class(RECORDOF(splitData) l, RECORDOF(leafs) r ):= TRANSFORM
+      SELF.id 		:= l.id;
+      SELF.number	:= 1;
+      SELF.value	:= r.value;
+      SELF.conf		:= 0;		// added to fit in l_result, not used so far
+      SELF.closest_conf:= l.new_node_id;	// store final leaf node id, will use it in class distribution
+    END;
+    RETURN JOIN(splitData, leafs, LEFT.new_node_id = RIGHT.node_id, final_class(LEFT, RIGHT), LOOKUP);
   END;
 END;

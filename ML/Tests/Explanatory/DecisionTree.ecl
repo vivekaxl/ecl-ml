@@ -57,8 +57,7 @@ trainer2:= Classify.DecisionTree.C45(FALSE); // Unpruned
 model2:= trainer2.LearnD(Indep, Dep);
 //Pruning using test dataset
 nodes2b:=Trees.C45PruneTree(trainer2.Model(model2), indep_t, dep_t);
-AppendID(nodes2b, id, modelb);
-ToField(modelb, model2b, id, Classify.DecisionTree.model_fields);
+model2b:=Trees.ToDiscreteTree(nodes2b);
 
 trainer3:= Classify.DecisionTree.C45(TRUE, 3, 0.67449); // Pruned using 3 folds of training dataset and 25% confidence factor (z= 0.67449)
 model3:= trainer3.LearnD(Indep, Dep);
