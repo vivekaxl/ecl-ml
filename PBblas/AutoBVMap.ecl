@@ -19,58 +19,12 @@ EXPORT AutoBVMap(dimension_t m_rows, dimension_t m_cols,
 			//x = row/col size of dataset
 			//y = maxrow/maxcol
 			//z = clustersize
-			REAL8 findsize(REAL8 x, REAL8 y, REAL8 z) := BEGINC++
-	  				#option pure
-	  				//The counter in this function is used to adjust the size of the row/col division
-	  				double counter = 1;
-	  				
-	  				//Is current m_row/col larger 
-	  				//than maxrow/col
-	  				
-	  				while (x > y)
-	  				{
-	  				    //We do not want to divide by nums
-	  				    //less than zero so reset to 1
-	  				    if((z/counter) < 1)counter = 1;
-	  				    
-	  				    //Check to see if num row/col is
-	  				    //divisable by clustersize
-	  				    //If not, make it divisable
-	  				    if(((int)x % (int)z) !=0)
-	  				    { 
-	  				        int temp = (int)z * ((int)x / (int)z);
-	  				        x = (double)temp;
-	  				    }
-	    				
-	    				//Divide multiple of clustersize
-	    				//Will divide by smaller and smaller values
-	    				//to be sure the blocks aren't too small.
-	    				//Example (Clustersize=20): Divide by 20 then 10 then 4
-	    				x = x / (z/counter);
-	    				counter=counter+1;
-	    				
-	    				//Adjust size of next cut to make to 
-	    				//sure it is as even as possible
-	    				if(x>y)
-	    				{    
-	    				     //We want even splits
-	    				     //Example (Clustersize=20)
-	    				     //We do not want our next cut to be
-	    				     //(z/counter) => (20/3) because that 
-	    				     //would not result in even partitions 
-	    				     //so we skip 3 and go to 4. 
-	    				     while(((int)z%(int)counter) != 0)
-	   					     {
-	      					     //This skips numbers with no even split.
-	      					     counter = counter+1;
-	      					     //If counter reaches our 
-	      					     //clustersize then reset
-	      					     if(counter == z) counter = 1;
-	    				     }
-	    				}
-	  				}
-					return x;
-				ENDC++;
+			findsize(UNSIGNED4 x, UNSIGNED4 y, UNSIGNED4 z) := FUNCTION
+	  		     
+	  		     blocks := MAX((x DIV (y * z)) * z, z); //blocks is a multiple of the cluster size
+	  		     blockSize := (x + blocks - 1) DIV blocks; //blockSize is CEILING(x/blocks)
+	  		     
+	  		END;
 			
 			//Reaching this function mean that the number of rows and cols in dataset
 			//Are below the number of maxrows and maxcols.
@@ -86,7 +40,7 @@ EXPORT AutoBVMap(dimension_t m_rows, dimension_t m_cols,
 			//Cluster size is used to get as even a distribution as possible.
 			//part rows = m_rows && part cols = result
 			largecols := FUNCTION
-				cutcols := (INTEGER)findsize((REAL8)m_cols, (REAL8)maxcols, (REAL8)CLUSTERSIZE);
+				cutcols := findsize(m_cols, maxcols, CLUSTERSIZE);
 				RETURN [m_rows, cutcols];
 			END;
 			
@@ -103,7 +57,7 @@ EXPORT AutoBVMap(dimension_t m_rows, dimension_t m_cols,
 			//Cluster size is used to get as even a distribution as possible.
 			//part rows = result && part cols = m_cols
 			largerows  := FUNCTION
-				cutrows := (INTEGER) findsize((REAL8)m_rows, (REAL8)maxrows, (REAL8)CLUSTERSIZE);
+				cutrows := findsize(m_rows, maxrows, CLUSTERSIZE);
 				RETURN [cutrows, m_cols];
 			END;
 			
