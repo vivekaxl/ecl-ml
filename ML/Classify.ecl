@@ -754,36 +754,26 @@ EXPORT Logistic_sparse(REAL8 Ridge=0.00001, REAL8 Epsilon=0.000000001, UNSIGNED2
         mYmap := PBblas.Matrix_Map(sizeTable[1].m_rows, 1, sizeTable[1].f_b_rows, 1);
         mYdist := DMAT.Converted.FromElement(mY, mYmap);
 
-        genRec := RECORD
-            STRING1 x:= '';
-        END;
-        genSet := DATASET([{' '}], genRec);
-        Layout_Cell gen(UNSIGNED4 c, UNSIGNED4 NumRows, REAL8 v):=TRANSFORM
-            SELF.x := ((c-1)  %  NumRows) + 1;
-            SELF.y := ((c-1) DIV NumRows) + 1;
-            SELF.v := v;
-         END;
-        
-        
         //Create block matrix W
-        mW := NORMALIZE(genSet, sizeTable[1].m_rows, gen(COUNTER, sizeTable[1].m_rows, 1.0));
+        mW := DATASET(sizeTable[1].m_rows, gen(COUNTER, sizeTable[1].m_rows, 1.0));
         mWdist := DMAT.Converted.FromCells(mYmap, mW);
         
         
         
         //Create block matrix Ridge
-        mRidge := NORMALIZE(genSet, sizeTable[1].m_cols, gen(COUNTER, sizeTable[1].m_rows, ridge));
+        mRidge := DATASET(sizeTable[1].m_cols, gen(COUNTER, sizeTable[1].m_cols, ridge));
+        RidgeVecMap := PBblas.Matrix_Map(sizeTable[1].m_cols, 1, sizeTable[1].f_b_cols, 1);
         Ridgemap := PBblas.Matrix_Map(sizeTable[1].m_cols, sizeTable[1].m_cols, sizeTable[1].f_b_cols, sizeTable[1].f_b_cols);
-        mRidgeVec := DMAT.Converted.FromCells(Ridgemap, mRidge);
-        mRidgedist := PBblas.Vector2Diag(Ridgemap, mRidgeVec, Ridgemap);
+        mRidgeVec := DMAT.Converted.FromCells(RidgeVecMap, mRidge);
+        mRidgedist := PBblas.Vector2Diag(RidgeVecMap, mRidgeVec, Ridgemap);
         
         //Create block matrix Beta
-        mBeta0 := NORMALIZE(genSet, sizeTable[1].m_cols, gen(COUNTER, sizeTable[1].m_cols, 0.0));
+        mBeta0 := DATASET(sizeTable[1].m_cols, gen(COUNTER, sizeTable[1].m_cols, 0.0));
         mBeta0map := PBblas.Matrix_Map(sizeTable[1].m_cols, 1, sizeTable[1].f_b_cols, 1);
         mBeta00 := PBblas.MU.To(DMAT.Converted.FromCells(mBeta0map,mBeta0), mu_comp.Beta);
         
         //Create block matrix OldExpY
-        OldExpY_0 := NORMALIZE(genSet, sizeTable[1].m_rows, gen(COUNTER, sizeTable[1].m_rows, -1)); // -ones(size(mY))
+        OldExpY_0 := DATASET(sizeTable[1].m_rows, gen(COUNTER, sizeTable[1].m_rows, -1)); // -ones(size(mY))
         OldExpY_00 := PBblas.MU.To(DMAT.Converted.FromCells(mYmap,OldExpY_0), mu_comp.Y);
         
         
