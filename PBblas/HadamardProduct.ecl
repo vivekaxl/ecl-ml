@@ -52,4 +52,4 @@ EXPORT DATASET(Part)
   END;
   rs := JOIN(x_check, y_check, LEFT.partition_id=RIGHT.partition_id, mulPart(LEFT,RIGHT), FULL OUTER, LOCAL);
   RETURN rs;
-END;  
+END;
