@@ -755,25 +755,25 @@ EXPORT Logistic_sparse(REAL8 Ridge=0.00001, REAL8 Epsilon=0.000000001, UNSIGNED2
         mYdist := DMAT.Converted.FromElement(mY, mYmap);
 
         //Create block matrix W
-        mW := DATASET(sizeTable[1].m_rows, gen(COUNTER, sizeTable[1].m_rows, 1.0));
+        mW := DATASET(sizeTable[1].m_rows, gen(COUNTER, sizeTable[1].m_rows, 1.0),DISTRIBUTED);
         mWdist := DMAT.Converted.FromCells(mYmap, mW);
         
         
         
         //Create block matrix Ridge
-        mRidge := DATASET(sizeTable[1].m_cols, gen(COUNTER, sizeTable[1].m_cols, ridge));
+        mRidge := DATASET(sizeTable[1].m_cols, gen(COUNTER, sizeTable[1].m_cols, ridge),DISTRIBUTED);
         RidgeVecMap := PBblas.Matrix_Map(sizeTable[1].m_cols, 1, sizeTable[1].f_b_cols, 1);
         Ridgemap := PBblas.Matrix_Map(sizeTable[1].m_cols, sizeTable[1].m_cols, sizeTable[1].f_b_cols, sizeTable[1].f_b_cols);
         mRidgeVec := DMAT.Converted.FromCells(RidgeVecMap, mRidge);
         mRidgedist := PBblas.Vector2Diag(RidgeVecMap, mRidgeVec, Ridgemap);
         
         //Create block matrix Beta
-        mBeta0 := DATASET(sizeTable[1].m_cols, gen(COUNTER, sizeTable[1].m_cols, 0.0));
+        mBeta0 := DATASET(sizeTable[1].m_cols, gen(COUNTER, sizeTable[1].m_cols, 0.0),DISTRIBUTED);
         mBeta0map := PBblas.Matrix_Map(sizeTable[1].m_cols, 1, sizeTable[1].f_b_cols, 1);
         mBeta00 := PBblas.MU.To(DMAT.Converted.FromCells(mBeta0map,mBeta0), mu_comp.Beta);
         
         //Create block matrix OldExpY
-        OldExpY_0 := DATASET(sizeTable[1].m_rows, gen(COUNTER, sizeTable[1].m_rows, -1)); // -ones(size(mY))
+        OldExpY_0 := DATASET(sizeTable[1].m_rows, gen(COUNTER, sizeTable[1].m_rows, -1),DISTRIBUTED); // -ones(size(mY))
         OldExpY_00 := PBblas.MU.To(DMAT.Converted.FromCells(mYmap,OldExpY_0), mu_comp.Y);
         
         
