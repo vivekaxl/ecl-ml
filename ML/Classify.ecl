@@ -710,9 +710,9 @@ The model  is used to predict the class from new examples.
         nodes := ML.Trees.SplitsGiniImpurBased(Indep, Dep, Depth, Purity);
         RETURN ML.Trees.ToDiscreteTree(nodes);
       END;
-      // EXPORT ClassProbDistribD(DATASET(Types.DiscreteField) Indep,DATASET(Types.NumericField) mod) :=FUNCTION
-        // RETURN ML.Trees.ClassProbDistribD(Indep, mod);
-      // END;
+      EXPORT ClassProbDistribD(DATASET(Types.DiscreteField) Indep,DATASET(Types.NumericField) mod) :=FUNCTION
+        RETURN ML.Trees.ClassProbDistribD(Indep, mod);
+      END;
       EXPORT ClassifyD(DATASET(Types.DiscreteField) Indep,DATASET(Types.NumericField) mod) := FUNCTION
         RETURN ML.Trees.ClassifyD(Indep,mod);
       END;
@@ -728,9 +728,9 @@ The model  is used to predict the class from new examples.
         nodes := IF(Pruned, Trees.SplitsIGR_Pruned(Indep, Dep, numFolds, z), Trees.SplitsInfoGainRatioBased(Indep, Dep));
         RETURN ML.Trees.ToDiscreteTree(nodes);
       END;
-      // EXPORT ClassProbDistribD(DATASET(Types.DiscreteField) Indep,DATASET(Types.NumericField) mod) :=FUNCTION
-        // RETURN ML.Trees.ClassProbDistribD(Indep, mod);
-      // END;
+      EXPORT ClassProbDistribD(DATASET(Types.DiscreteField) Indep,DATASET(Types.NumericField) mod) :=FUNCTION
+        RETURN ML.Trees.ClassProbDistribD(Indep, mod);
+      END;
       EXPORT ClassifyD(DATASET(Types.DiscreteField) Indep,DATASET(Types.NumericField) mod) := FUNCTION
         RETURN ML.Trees.ClassifyD(Indep,mod);
       END;
