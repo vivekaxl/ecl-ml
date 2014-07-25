@@ -855,15 +855,17 @@ EXPORT Logistic_sparse(REAL8 Ridge=0.00001, REAL8 Epsilon=0.000000001, UNSIGNED2
             xweight := PBblas.PB_dgemm(TRUE, FALSE, 1.0, mXmap, mXdist, weightsMap, weights, xWeightMap);
             xweightsx :=  PBblas.PB_dgemm(FALSE, FALSE, 1.0, xWeightMap, xweight, mXmap, mXdist, Ridgemap);
         
-        //Inv(x' * weights * x + mRidge) of mBeta := Inv(x' * weights * x + mRidge) * x' * wadjy
-        
-            Inv := DMAT.Inv(Ridgemap,PBblas.PB_daxpy(1.0,xweightsx,mRidgedist));
-        
         // mBeta := Inv(x' * weights * x + mRidge) * x' * wadjy
             
-            invx := PBblas.PB_dgemm(FALSE,TRUE, 1.0, Ridgemap, Inv, mXmap, mXdist, xWeightMap);
-            
-            mBeta := PBblas.PB_dgemm(FALSE, FALSE, 1.0, xWeightMap, invx, mYmap, w_Adjy, mBeta0map);
+            side := PBblas.PB_dgemm(TRUE, FALSE,1.0, mXmap, mXdist, mYmap, w_Adjy,xtranswadjyMap);
+           
+            LU_xwx  := PBblas.PB_dgetrf(Ridgemap, xweightsx);
+           
+            lc  := PBblas.PB_dtrsm(PBblas.Types.Side.Ax, PBblas.Types.Triangle.Lower, FALSE,
+                                   PBblas.Types.Diagonal.UnitTri, 1.0, Ridgemap, LU_xwx, xtranswadjyMap, side);
+ 
+            mBeta := PBblas.PB_dtrsm(PBblas.Types.Side.Ax, PBblas.Types.Triangle.Upper, FALSE,
+                                     PBblas.Types.Diagonal.NotUnitTri, 1.0, Ridgemap, LU_xwx, xtranswadjyMap, lc);
             
             //Caculate error to be checked in loop evaluation
             err := SUM(DMAT.Converted.FromPart2Cell(PBblas.Apply2Elements(mBeta0map,PBblas.PB_daxpy(1.0, mBeta,PBblas.PB_dscal(-1, BetaDist)), absv)), v);
