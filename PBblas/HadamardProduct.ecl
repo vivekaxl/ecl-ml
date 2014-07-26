@@ -1,4 +1,4 @@
-//Element-wise multiplication of A .* B
+//Element-wise multiplication of X .* Y
 //PBlas implementation of Mat.Each.Mul
 IMPORT PBblas;
 IMPORT PBblas.IMatrix_Map;

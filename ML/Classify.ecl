@@ -711,7 +711,7 @@ EXPORT Logistic_sparse(REAL8 Ridge=0.00001, REAL8 Epsilon=0.000000001, UNSIGNED2
   b) A dataset of class results Y.
 
 */
-    EXPORT Logistic_dense(REAL8 Ridge=0.00001, REAL8 Epsilon=0.000000001, UNSIGNED2 MaxIter=200, 
+    EXPORT Logistic(REAL8 Ridge=0.00001, REAL8 Epsilon=0.000000001, UNSIGNED2 MaxIter=200, 
                UNSIGNED4 prows=0, UNSIGNED4 pcols=0,UNSIGNED4 Maxrows=0, UNSIGNED4 Maxcols=0) := MODULE(DEFAULT)
                      
     Logis(DATASET(Types.NumericField) X, DATASET(Types.NumericField) Y) := MODULE
@@ -1018,7 +1018,7 @@ EXPORT Logistic_sparse(REAL8 Ridge=0.00001, REAL8 Epsilon=0.000000001, UNSIGNED2
         
     END;
     
-    END; // Logistic_dense Module 
+    END; // Logistic Module 
     
 /* From Wikipedia: 
 http://en.wikipedia.org/wiki/Decision_tree_learning#General
