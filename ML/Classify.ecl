@@ -730,8 +730,9 @@ EXPORT Logistic_sparse(REAL8 Ridge=0.00001, REAL8 Epsilon=0.000000001, UNSIGNED2
          havemaxrowcol := havemaxrow and havemaxcol;
          
          derivemap := IF(havemaxrowcol, PBblas.AutoBVMap(mX_n, mX_m,prows,pcols,maxrows, maxcols),
-                      IF(havemaxrow, PBblas.AutoBVMap(mX_n, mX_m,prows,pcols,maxrows),
-                      IF(havemaxcol, PBblas.AutoBVMap(mX_n, mX_m,prows,pcols,,maxcols),PBblas.AutoBVMap(mX_n, mX_m,prows,pcols))));
+                         IF(havemaxrow, PBblas.AutoBVMap(mX_n, mX_m,prows,pcols,maxrows),
+                            IF(havemaxcol, PBblas.AutoBVMap(mX_n, mX_m,prows,pcols,,maxcols),
+                            PBblas.AutoBVMap(mX_n, mX_m,prows,pcols))));
 
         sizeRec := RECORD
             PBblas.Types.dimension_t m_rows;
