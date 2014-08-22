@@ -20,11 +20,12 @@ EXPORT AccumSeries(DATASET(Types.ModelObs) obs,
     SELF.dependent := IF(no_accum, curr.dependent, curr.dependent + base);
     SELF := curr;
   END;
-  accum1 := ITERATE(marked, accumObs(LEFT, RIGHT, 1));
+  grped  := GROUP(SORTED(marked, model_id, period), model_id);
+  accum1 := ITERATE(grped,  accumObs(LEFT, RIGHT, 1));
   accum2 := ITERATE(accum1, accumObs(LEFT, RIGHT, 2));
   accum3 := ITERATE(accum2, accumObs(LEFT, RIGHT, 3));
   accum4 := ITERATE(accum3, accumObs(LEFT, RIGHT, 4));
   accum5 := ITERATE(accum4, accumObs(LEFT, RIGHT, 5));
-  rslt := PROJECT(accum5, ModelObs);
+  rslt := UNGROUP(PROJECT(accum5, ModelObs)); // data is skewed from grouping
   RETURN rslt;
 END;

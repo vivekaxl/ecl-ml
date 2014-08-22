@@ -60,17 +60,18 @@ EXPORT DATASET(PACF_ACF) LagCorrelations(DATASET(DecObs) post_diff) := FUNCTION
   // replicate for t and t+k multiply, use 0 for var (t and t)
   // t_k = SUM((z_i-zbar)*(z_i+k - zbar);i=1,N-k)
   exploded_t := NORMALIZE(withStats, 2*(LEFT.lags+1), explode(LEFT, COUNTER));
-  s_exploded := SORT(exploded_t, model_id, k, lag_per, period);
+  g_exploded := GROUP(exploded_t, model_id, ALL);
   LagRec mult(LagRec prev, LagRec curr) := TRANSFORM
     SELF.v := prev.v * curr.v;
     SELF := curr;
   END;
+  s_exploded := SORT(g_exploded, k, lag_per, period);
   prod_terms := ROLLUP(s_exploded, mult(LEFT,RIGHT), model_id, k, lag_per);
   LagRec sumt(Lagrec prev, LagRec curr) := TRANSFORM
     SELF.v := prev.v + curr.v;
     SELF := curr;
   END;
-  sum_terms := ROLLUP(prod_terms, sumt(LEFT,RIGHT), model_id, k);
+  sum_terms := UNGROUP(ROLLUP(prod_terms, sumt(LEFT,RIGHT), model_id, k));
   r_k_denom := sum_terms(k=0);
   r_k_numer := sum_terms(k>0);
   ACF_Rec makeACF(LagRec rec, LagRec denom) := TRANSFORM
@@ -89,7 +90,7 @@ EXPORT DATASET(PACF_ACF) LagCorrelations(DATASET(DecObs) post_diff) := FUNCTION
     SELF.sum_sq := IF(prev.model_id=curr.model_id, prev.sum_sq + prev.sq, 0);
     SELF := curr;
   END;
-  r_k := ITERATE(pre_sumsq, accum_sq(LEFT,RIGHT));
+  r_k := UNGROUP(ITERATE(GROUP(pre_sumsq, model_id), accum_sq(LEFT,RIGHT)));
   // Now calculate the partials
   Cell cvt2Cell(ACF_Rec acf) := TRANSFORM
     SELF.x := acf.k;

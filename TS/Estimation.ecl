@@ -8,6 +8,9 @@
 // maximum iterations occur or the change in the estimated
 // parameters (measured by the 1-norm) is less than the
 // epsilon parameter.
+//
+//In this version, all data for a model must fit on a single node
+// in memory.
 IMPORT TS;
 IMPORT PBblas;
 //Aliases
@@ -46,6 +49,7 @@ Irls_Work := RECORD(TS.Types.Model_Spec)
   value_t total;
   value_t var;
   value_t delta;
+  value_t resid_mean;
   matrix_t dep_set;
   matrix_t betas;
   matrix_t full_x;
@@ -195,7 +199,7 @@ EXPORT DATASET(TS.Types.Model_Parameters)
     SELF := cell;
   END;
   x_work := NORMALIZE(av_vals, 2*(LEFT.lags-LEFT.x), makeMatrix(LEFT, COUNTER));
-  x_mat := GROUP(SORT(x_diag+x_work, model_id), model_id);
+  x_mat := GROUP(SORT(x_diag+x_work, model_id), model_id, ALL);
   with_cov := DENORMALIZE(ar_matrix, y_array, LEFT.model_id=RIGHT.model_id, GROUP,
                           rollCells(LEFT, ROWS(RIGHT), Target.cov_set),
                           NOSORT);
@@ -204,7 +208,7 @@ EXPORT DATASET(TS.Types.Model_Parameters)
                           NOSORT);
   Init_Work solveYW(Init_Work iw) := TRANSFORM
     // Should use Durbin&apos;s algorithm to exploit persymetric yw matrix
-    // Want to solve cov = yw * phi
+    // Want to solve cov = yw * theta
     LU:= PBblas.Block.dgetf2(iw.ma_terms, iw.ma_terms, iw.yw_set);
     s1:= PBblas.BLAS.dtrsm(PBblas.Types.Side.Ax, PBblas.Types.Triangle.Lower,
                            FALSE, PBblas.Types.Diagonal.UnitTri,
@@ -225,7 +229,7 @@ EXPORT DATASET(TS.Types.Model_Parameters)
     SELF.lags := do.lags;
   END;
   laggedResidual := NORMALIZE(resid0, LEFT.lags, lagResidual(LEFT, COUNTER));
-  lrGrp := GROUP(SORT(laggedResidual, model_id), model_id);
+  lrGrp := GROUP(SORT(laggedResidual, model_id), model_id, ALL);
   with_lagr := DENORMALIZE(init_sol, lrGrp, LEFT.model_id=RIGHT.model_id, GROUP,
                           rollCells(LEFT, ROWS(RIGHT), Target.rlag_set),
                           NOSORT);
@@ -266,6 +270,7 @@ EXPORT DATASET(TS.Types.Model_Parameters)
     SELF.dep_set := dep_set;
     SELF.betas := initBetas;
     SELF.w := PBblas.Block.make_vector(target_row_cnt);   // initial weights are 1.0
+    SELF.resid_mean := SUM(iw.residual) / COUNT(iw.residual);
     SELF := iw;
   END;
   init_irls := PROJECT(with_lagr, cvt2Irls(LEFT));
@@ -311,9 +316,10 @@ EXPORT DATASET(TS.Types.Model_Parameters)
   TS.Types.Model_Parameters cvt2Parms(Irls_Work iw) := TRANSFORM
     ar_cnt := iw.ar_terms + IF(iw.ar_terms>0 AND iw.constant_term, 1, 0);
     first_ar := IF(iw.constant_term, 2, 1);
-    ar_coef:= CHOOSEN(DATASET(iw.betas, {REAL8 cv}), ar_cnt, first_ar);
+    ar_const:= IF(iw.ar_terms>0, iw.betas[1], 0.0);
+    ar_coef:= CHOOSEN(DATASET(iw.betas, {REAL8 cv}), iw.ar_terms, first_ar);
     ma_coef:= CHOOSEN(DATASET(iw.betas, {REAL8 cv}), iw.ma_terms, 1 + ar_cnt);
-    SELF.c := IF(iw.constant_term, IF(iw.ar_terms>0, iw.betas[1], iw.mean), 0.0);
+    SELF.c := IF(iw.constant_term, iw.resid_mean + ar_const, 0.0);
     SELF.ar:= IF(iw.ar_terms>0,PROJECT(ar_coef, cvt2Coef(LEFT,COUNTER)));
     SELF.ma:= IF(iw.ma_terms>0,PROJECT(ma_coef, cvt2Coef(LEFT,COUNTER)));
     SELF := iw;

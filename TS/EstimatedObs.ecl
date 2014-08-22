@@ -1,4 +1,4 @@
-// Calculate the estimate values for history and future
+﻿// Calculate the estimate values for history and future
 IMPORT TS;
 IMPORT TS.Types;
 ModelObs := TS.Types.ModelObs;
@@ -23,6 +23,8 @@ EXPORT DATASET(TS.Types.Obs_Estimated)
     TS.Types.t_value estimate;
     BOOLEAN future;
   END;
+  // Look at replacing when we go to more data than 1 node.  In the
+  //meantime, we need the records on the node with the data.
   DATASET(ObsWork) jumpStart(UNSIGNED t, REAL8 mu) := FUNCTION
     ObsWork genObs(UNSIGNED c) := TRANSFORM
       SELF.period := 1 - c;
@@ -32,6 +34,7 @@ EXPORT DATASET(TS.Types.Obs_Estimated)
     rslt := NORMALIZE(dummy, t, genObs(COUNTER));
     RETURN rslt;
   END;  //jumpStart function definition
+
   HistRec := RECORD
     DATASET(ObsWork) act;
     DATASET(ObsWork) fcst;
@@ -44,8 +47,8 @@ EXPORT DATASET(TS.Types.Obs_Estimated)
   END;
   withParm := JOIN(diffed, extend_specs, LEFT.model_id=RIGHT.model_id,
                      makeBase(LEFT,RIGHT), LOOKUP);
-  srtdModObs := SORT(withParm, model_id, period);
-  srtdModLast:= DEDUP(srtdModObs, model_id, RIGHT);
+  grpdModBase:= GROUP(withParm, model_id, ALL);
+  grpdModLast:= TOPN(grpdModBase, 1, -period);
   WorkRec makeFuture(WorkRec lstRec, UNSIGNED c) := TRANSFORM
     SELF.estimate := 0.0;
     SELF.future := TRUE;
@@ -53,8 +56,8 @@ EXPORT DATASET(TS.Types.Obs_Estimated)
     SELF.dependent := 0.0;
     SELF := lstRec; // pick up model stuff
   END;
-  srtdModFtr := NORMALIZE(srtdModLast, forecast_periods, makeFuture(LEFT, COUNTER));
-  grpdModObs := GROUP(SORT(srtdModObs+srtdModFtr, model_id, period), model_id);
+  grpdModFtr := NORMALIZE(grpdModLast, forecast_periods, makeFuture(LEFT, COUNTER));
+  grpdModObs := SORT(GROUP(grpdModBase+grpdModFtr, model_id, ALL), model_id, period);
   // Process definition from iteration through observations
   Upd(WorkRec wr, HistRec hr) := MODULE
     SHARED act := IF(EXISTS(hr.act), hr.act, jumpStart(wr.terms, wr.mu));

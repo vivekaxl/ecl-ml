@@ -24,11 +24,12 @@ EXPORT DATASET(ModelObs)
     SELF.work := curr.dependent;
     SELF := curr;
   END;
-  diff1 := ITERATE(marked, deltaObs(LEFT, RIGHT, 1));
+  grped := GROUP(SORTED(marked, model_id, period), model_id);
+  diff1 := ITERATE(grped, deltaObs(LEFT, RIGHT, 1));
   diff2 := ITERATE(diff1, deltaObs(LEFT, RIGHT, 2));
   diff3 := ITERATE(diff2, deltaObs(LEFT, RIGHT, 3));
   diff4 := ITERATE(diff3, deltaObs(LEFT, RIGHT, 4));
   diff5 := ITERATE(diff4, deltaObs(LEFT, RIGHT, 5));
-  rslt := PROJECT(diff5(keepInitial OR period>degree), ModelObs);
+  rslt := UNGROUP(PROJECT(diff5(keepInitial OR period>degree), ModelObs));
   RETURN rslt;
 END;

@@ -1,4 +1,4 @@
-// retrocast series and produce error stats
+﻿// retrocast series and produce error stats
 IMPORT TS;
 Model_Score := TS.Types.Model_Score;
 Model_Parm := TS.Types.Model_Parameters;
@@ -13,7 +13,7 @@ EXPORT DATASET(TS.Types.Model_Score)
   REAL8 se(REAL8 d, REAL8 e) := (d-e) * (d-e);    // Squared error
   model_sse := TABLE(act_fcst,
                     {model_id, num_obs := COUNT(GROUP), sse:=SUM(GROUP, se(dependent, estimate))},
-                    model_id);
+                    model_id, FEW);
   Model_Score calc_s(Model_Parm p, model_sse s) := TRANSFORM
     SELF.s_measure := SQRT(s.sse / (s.num_obs-p.ar_terms-p.ma_terms));
     SELF.q_measure := 0.0;      // Need to add q measure
@@ -21,6 +21,6 @@ EXPORT DATASET(TS.Types.Model_Score)
   END;
   scored := JOIN(models, model_sse,
                  LEFT.model_id=RIGHT.model_id,
-                 calc_s(LEFT,RIGHT));
+                 calc_s(LEFT,RIGHT), LOOKUP);
   RETURN scored;
 END;
