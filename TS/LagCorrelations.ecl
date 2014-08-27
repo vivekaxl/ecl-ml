@@ -30,6 +30,8 @@ END;
 ObsRec := RECORD(Types.DecoratedObs)
   REAL8 z_bar;
   UNSIGNED4 N;
+  UNSIGNED2 f_per;
+  UNSIGNED2 l_per;
 END;
 // Aliases
 PACF_ACF := Types.PACF_ACF;
@@ -37,19 +39,24 @@ DecObs := Types.DecoratedObs;
 
 EXPORT DATASET(PACF_ACF) LagCorrelations(DATASET(DecObs) post_diff) := FUNCTION
   s_stat := TABLE(post_diff,
-                  {model_id, z_bar:=AVE(GROUP,dependent), N:=COUNT(GROUP)},
+                  {model_id, z_bar:=AVE(GROUP,dependent), N:=COUNT(GROUP),
+                   f_per:=MIN(GROUP,period), l_per:=MAX(GROUP,period)},
                   model_id, FEW, UNSORTED);
   ObsRec addStats(DecObs obs, RECORDOF(s_stat) st) := TRANSFORM
     SELF.z_bar := st.z_bar;
     SELF.N := st.N;
     SELF := obs;
+    SELF.f_per := st.f_per;
+    SELF.l_per := st.l_per;
   END;
   withStats := JOIN(post_diff, s_stat, LEFT.model_id=RIGHT.model_id,
                     addStats(LEFT, RIGHT), LOOKUP);
   LagRec explode(ObsRec rec, UNSIGNED c) := TRANSFORM
     k := (c-1) DIV 2;
     adj := ((c-1) % 2)*k; //no adjustment for this column then adj for lag
-    SELF.period := IF(rec.period-adj>0 AND rec.period+k-adj<=rec.N, rec.period, SKIP);
+    normPeriod := rec.period-rec.f_per+1;
+    useRecord := normPeriod > adj AND rec.period + k - adj <= rec.l_per;
+    SELF.period := IF(useRecord, rec.period, SKIP);
     SELF.lag_per := rec.period - adj;
     SELF.v := rec.dependent - rec.z_bar;
     SELF.k := k;

@@ -32,15 +32,20 @@ EXPORT Identification(DATASET(Types.UniObservation) series,
   // Formulae from Bowerman & O'Connell, Forecasting and Time Series, 1979
   EXPORT DATASET(Types.PACF_ACF) Correlations(UNSIGNED2 lags) := FUNCTION
     s_stat := TABLE(post_difference,
-                    {model_id, z_bar:=AVE(GROUP,dependent), N:=COUNT(GROUP)},
+                    {model_id, z_bar:=AVE(GROUP,dependent), N:=COUNT(GROUP),
+                     f_per:=MIN(GROUP,period), l_per:=MAX(GROUP,period)},
                     model_id, FEW, UNSORTED);
     ObsRec := RECORD(ModelObs)
       REAL8 z_bar;
       UNSIGNED4 N;
+      UNSIGNED2 f_per;
+      UNSIGNED2 l_per;
     END;
     ObsRec addStats(ModelObs obs, RECORDOF(s_stat) st) := TRANSFORM
       SELF.z_bar := st.z_bar;
       SELF.N := st.N;
+      SELF.f_per := st.f_per;
+      SELF.l_per := st.l_per;
       SELF := obs;
     END;
     withStats := JOIN(post_difference, s_stat, LEFT.model_id=RIGHT.model_id,
@@ -48,7 +53,9 @@ EXPORT Identification(DATASET(Types.UniObservation) series,
     LagRec explode(ObsRec rec, UNSIGNED c) := TRANSFORM
       k := (c-1) DIV 2;
       adj := ((c-1) % 2)*k; //no adjustment for this column then adj for lag
-      SELF.period := IF(rec.period-adj>0 AND rec.period+k-adj<=rec.N, rec.period, SKIP);
+      normPeriod := rec.period-rec.f_per+1;
+      useRecord := normPeriod > adj AND rec.period + k - adj <= rec.l_per;
+      SELF.period := IF(useRecord, rec.period, SKIP);
       SELF.lag_per := rec.period - adj;
       SELF.v := rec.dependent - rec.z_bar;
       SELF.k := k;
