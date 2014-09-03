@@ -134,15 +134,15 @@ EXPORT Identification(DATASET(Types.UniObservation) series,
       work_pairs := JOIN(rk_cells(x<i), work(x=i-1),
                         LEFT.model_id=RIGHT.model_id
                         AND (LEFT.x=i-RIGHT.y OR LEFT.x=RIGHT.y),
-                        mult_k_kj(LEFT,RIGHT, i), ALL);
+                        mult_k_kj(LEFT,RIGHT, i), LOCAL);
       r_kk := DENORMALIZE(rk_cells(x=i), work_pairs,
                           LEFT.model_id=RIGHT.model_id AND LEFT.x=RIGHT.x, GROUP,
-                          make_rkk(LEFT, ROWS(RIGHT)));
+                          make_rkk(LEFT, ROWS(RIGHT)), LOCAL);
       r_kj_r_kk := JOIN(work(x=i-1), r_kk, LEFT.model_id=RIGHT.model_id,
-                          reverse_j(LEFT, RIGHT), ALL);
+                          reverse_j(LEFT, RIGHT), LOCAL);
       r_kj := JOIN(work(x=i-1), r_kj_r_kk,
                    LEFT.model_id=RIGHT.model_id AND LEFT.x=RIGHT.x AND LEFT.y=RIGHT.y,
-                   reduce_kj(LEFT,RIGHT), LOOKUP);
+                   reduce_kj(LEFT,RIGHT), LOOKUP, LOCAL);
       RETURN work & r_kk & r_kj;
     END;
     partials := LOOP(init_partial, lags, loop_body(ROWS(LEFT), COUNTER));

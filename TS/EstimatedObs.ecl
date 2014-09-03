@@ -69,10 +69,10 @@ EXPORT DATASET(TS.Types.Obs_Estimated)
     END;
     poly1 := JOIN(wr.theta_phi, act,
                   LEFT.lag = wr.period - RIGHT.period,
-                  prodTerm(LEFT,RIGHT, 1));
+                  prodTerm(LEFT,RIGHT, 1), LOOKUP);
     poly2 := JOIN(wr.phi, fct,
                   LEFT.lag = wr.period - RIGHT.period,
-                  prodTerm(LEFT,RIGHT,-1));
+                  prodTerm(LEFT,RIGHT,-1), LOOKUP);
     SHARED forecast_val := SUM(poly1 + poly2, dependent) + wr.c - wr.mu;
     SHARED fctN:= DATASET([{wr.period, forecast_val}], ObsWork) & fct;
     EXPORT HistRec histUpd() := TRANSFORM

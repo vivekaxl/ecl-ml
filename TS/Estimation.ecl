@@ -71,7 +71,7 @@ EXPORT DATASET(TS.Types.Model_Parameters)
                          mean:=AVE(GROUP,dependent), total:=SUM(GROUP,dependent),
                          var:=VARIANCE(GROUP,dependent)},
                         model_id, FEW, UNSORTED);
-  spec_count := JOIN(obs_count, spec, LEFT.model_id=RIGHT.model_id);
+  spec_count := JOIN(obs_count, spec, LEFT.model_id=RIGHT.model_id, LOOKUP);
   Extend_Spec explodeLags(RECORDOF(spec_count) spec, UNSIGNED2 c) := TRANSFORM
     SELF.lag := c - 1;
     SELF := spec;
@@ -92,8 +92,8 @@ EXPORT DATASET(TS.Types.Model_Parameters)
                          AND RIGHT.obs_cnt+RIGHT.degree,
                  make_lag_cell(LEFT, RIGHT), MANY LOOKUP);
   ar_sorted_cells := SORT(ar_cells, model_id);
-  indy_cells := GROUP(ar_sorted_cells(y > 1), model_id);
-  dep_cells := GROUP(ar_sorted_cells(y=1), model_id);
+  indy_cells := SORT(ar_sorted_cells(y > 1), model_id);
+  dep_cells := SORT(ar_sorted_cells(y=1), model_id);
   // we have our dependent cells, and the independent cells.  Ready to roll to matrix.
   Init_Work makeBase(RECORDOF(spec_count) base) := TRANSFORM
     SELF := base;
@@ -182,7 +182,7 @@ EXPORT DATASET(TS.Types.Model_Parameters)
     SELF.v := corr.av;
   END;
   av_vals  := PROJECT(corr_tab, cvtCov2Cell(LEFT));
-  y_array  := GROUP(SORT(av_vals, model_id),model_id);
+  y_array  := SORT(av_vals, model_id);
   Model_Cell makeDiag(Model_Cell cell) := TRANSFORM
     SELF.v := 1.0;
     SELF.x := cell.x;
@@ -199,7 +199,7 @@ EXPORT DATASET(TS.Types.Model_Parameters)
     SELF := cell;
   END;
   x_work := NORMALIZE(av_vals, 2*(LEFT.lags-LEFT.x), makeMatrix(LEFT, COUNTER));
-  x_mat := GROUP(SORT(x_diag+x_work, model_id), model_id, ALL);
+  x_mat := SORT(x_diag+x_work, model_id);
   with_cov := DENORMALIZE(ar_matrix, y_array, LEFT.model_id=RIGHT.model_id, GROUP,
                           rollCells(LEFT, ROWS(RIGHT), Target.cov_set),
                           NOSORT);
@@ -229,7 +229,7 @@ EXPORT DATASET(TS.Types.Model_Parameters)
     SELF.lags := do.lags;
   END;
   laggedResidual := NORMALIZE(resid0, LEFT.lags, lagResidual(LEFT, COUNTER));
-  lrGrp := GROUP(SORT(laggedResidual, model_id), model_id, ALL);
+  lrGrp := SORT(laggedResidual, model_id);
   with_lagr := DENORMALIZE(init_sol, lrGrp, LEFT.model_id=RIGHT.model_id, GROUP,
                           rollCells(LEFT, ROWS(RIGHT), Target.rlag_set),
                           NOSORT);
@@ -247,8 +247,8 @@ EXPORT DATASET(TS.Types.Model_Parameters)
   Work_Val scrnVals(Work_Val wv, Trim_dat td, UNSIGNED cnt) := TRANSFORM
     this_row := ((cnt-1)  %  td.m_rows) + 1;
     this_col := ((cnt-1) DIV td.m_rows) + 1;
-    in_row := IF(this_row BETWEEN td.first_row AND td.last_row, TRUE, FALSE);
-    in_col := IF(this_col BETWEEN td.first_col AND td.last_col, TRUE, FALSE);
+    in_row := this_row BETWEEN td.first_row AND td.last_row;
+    in_col := this_col BETWEEN td.first_col AND td.last_col;
     SELF.cv := IF(in_row AND in_col, wv.cv, SKIP);
   END;
   Irls_Work cvt2Irls(Init_Work iw) := TRANSFORM
@@ -270,7 +270,7 @@ EXPORT DATASET(TS.Types.Model_Parameters)
     SELF.dep_set := dep_set;
     SELF.betas := initBetas;
     SELF.w := PBblas.Block.make_vector(target_row_cnt);   // initial weights are 1.0
-    SELF.resid_mean := SUM(iw.residual) / COUNT(iw.residual);
+    SELF.resid_mean := AVE(iw.residual);
     SELF := iw;
   END;
   init_irls := PROJECT(with_lagr, cvt2Irls(LEFT));
