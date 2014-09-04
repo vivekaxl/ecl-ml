@@ -1,4 +1,4 @@
-IMPOR Std;
+IMPORT Std;
 EXPORT Bundle := MODULE(Std.BundleBase)
   EXPORT Name := 'ML';
   EXPORT Description := 'Machine Learning Library';
