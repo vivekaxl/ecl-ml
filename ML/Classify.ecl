@@ -751,6 +751,13 @@ EXPORT Logistic_sparse(REAL8 Ridge=0.00001, REAL8 Epsilon=0.000000001, UNSIGNED2
         mY := Types.ToMatrix(Y_0);
         mYmap := PBblas.Matrix_Map(sizeTable[1].m_rows, 1, sizeTable[1].f_b_rows, 1);
         mYdist := DMAT.Converted.FromElement(mY, mYmap);
+        
+        //New Matrix Generator
+        Layout_Cell gen(UNSIGNED4 c, UNSIGNED4 NumRows, REAL8 v) := TRANSFORM
+			SELF.x := ((c-1) % NumRows) + 1;
+			SELF.y := ((c-1) DIV NumRows) + 1;
+			SELF.v := v;
+		END;
 
         //Create block matrix W
         mW := DATASET(sizeTable[1].m_rows, gen(COUNTER, sizeTable[1].m_rows, 1.0),DISTRIBUTED);
@@ -797,6 +804,7 @@ EXPORT Logistic_sparse(REAL8 Ridge=0.00001, REAL8 Epsilon=0.000000001, UNSIGNED2
         //Maps used in Step function
             weightsMap := PBblas.Matrix_Map(sizeTable[1].m_rows, sizeTable[1].m_rows, sizeTable[1].f_b_rows, sizeTable[1].f_b_rows);
             xWeightMap := PBblas.Matrix_Map(sizeTable[1].m_cols, sizeTable[1].m_rows, sizeTable[1].f_b_cols, sizeTable[1].f_b_rows);
+            xtranswadjyMap := PBblas.Matrix_Map(sizeTable[1].m_cols, 1, sizeTable[1].f_b_cols, 1);
             
                                       
         Step(DATASET(PBblas.Types.MUElement) BetaPlusY, INTEGER coun) := FUNCTION
