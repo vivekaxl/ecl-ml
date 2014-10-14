@@ -23,6 +23,7 @@ EXPORT AutoBVMap(dimension_t m_rows, dimension_t m_cols,
 	  		     
 	  		     blocks := MAX((x DIV (y * z)) * z, z); //blocks is a multiple of the cluster size
 	  		     blockSize := (x + blocks - 1) DIV blocks; //blockSize is CEILING(x/blocks)
+	  		     RETURN blockSize;
 	  		     
 	  		END;
 			
