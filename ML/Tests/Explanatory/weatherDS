@@ -1,3 +1,4 @@
+IMPORT * FROM ML;
 weatherRecord := RECORD
 	Types.t_RecordID id;
 	Types.t_FieldNumber outlook;
