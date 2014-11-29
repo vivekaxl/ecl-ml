@@ -5822,7 +5822,10 @@ Mat.Trans(d);
         <para>The ML Libraries can use the BLAS libraries to speed up certain
         matrix operations. You may install BLAS (Basic Linear Algebra System)
         or ATLAS, or some other package containing a BLAS. The developer
-        version should be installed.</para>
+        version should be installed.  If the package for your distribution
+        does not include the cblas.h file and the libcblas.so library
+        (Linux), then you will need to install a different package.  The
+        Atlas and LAPACK pagkages usually contain these files.</para>
 
         <para>The Attributes that employ BLAS require the cblas.h header file
         and the cblas library. These files must be located in directories
