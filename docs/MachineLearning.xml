@@ -5837,4 +5837,302 @@ Mat.Trans(d);
       </sect2>
     </sect1>
   </chapter>
+
+  <chapter id="Time_Series">
+   <title id="Analysis_Modeling">Time Series Analysis and Modeling</title>
+   <para>The Time Series module (TS) supplies several modules and functions
+   to facilitate time series analysis.  This chapter provies a brief explanation
+   of the module and function attributes provided, and then illustrates the use
+   of these attributes with an example based upon the Sticky CPI.</para>
+
+   <sect1 id="TS_Modules_Functions">
+           <title id="TS_Attrib">Time Series Analysis Modules and Functions</title>
+            <para>The Time Series support modules are in the TS folder in the
+            Machine Learning project. These descriptions assume that the reader
+            is familiar with time series analysis in general and Box-Jenkins in
+            particular.</para>
+
+           <para>The package is written with the expectation that a modeler will
+           want to model a specific time series in several ways concurrently.
+           The major functions and modules in TS require a dataset of specification
+           records, with one record for each model.</para>
+
+           <para>There are four (4) attributes that are generally used and correspond
+           to the steps of the Box-Jenkins methodology.  The Steps are: Identification,
+           Estimation, Diagnosis, and Forecast.</para>
+
+           <para>There are two (2) attributes that provide common utility functions of
+           conversion of data into the required format and a seasonality adjustment
+           function.</para>
+
+           <para>The remaining attributes are used internally by the main attributes,
+           but are available for building custom time series analytics.</para>
+
+           <informaltable>
+		<tgroup cols="2">
+          <colspec align="left" colwidth="110pt" />
+          <colspec align="left" colwidth="490pt" />
+          <thead>
+            <row>
+              <entry align="left">Attribute</entry>
+              <entry align="left">Description</entry>
+            </row>
+          </thead>
+          <tbody>
+		<row>
+			<entry>Accumulate Series</entry>
+			<entry>The TS/AccumSeries attribute is an internal function that
+			is used to restore a differenced series to the original values.
+			The function can be used for forecast and actual values.</entry>
+		</row>
+		<row>
+			<entry>Diagnosis</entry>
+			<entry>The TS/Diagnosis attribute performs a retro-cast of the time
+			series and compares the estimated values to the original
+			observations.  A dataset of scores is produced with one score record
+			for each model specified.</entry>
+		</row>
+		<row>
+			<entry>Estimated Observations</entry>
+			<entry>The TS/EstimatedObs internal function is used to apply the
+			model parameters to the observations to create a retro-cast or a
+			forecast time series.</entry>
+		</row>
+		<row>
+			<entry>Estimation</entry>
+			<entry>The TS/Estimation attribute performs the estimation of the
+			estimation of the model parameters for each model specified.  The
+			model specifies the degree of differencing and the number of Moving
+			Average and Auto-regression terms</entry>
+		</row>
+		<row>
+			<entry>Extended Parameters</entry>
+			<entry>The TS/ExtendedParameters nternal function is used to convert
+			the estimated model parameters for each model into coefficients.</entry>
+		</row>
+		<row>
+			<entry>Extract time series</entry>
+			<entry>The TS/extract_ts attribute is a function macro that will
+			convert	a dataset of time series observations into the format required.
+			The name of the field holding the observation value is the input
+			parameter.</entry>
+		</row>
+		<row>
+			<entry>Forecast</entry>
+			<entry>The TS/Forecast attribute produces a forecast time series
+			for each of the models specified.  The model specification used is
+			produced by the Estimation attribute and includes the estimated model
+			parameters.</entry>
+		</row>
+		<row>
+			<entry>Identification</entry>
+			<entry>The TS/Idnetification attribute produces the Autocorrelation
+			and Partial autocorrelation tables for each model specified.  At this
+			step, only the degree of differencing is specified for the model.</entry>
+		</row>
+		<row>
+			<entry>Lag Correlations</entry>
+			<entry>The TS/lagCorrelations function is an internal attribute that
+			is used to calculate the autocorrelation and partial autocorrelation
+			table for the specified number of lags.</entry>
+		</row>
+		<row>
+			<entry>Seasonal Adjustment</entry>
+			<entry>The TS/season_adj function can be used to perform either
+			additive or multiplicative adjustments to the original time series
+			data to produce a seasonally adjusted series.</entry>
+		</row>
+		<row>
+			<entry>Series by model</entry>
+			<entry>The TS/SeriesByModel attribute is an internal function that
+			conflates the original series data with the model dataset to produce
+			a time series dataset for each model.</entry>
+		</row>
+		<row>
+			<entry>Types</entry>
+			<entry>The TS/Types attribute provides the record definitions for
+			the Time Series analysis attributes.</entry>
+		</row>
+          </tbody>
+		</tgroup>
+           </informaltable>
+   </sect1>
+   <sect1 id="TS_Example">
+     <title id="TS_example">Time series example</title>
+     <para>The ML library provides Time Series support.  In particular, the ML library
+     provides an implementation of a univariate ARIMA time series analysis and modeling
+     tool.  This walk through will introduce the tool and illustrate the use of the tool
+     to construct a model.</para>
+     <para>It is important to note that the Time Series package requires BLAS to be
+     installed.</para>
+     <para>The data used in this walk-through is from the St. Louis Federal Reserve, by
+     way of the Datamarket web site.  The sequence is known as the Sticky CPI</para>
+     <para>The data should be downloaded and sprayed onto your cluster as CSV data.</para>
+     <sect2 id="step1">
+       <title>Step1.  Data conversion</title>
+       <para>The first step is to convert your time series into the format required by
+       the Time Series package.  The example data was srayed onto a cluster, and the
+       code below read that CSV file and performed the conversion.</para>
+       <programlisting><?dbfo keep-together="always"?>
+//The attribute reads the CSV file from the Federal Reserve and writes a time series file
+//The sticky cpi data was sprayed as a CSV.  The data has 1 header row.
+IMPORT TS;
+CPI_Rec := RECORD
+        STRING YYYY_mm;
+        REAL8 cpi;
+END;
+fileName := &apos;~jdh::time_series::sticky-price-consumer-price-inde.csv&apos;;
+csvData := DATASET(fileName, CPI_Rec, CSV(HEADING(1)));
+OUTPUT(CHOOSEN(csvData, 10), NAMED(&apos;First_10_raw&apos;));
+
+tsData := TS.extract_ts(csvData, cpi);
+OUTPUT(CHOOSEN(tsData, 10), NAMED(&apos;First_10_ts&apos;));
+
+OUTPUT(tsData,, &apos;~JDH::TIME_SERIES::MONTHLY_STICKY_CPI&apos;, THOR);
+
+       </programlisting>
+       <para>You should adjust the file names to be consistent with the naming
+       approach that you have adopted.</para>
+       <para>The function macro TS.extract_ts will perform the conversion.  It
+       is important to note that these records must be equal period records,
+       and zero period records must be present.  If your data consists of event
+       records, you will need to write transformations to create periodic
+       records.</para>
+     </sect2>
+     <sect2 id="step2">
+       <title>Step 2. Identification</title>
+       <para>The second step is to identify the degree of differencing required
+       for a stationary time series and to determine the number of moving average
+       and auto-regression parameters required.</para>
+       <para>The code below produces the identification results.  There are three
+       models used with zero, one, and two degrees of differencing.  There are six
+       outputs, two for each model.  Descriptions for the interpretation of the
+       ACF and PACF functiopns can be found on the web and in any book on
+       time series analysis.  The ACF and PACF outputs include a
+       &quot;<emphasis>t-like</emphasis>&quot; statistic which can
+       be used to estimate the statistical significance of the
+       correlation value.</para>
+       <programlisting><?dbfo keep-together="always"?>
+//The attribute runs the Identification step to establish
+//the degree of differencing required to achieve a stationary time series
+IMPORT TS;
+fileName := &apos;~JDH::TIME_SERIES::MONTHLY_STICKY_CPI&apos;;
+tsData := DATASET(fileName, TS.Types.UniObservation, THOR);
+
+TS.Types.Ident_Spec makeSpec(UNSIGNED model_id, UNSIGNED degree) := TRANSFORM
+        SELF.model_id := model_id;
+        SELF.degree := degree;
+END;
+ident_specs := DATASET([makeSpec(1,0), makeSpec(2,1), makeSpec(3,2)]);
+
+ident := TS.Identification(tsData, ident_specs);
+// Have tables for all 3 models.  Want to separate them for built in visualization
+
+lags := 48;
+OUTPUT(ident.ACF(lags)(model_id=1), NAMED(&apos;Model_1_ACF&apos;));
+OUTPUT(ident.PACF(lags)(model_id=1), NAMED(&apos;Model_1_PACF&apos;));
+OUTPUT(ident.ACF(lags)(model_id=2), NAMED(&apos;Model_2_ACF&apos;));
+OUTPUT(ident.PACF(lags)(model_id=2), NAMED(&apos;Model_2_PACF&apos;));
+OUTPUT(ident.ACF(lags)(model_id=3), NAMED(&apos;Model_3_ACF&apos;));
+OUTPUT(ident.PACF(lags)(model_id=3), NAMED(&apos;Model_3_PACF&apos;));
+       </programlisting>
+       <para>The outputs were not filtered to removed the insignificant correlation
+       values.  The removal of insignificant entries can sometimes make it easier to
+       find cut-off points.  Unfortunately, the removal can also make it difficult to
+       distinguish a cut-off point from a long term die-down.</para>
+       <para>The model 1 (zero degree of differencing) ACF shows a die down
+       and the model 1 PACF shows a cut-off at lag 4.  There are statistically
+       correlations at lags 7, 11, 19, 24, and 31 which suggests that the
+       series is not quite stationary and that these is some remaining systemic
+       variation.  These features suggest an ARIMA(4,0,0) model.</para>
+       <mediaobject>
+         <imageobject><imagedata fileref="images/ML023.jpg" format="JPEG"/></imageobject>
+         <caption><simpara>Model 1 ACF plot</simpara></caption>
+       </mediaobject>
+       <mediaobject>
+         <imageobject><imagedata fileref="images/ML024.jpg" format="JPEG"/></imageobject>
+         <caption><simpara>Model 1 PACF plot</simpara></caption>
+       </mediaobject>
+       <para>The model 1 plots were produced by the builtin visualization tools
+       available on the workunit output tab.</para>
+       <para>The model 2 (1 degree of differencing) ACF shows a lag 1 negative
+       autocorrallation.  The drop off is also at lag 1 which sugests an
+       ARIMA(0,1,1) model.
+       </para>
+       <para>The model 2 plots were created by downloading the <emphasis>xsl</emphasis> version
+       of the workunit outputs; and then reading those files with Open Office. </para>
+       <para>The candiate models identified are ARIMA(4,0,0) and ARIMA(0,1,1), and these
+       models will be evaluated in the next step.</para>
+       <mediaobject>
+         <imageobject><imagedata fileref="images/ML025.jpg" format="JPEG"/></imageobject>
+         <caption><simpara>Model 2 ACF plot</simpara></caption>
+       </mediaobject>
+       <mediaobject>
+         <imageobject><imagedata fileref="images/ML026.jpg" format="JPEG"/></imageobject>
+         <caption><simpara>Model 2 PACF plot</simpara></caption>
+       </mediaobject>
+     </sect2>
+     <sect2 id="step3">
+       <title>Step 3.  Parameter estimation and diagnosis</title>
+       <para>The identification step suggests that the right model might be an
+       ARIMA(4,0,0) or an ARIMA(0,1,1) model.  The code below will perform
+       the parmeter estimation and calculate the standard errors for the
+       identified models.</para>
+       <programlisting>
+//The attribute runs the Estimation and Diagnosis processes.
+IMPORT TS;
+fileName := &apos;~JDH::TIME_SERIES::MONTHLY_STICKY_CPI&apos;;
+tsData := DATASET(fileName, TS.Types.UniObservation, THOR);
+
+TS.Types.Model_Spec makeSpec(UNSIGNED model_id, UNSIGNED ar, UNSIGNED degree,
+                                                        UNSIGNED ma, BOOLEAN constant=TRUE) := TRANSFORM
+        SELF.model_id := model_id;
+        SELF.degree := degree;
+        SELF.ar_terms := ar;
+        SELF.ma_terms := ma;
+        SELF.constant_term := constant;
+END;
+model_specs := DATASET([makeSpec(1,4,0,0), makeSpec(2,0,1,1)]);
+model_parms := TS.Estimation(tsData, model_specs, 100);
+
+scored := TS.Diagnosis(tsData, model_parms);
+OUTPUT(scored, NAMED(&apos;Scored_Models&apos;));
+
+//expand series data to records for each model
+series_by_model := TS.SeriesByModel(tsData, model_parms(model_id=1));
+est_by_model := TS.EstimatedObs(series_by_model, model_parms(model_id=1));
+Out_Record := RECORD
+        est_by_model.period;
+        est_by_model.dependent;
+        est_by_model.estimate;
+END;
+OUTPUT(est_by_model, Out_Record, &apos;~JDH::TIME_SERIES::ACT_EST_MONTHLY_CPI.CSV&apos;,
+           CSV(HEADING(SINGLE)));
+       </programlisting>
+       <para>The scoring results shown in the <emphasis>Scored Model</emphasis> output
+       show that the ARIMA(4,0,0) model produces the least error.  This output also
+       provides the parameter estimates for the term co-efficients and the constant
+       value.
+       </para>
+       <mediaobject>
+         <imageobject><imagedata fileref="images/ML027.jpg" format="JPEG"/></imageobject>
+         <caption>
+           <simpara>
+             Model parameters and error score for ARIMA(4,0,0) and ARIMA(0,1,1)
+           </simpara>
+         </caption>
+       </mediaobject>
+       <para>The ARIMA(4,0,0) model has the best score.  It can be useful to
+       examine the actual versus estimated values for the series.  The second
+       output uses the parameters for the ARIMA(4,0,0) model to produce
+       and output a set of the actual and estimated values.</para>
+       <mediaobject>
+         <imageobject><imagedata fileref="images/ML028.jpg" format="JPEG"/></imageobject>
+         <caption><simpara>Actual versus Estimate</simpara></caption>
+       </mediaobject>
+       <para>The graph above shows that there is still some sytematic variation
+       that has not been summarized by the model.</para>
+     </sect2>
+   </sect1>
+  </chapter>
 </book>
