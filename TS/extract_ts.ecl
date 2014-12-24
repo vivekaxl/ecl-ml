@@ -1,5 +1,3 @@
-IMPORT Std.System.ThorLib;
-IMPORT TS.Types;
 /**
  * Extract the univariate time series.  The data is required to be in 
  * time order, and the time perioods are reqiured to be regular.  Missing
@@ -10,6 +8,8 @@ IMPORT TS.Types;
  * @return a Univariate time series dataset
  */
 EXPORT extract_ts(dsIn, fieldName) := FUNCTIONMACRO
+  IMPORT Std.System.ThorLib;
+  IMPORT TS.Types;
   Work1 := RECORD(Types.UniObservation)
     UNSIGNED2 nodeid;
   END;

@@ -15,7 +15,7 @@ model:= learner.modelC(result);  // transforming model to a easier way to read i
 OUTPUT(SORT(model, group_id, node_id),NAMED('modelC_ouput')); // group_id represent number of tree
 
 //Class distribution for each Instance
-ClassDist:= learner.ClassProbabilityDistributionC(IndepData, result);
+ClassDist:= learner.ClassProbDistribC(IndepData, result);
 OUTPUT(ClassDist, NAMED('ClassDist'), ALL);
 class:= learner.classifyC(IndepData, result); // classifying
 OUTPUT(class, NAMED('class_result'), ALL); // conf show voting percentage

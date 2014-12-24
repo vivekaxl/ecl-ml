@@ -2,6 +2,8 @@
 IMPORT * FROM $;
 IMPORT $.Mat;
 IMPORT * FROM ML.Types;
+IMPORT PBblas;
+Layout_Cell := PBblas.Types.Layout_Cell;
 
 /*
 		The object of the classify module is to generate a classifier.
@@ -11,10 +13,7 @@ IMPORT * FROM ML.Types;
 
 EXPORT Classify := MODULE
 
-SHARED l_result := RECORD(Types.DiscreteField)
-  REAL8 conf;  // Confidence - high is good
-	REAL8 closest_conf;
-  END;
+SHARED l_result := Types.l_result;
 
 SHARED l_model := RECORD
   Types.t_RecordId    id := 0; 			// A record-id - allows a model to have an ordered sequence of results
@@ -151,14 +150,21 @@ END;
 	 This method can support producing classification results for multiple classifiers at once
 	 Note the presumption that the result (a weight for each value of each field) can fit in memory at once
 */
-
-		SHARED BayesResult := RECORD(l_model)
-			Types.t_discrete c; 						 // Independant value
-			Types.t_discrete f := 0;				 // Dependant result
-//			REAL8 P;                         // Either P(F|C) or P(C) if number = 0. Stored in -Log2(P) - so small is good :)
-			Types.t_Count Support;           // Number of cases
-		END;
-
+    SHARED BayesResult := RECORD
+      Types.t_RecordId    id := 0;        // A record-id - allows a model to have an ordered sequence of results
+      Types.t_Discrete    class_number;   // Dependent "number" value - Classifier ID
+      Types.t_discrete    c;              // Dependent "value" value - Class value
+      Types.t_FieldNumber number;         // A reference to a feature (or field) in the independants
+      Types.t_Count       Support;        // Number of cases
+    END;
+    SHARED BayesResultD := RECORD (BayesResult)
+      Types.t_discrete  f := 0;           // Independant value - Attribute value
+      Types.t_FieldReal PC;                // Either P(F|C) or P(C) if number = 0. Stored in -Log2(P) - so small is good :)
+    END;
+    SHARED BayesResultC := RECORD (BayesResult)
+      Types.t_FieldReal  mu:= 0;          // Independent attribute mean (mu)
+      Types.t_FieldReal  var:= 0;         // Independent attribute sample standard deviation (sigma squared)
+    END;
 /*
   The inputs to the BuildNaiveBayes are:
   a) A dataset of discretized independant variables
@@ -256,23 +262,22 @@ END;
 			END;
 			// Calculating final probabilties
 			FC := JOIN(ACnts,TotalFs,LEFT.C = RIGHT.C AND LEFT.number=RIGHT.number AND LEFT.class_number=RIGHT.class_number,mp(LEFT,RIGHT),LOOKUP);
-			Pret := PROJECT(FC,TRANSFORM(BayesResult,SELF := LEFT))+PROJECT(PC,TRANSFORM(BayesResult,SELF.number := 0,SELF:=LEFT));
-			Pret1 := PROJECT(Pret,TRANSFORM(BayesResult,SELF.w := LogScale(LEFT.w),SELF.id := Base+COUNTER,SELF := LEFT));
+			Pret := PROJECT(FC,TRANSFORM(BayesResultD, SELF.PC:=LEFT.w, SELF := LEFT))+PROJECT(PC,TRANSFORM(BayesResultD, SELF.PC:=LEFT.w, SELF.number:= 0,SELF:=LEFT));
+			Pret1 := PROJECT(Pret,TRANSFORM(BayesResultD, SELF.PC := LogScale(LEFT.PC),SELF.id := Base+COUNTER,SELF := LEFT));
 			ToField(Pret1,o);
 			RETURN o;
 		END;
-// Function to turn 'generic' classifier output into specific
-// This will be the 'same' in every module - but not overridden - has unique return type
-   EXPORT Model(DATASET(Types.NumericField) mod) := FUNCTION
-	   ML.FromField(mod,BayesResult,o);
-		 RETURN o;
-	 END;
-// This function will take a pre-existing NaiveBayes model (mo) and score every row of a discretized dataset
-// The output will have a row for every row of dd and a column for every class in the original training set
+    // Transform NumericFiled "mod" to discrete Naive Bayes format model "BayesResultD"
+    EXPORT Model(DATASET(Types.NumericField) mod) := FUNCTION
+      ML.FromField(mod,BayesResultD,o);
+      RETURN o;
+    END;
+		// This function will take a pre-existing NaiveBayes model (mo) and score every row of a discretized dataset
+		// The output will have a row for every row of dd and a column for every class in the original training set
 		EXPORT ClassifyD(DATASET(Types.DiscreteField) Indep,DATASET(Types.NumericField) mod) := FUNCTION
 		   d := Indep;
 			 mo := Model(mod);
-  // Firstly we can just compute the support for each class from the bayes result
+      // Firstly we can just compute the support for each class from the bayes result
 			dd := DISTRIBUTE(d,HASH(id)); // One of those rather nice embarassingly parallel activities
 			Inter := RECORD
 				Types.t_discrete c;
@@ -284,7 +289,7 @@ END;
 				SELF.c := ri.c;
 				SELF.class_number := ri.class_number;
 				SELF.id := le.id;
-				SELF.w := ri.w;
+				SELF.w := ri.PC;
 			END;
 	// RHS is small so ,ALL join should work ok
 	// Ignore the "explicitly distributed" compiler warning - the many lookup is preserving the distribution
@@ -308,7 +313,7 @@ END;
 			END;
 			MissingNoted := JOIN(Tsum,FTots,LEFT.id=RIGHT.id,NoteMissing(LEFT,RIGHT),LOOKUP);
 			InterCounted NoteC(MissingNoted le,mo ri) := TRANSFORM
-				SELF.P := le.P+ri.w+le.Missing*LogScale(SampleCorrection/ri.support);
+				SELF.P := le.P+ri.PC+le.Missing*LogScale(SampleCorrection/ri.support);
 				SELF := le;
 			END;
 			CNoted := JOIN(MissingNoted,mo(number=0),LEFT.c=RIGHT.c,NoteC(LEFT,RIGHT),LOOKUP);
@@ -330,7 +335,102 @@ END;
 			Ro := ROLLUP(ST,LEFT.id=RIGHT.id AND LEFT.number=RIGHT.number,rem(LEFT,RIGHT),LOCAL);
 			RETURN Ro;
 		END;
-	END;
+    /*From Wikipedia    
+    " ...When dealing with continuous data, a typical assumption is that the continuous values associated with each class are distributed according to a Gaussian distribution.
+    For example, suppose the training data contain a continuous attribute, x. We first segment the data by the class, and then compute the mean and variance of x in each class.
+    Let mu_c be the mean of the values in x associated with class c, and let sigma^2_c be the variance of the values in x associated with class c.
+    Then, the probability density of some value given a class, P(x=v|c), can be computed by plugging v into the equation for a Normal distribution parameterized by mu_c and sigma^2_c..."
+    */
+    EXPORT LearnC(DATASET(NumericField) Indep, DATASET(DiscreteField) Dep) := FUNCTION
+      Triple := RECORD
+        Types.t_FieldNumber class_number;
+        Types.t_FieldNumber number;
+        Types.t_FieldReal value;
+        Types.t_Discrete c;
+      END;
+      Triple form(Indep le, Dep ri) := TRANSFORM
+        SELF.class_number := ri.number;
+        SELF.number := le.number;
+        SELF.value := le.value;
+        SELF.c := ri.value;
+      END;
+      Vals := JOIN(Indep, Dep, LEFT.id=RIGHT.id, form(LEFT,RIGHT));
+      // Compute P(C)
+      ClassCnts := TABLE(Dep, {number, value, support := COUNT(GROUP)}, number, value, FEW);
+      ClassTots := TABLE(ClassCnts,{number, TSupport := SUM(GROUP,Support)}, number, FEW);
+      P_C_Rec := RECORD
+        Types.t_Discrete class_number; // Used when multiple classifiers being produced at once
+        Types.t_Discrete c;             // The class value "C"
+        Types.t_FieldReal support;          // Cases count
+        Types.t_FieldReal  mu:= 0;          // P(C)
+      END;
+      // Computing prior probability P(C)
+      P_C_Rec pct(ClassCnts le, ClassTots ri) := TRANSFORM
+        SELF.class_number := ri.number;
+        SELF.c := le.value;
+        SELF.support := le.Support;
+        SELF.mu := le.Support/ri.TSupport;
+      END;
+      PC := JOIN(ClassCnts, ClassTots, LEFT.number=RIGHT.number, pct(LEFT,RIGHT), FEW);
+      PC_cnt := COUNT(PC);
+      // Computing Attributes' mean and variance. mu_c and sigma^2_c.
+      AggregatedTriple := RECORD
+        Vals.class_number;
+        Vals.c;
+        Vals.number;
+        Types.t_Count support := COUNT(GROUP);
+        Types.t_FieldReal mu:=AVE(GROUP, Vals.value);
+        Types.t_FieldReal var:= VARIANCE(GROUP, Vals.value);
+      END;
+      AC:= TABLE(Vals, AggregatedTriple, class_number, c, number);
+      Pret := PROJECT(PC, TRANSFORM(BayesResultC, SELF.id := Base + COUNTER, SELF.number := 0, SELF:=LEFT)) +
+              PROJECT(AC, TRANSFORM(BayesResultC, SELF.id := Base + COUNTER + PC_cnt, SELF.var:= LEFT.var*LEFT.support/(LEFT.support -1), SELF := LEFT));
+      ToField(Pret,o);
+      RETURN o;
+    END;
+    // Transform NumericFiled "mod" to continuos Naive Bayes format model "BayesResultC"
+    EXPORT ModelC(DATASET(Types.NumericField) mod) := FUNCTION
+      ML.FromField(mod,BayesResultC,o);
+      RETURN o;
+    END;
+    EXPORT ClassifyC(DATASET(Types.NumericField) Indep, DATASET(Types.NumericField) mod) := FUNCTION
+      dd := DISTRIBUTE(Indep, HASH(id));
+      mo := ModelC(mod);
+      Inter := RECORD
+        Types.t_FieldNumber class_number;
+        Types.t_FieldNumber number;
+        Types.t_FieldReal value;
+        Types.t_Discrete c;
+        Types.t_RecordId Id;
+        Types.t_FieldReal  likehood:=0; // Probability density P(x=v|c)
+      END;
+      Inter ProbDensity(dd le, mo ri) := TRANSFORM
+        SELF.id := le.id;
+        SELF.value:= le.value;
+        SELF.likehood := LogScale(exp(-(le.value-ri.mu)*(le.value-ri.mu)/(2*ri.var))/SQRT(2*ML.Utils.Pi*ri.var));
+        SELF:= ri;
+      END;
+      // Likehood or probability density P(x=v|c) is calculated assuming Gaussian distribution of the class based on new instance attribute value and atribute's mean and variance from model
+      LogPall := JOIN(dd,mo,LEFT.number=RIGHT.number , ProbDensity(LEFT,RIGHT),MANY LOOKUP);
+      // Prior probaility PC
+      LogPC:= PROJECT(mo(number=0),TRANSFORM(BayesResultC, SELF.mu:=LogScale(LEFT.mu), SELF:=LEFT));
+      post_rec:= RECORD
+        LogPall.id;
+        LogPall.class_number;
+        LogPall.c;
+        Types.t_FieldReal prod:= SUM(GROUP, LogPall.likehood);
+      END;
+      // Likehood and Prior are expressed in LogScale, summing really means multiply
+      LikehoodProduct:= TABLE(LogPall, post_rec, class_number, c, id, LOCAL);
+      // Posterior probability = prior x likehood_product / evidence
+      // We use only the numerator of that fraction, because the denominator is effectively constant.
+      // See: http://en.wikipedia.org/wiki/Naive_Bayes_classifier#Probabilistic_model
+      AllPosterior:= JOIN(LikehoodProduct, LogPC, LEFT.class_number = RIGHT.class_number AND LEFT.c = RIGHT.c, TRANSFORM(l_result, SELF.conf:= LEFT.prod + RIGHT.mu, SELF.number:=LEFT.class_number, SELF.value:= RIGHT.c, SELF.closest_conf:= 0, SELF:=LEFT), LOOKUP);
+      sortPost:= SORT(AllPosterior, id, number, conf, LOCAL);
+      // The class with greatest posterior probability is selected (smallest prod cause we are using LogScale values)
+      RETURN DEDUP(sortPost, LEFT.id=RIGHT.id AND LEFT.number=RIGHT.number);
+    END;
+  END; // NaiveBayes Module
 
 /*
 	See: http://en.wikipedia.org/wiki/Perceptron
@@ -508,7 +608,7 @@ END;
 
 */
 
-EXPORT Logistic(REAL8 Ridge=0.00001, REAL8 Epsilon=0.000000001, UNSIGNED2 MaxIter=200) := MODULE(DEFAULT)
+EXPORT Logistic_sparse(REAL8 Ridge=0.00001, REAL8 Epsilon=0.000000001, UNSIGNED2 MaxIter=200) := MODULE(DEFAULT)
 	Logis(DATASET(Types.NumericField) X,DATASET(Types.NumericField) Y) := MODULE
 		SHARED mu_comp := ENUM ( Beta = 1,  Y = 2 );
 		SHARED RebaseY := Utils.RebaseNumericField(Y);
@@ -586,9 +686,346 @@ EXPORT Logistic(REAL8 Ridge=0.00001, REAL8 Epsilon=0.000000001, UNSIGNED2 MaxIte
 		RETURN PROJECT(sigmoid,tr(LEFT));
 	END;
 		
-	END; // Logistic Module
+	END; // Logistic_sparse Module
 	
+/*
+    Logistic Regression implementation base on the iteratively-reweighted least squares (IRLS) algorithm:
+  http://www.cs.cmu.edu/~ggordon/IRLS-example
 
+    Logistic Regression module parameters:
+    - Ridge: an optional ridge term used to ensure existance of Inv(X'*X) even if
+        some independent variables X are linearly dependent. In other words the Ridge parameter
+        ensures that the matrix X'*X+mRidge is non-singular.
+    - Epsilon: an optional parameter used to test convergence
+    - MaxIter: an optional parameter that defines a maximum number of iterations
+    - prows: an optional parameter used to set the number of rows in partition blocks (Should be used in conjuction with pcols)
+    - pcols: an optional parameter used to set the number of cols in partition blocks (Should be used in conjuction with prows)
+    - Maxrows: an optional parameter used to set maximum rows allowed per block when using AutoBVMap
+    - Maxcols: an optional parameter used to set maximum cols allowed per block when using AutoBVMap
+
+    The inputs to the Logis module are:
+  a) A training dataset X of discretized independant variables
+  b) A dataset of class results Y.
+
+*/
+    EXPORT Logistic(REAL8 Ridge=0.00001, REAL8 Epsilon=0.000000001, UNSIGNED2 MaxIter=200, 
+               UNSIGNED4 prows=0, UNSIGNED4 pcols=0,UNSIGNED4 Maxrows=0, UNSIGNED4 Maxcols=0) := MODULE(DEFAULT)
+                     
+    Logis(DATASET(Types.NumericField) X, DATASET(Types.NumericField) Y) := MODULE
+        SHARED mu_comp := ENUM ( Beta = 1,  Y = 2, BetaError = 3, BetaMaxError = 4 );
+        SHARED RebaseY := Utils.RebaseNumericField(Y);
+        SHARED Y_Map := RebaseY.Mapping(1);
+        mX_0 := Types.ToMatrix(X);
+         SHARED mX := Mat.InsertColumn(mX_0, 1, 1.0); // Insert X1=1 column (Xcols = Xcols+1)
+         mXstats := Mat.Has(mX).Stats;
+         mX_n := mXstats.XMax;
+         mX_m := mXstats.YMax;
+         
+         //Map for Matrix X. Map will be used to derive all other maps in Logis
+         havemaxrow := maxrows > 0;
+         havemaxcol := maxcols > 0;
+         havemaxrowcol := havemaxrow and havemaxcol;
+         
+         derivemap := IF(havemaxrowcol, PBblas.AutoBVMap(mX_n, mX_m,prows,pcols,maxrows, maxcols),
+                         IF(havemaxrow, PBblas.AutoBVMap(mX_n, mX_m,prows,pcols,maxrows),
+                            IF(havemaxcol, PBblas.AutoBVMap(mX_n, mX_m,prows,pcols,,maxcols),
+                            PBblas.AutoBVMap(mX_n, mX_m,prows,pcols))));
+
+        sizeRec := RECORD
+            PBblas.Types.dimension_t m_rows;
+            PBblas.Types.dimension_t m_cols;
+            PBblas.Types.dimension_t f_b_rows;
+            PBblas.Types.dimension_t f_b_cols;
+        END;
+
+        SHARED sizeTable := DATASET([{derivemap.matrix_rows,derivemap.matrix_cols,derivemap.part_rows(1),derivemap.part_cols(1)}], sizeRec);
+        
+        
+        mXmap := PBblas.Matrix_Map(sizeTable[1].m_rows,sizeTable[1].m_cols,sizeTable[1].f_b_rows,sizeTable[1].f_b_cols);
+        //Create block matrix X
+        mXdist := DMAT.Converted.FromElement(mX,mXmap);
+        
+        
+        //Create block matrix Y
+        Y_0 := RebaseY.ToNew(Y_Map);
+        mY := Types.ToMatrix(Y_0);
+        mYmap := PBblas.Matrix_Map(sizeTable[1].m_rows, 1, sizeTable[1].f_b_rows, 1);
+        mYdist := DMAT.Converted.FromElement(mY, mYmap);
+        
+        //New Matrix Generator
+        Layout_Cell gen(UNSIGNED4 c, UNSIGNED4 NumRows, REAL8 v) := TRANSFORM
+			SELF.x := ((c-1) % NumRows) + 1;
+			SELF.y := ((c-1) DIV NumRows) + 1;
+			SELF.v := v;
+		END;
+
+        //Create block matrix W
+        mW := DATASET(sizeTable[1].m_rows, gen(COUNTER, sizeTable[1].m_rows, 1.0),DISTRIBUTED);
+        mWdist := DMAT.Converted.FromCells(mYmap, mW);
+        
+        
+        
+        //Create block matrix Ridge
+        mRidge := DATASET(sizeTable[1].m_cols, gen(COUNTER, sizeTable[1].m_cols, ridge),DISTRIBUTED);
+        RidgeVecMap := PBblas.Matrix_Map(sizeTable[1].m_cols, 1, sizeTable[1].f_b_cols, 1);
+        Ridgemap := PBblas.Matrix_Map(sizeTable[1].m_cols, sizeTable[1].m_cols, sizeTable[1].f_b_cols, sizeTable[1].f_b_cols);
+        mRidgeVec := DMAT.Converted.FromCells(RidgeVecMap, mRidge);
+        mRidgedist := PBblas.Vector2Diag(RidgeVecMap, mRidgeVec, Ridgemap);
+        
+        //Create block matrix Beta
+        mBeta0 := DATASET(sizeTable[1].m_cols, gen(COUNTER, sizeTable[1].m_cols, 0.0),DISTRIBUTED);
+        mBeta0map := PBblas.Matrix_Map(sizeTable[1].m_cols, 1, sizeTable[1].f_b_cols, 1);
+        mBeta00 := PBblas.MU.To(DMAT.Converted.FromCells(mBeta0map,mBeta0), mu_comp.Beta);
+        
+        //Create block matrix OldExpY
+        OldExpY_0 := DATASET(sizeTable[1].m_rows, gen(COUNTER, sizeTable[1].m_rows, -1),DISTRIBUTED); // -ones(size(mY))
+        OldExpY_00 := PBblas.MU.To(DMAT.Converted.FromCells(mYmap,OldExpY_0), mu_comp.Y);
+        
+        
+
+        //Functions needed to calculate ExpY
+            PBblas.Types.value_t e(PBblas.Types.value_t v, 
+                                      PBblas.Types.dimension_t r, 
+                                      PBblas.Types.dimension_t c) := exp(v);
+            
+            PBblas.Types.value_t AddOne(PBblas.Types.value_t v, 
+                                      PBblas.Types.dimension_t r, 
+                                      PBblas.Types.dimension_t c) := 1+v;
+            
+            PBblas.Types.value_t Reciprocal(PBblas.Types.value_t v, 
+                                      PBblas.Types.dimension_t r, 
+                                      PBblas.Types.dimension_t c) := 1/v;
+            
+        //Abs (Absolute Value) function
+            PBblas.Types.value_t absv(PBblas.Types.value_t v, 
+                                      PBblas.Types.dimension_t r, 
+                                      PBblas.Types.dimension_t c) := abs(v);
+                                      
+        //Maps used in Step function
+            weightsMap := PBblas.Matrix_Map(sizeTable[1].m_rows, sizeTable[1].m_rows, sizeTable[1].f_b_rows, sizeTable[1].f_b_rows);
+            xWeightMap := PBblas.Matrix_Map(sizeTable[1].m_cols, sizeTable[1].m_rows, sizeTable[1].f_b_cols, sizeTable[1].f_b_rows);
+            xtranswadjyMap := PBblas.Matrix_Map(sizeTable[1].m_cols, 1, sizeTable[1].f_b_cols, 1);
+            
+                                      
+        Step(DATASET(PBblas.Types.MUElement) BetaPlusY, INTEGER coun) := FUNCTION
+            
+            OldExpY := PBblas.MU.From(BetaPlusY, mu_comp.Y);
+            
+            BetaDist := PBblas.MU.From(BetaPlusY, mu_comp.Beta);
+            
+        
+            AdjY := PBblas.PB_dgemm(FALSE, FALSE, 
+                             1.0, mXmap, mXdist, mBeta0map, BetaDist, 
+                             mYmap);
+            
+        
+            
+        // The -adjy of expy =  1./(1+exp(-adjy))
+            negAdjY := PBblas.PB_dscal(-1, AdjY);
+        // The exp of expy =  1./(1+exp(-adjy))
+            e2negAdjY := PBblas.Apply2Elements(mYmap, negAdjY, e);
+        // The (1+exp(-adjy) of expy =  1./(1+exp(-adjy))
+            OnePlusE2negAdjY := PBblas.Apply2Elements(mYmap, e2negAdjY, AddOne);
+        
+        
+        // expy =  1./(1+exp(-adjy))
+            ExpY := PBblas.Apply2Elements(mYmap, OnePlusE2negAdjY, Reciprocal); 
+                    
+        // deriv := expy .* (1-expy)
+            //prederiv := 
+            Deriv := PBblas.HadamardProduct(mYmap, Expy, PBblas.Apply2Elements(mYmap,PBblas.PB_dscal(-1, Expy), AddOne));
+        
+        // Functions needed to calculate w_AdjY
+        // The deriv .* adjy of wadjy := w .* (deriv .* adjy + (y-expy))
+            derivXadjy := PBblas.HadamardProduct(mYmap, Deriv, AdjY);
+        // The (y-expy) of wadjy := w .* (deriv .* adjy + (y-expy))
+            yMINUSexpy := PBblas.PB_daxpy(1.0,mYdist,PBblas.PB_dscal(-1, Expy));
+        // The (deriv .* adjy + (y-expy)) of wadjy := w .* (deriv .* adjy + (y-expy))
+            forWadjy := PBblas.PB_daxpy(1, derivXadjy, yMINUSexpy);
+        
+        // wadjy := w .* (deriv .* adjy + (y-expy))
+            w_Adjy := PBblas.HadamardProduct(mYmap, mWdist, forWadjy);
+            
+        // Functions needed to calculate Weights
+        // The deriv .* w of weights := spdiags(deriv .* w, 0, n, n)
+            derivXw := PBblas.HadamardProduct(mYmap,deriv, mWdist);
+        
+        // weights := spdiags(deriv .* w, 0, n, n)
+            
+            
+            Weights := PBblas.Vector2Diag(weightsMap,derivXw,weightsMap);
+            
+        // Functions needed to calculate mBeta
+        // x' * weights * x of mBeta := Inv(x' * weights * x + mRidge) * x' * wadjy
+            
+            xweight := PBblas.PB_dgemm(TRUE, FALSE, 1.0, mXmap, mXdist, weightsMap, weights, xWeightMap);
+            xweightsx :=  PBblas.PB_dgemm(FALSE, FALSE, 1.0, xWeightMap, xweight, mXmap, mXdist, Ridgemap, mRidgedist, 1.0);
+        
+        // mBeta := Inv(x' * weights * x + mRidge) * x' * wadjy
+            
+            side := PBblas.PB_dgemm(TRUE, FALSE,1.0, mXmap, mXdist, mYmap, w_Adjy,xtranswadjyMap);
+           
+            LU_xwx  := PBblas.PB_dgetrf(Ridgemap, xweightsx);
+           
+            lc  := PBblas.PB_dtrsm(PBblas.Types.Side.Ax, PBblas.Types.Triangle.Lower, FALSE,
+                                   PBblas.Types.Diagonal.UnitTri, 1.0, Ridgemap, LU_xwx, xtranswadjyMap, side);
+ 
+            mBeta := PBblas.PB_dtrsm(PBblas.Types.Side.Ax, PBblas.Types.Triangle.Upper, FALSE,
+                                     PBblas.Types.Diagonal.NotUnitTri, 1.0, Ridgemap, LU_xwx, xtranswadjyMap, lc);
+            
+            //Caculate error to be checked in loop evaluation
+            err := SUM(DMAT.Converted.FromPart2Cell(PBblas.Apply2Elements(mBeta0map,PBblas.PB_daxpy(1.0, mBeta,PBblas.PB_dscal(-1, BetaDist)), absv)), v);
+            
+            errmap := PBblas.Matrix_Map(1, 1, 1, 1);
+            
+            BE := DATASET([{1,1,err}],Mat.Types.Element);
+            BetaError := DMAT.Converted.FromElement(BE,errmap);
+            
+            BME := DATASET([{1,1,sizeTable[1].m_cols*Epsilon}],Mat.Types.Element);
+            BetaMaxError := DMAT.Converted.FromElement(BME,errmap);         
+            
+            RETURN PBblas.MU.To(mBeta, mu_comp.Beta)+PBblas.MU.To(ExpY, mu_comp.Y)+PBblas.MU.To(BetaError,mu_comp.BetaError)+PBblas.MU.To(BetaMaxError,mu_comp.BetaMaxError);
+            
+        END;
+
+        SHARED BetaPair := LOOP(mBeta00+OldExpY_00
+                       , (COUNTER<=MaxIter)
+                          AND (DMAT.Converted.FromPart2Elm(PBblas.MU.From(ROWS(LEFT),mu_comp.BetaError))[1].value > 
+                               DMAT.Converted.FromPart2Elm(PBblas.MU.From(ROWS(LEFT),mu_comp.BetaMaxError))[1].value)
+                       , Step(ROWS(LEFT),COUNTER)
+                   ); 
+    
+        mBeta00map := PBblas.Matrix_Map(sizeTable[1].m_cols, 1, sizeTable[1].f_b_cols, 1);  
+        
+        EXPORT Beta := FUNCTION
+            mubeta := DMAT.Converted.FromPart2DS(DMAT.Trans.Matrix(mBeta00map,PBblas.MU.From(BetaPair, mu_comp.Beta)));
+            rebaseBeta := RebaseY.ToOldFromElemToPart(mubeta, Y_Map);
+            RETURN rebaseBeta;
+        END;
+        
+        Res := FUNCTION
+            ret := PROJECT(Beta,TRANSFORM(l_model,SELF.Id := COUNTER+Base,SELF.number := LEFT.number, SELF.class_number := LEFT.id, SELF.w := LEFT.value));
+            RETURN ret;
+        END;
+        ToField(Res,o);
+        
+        EXPORT Mod := o;
+        modelY_M := DMAT.Converted.FromPart2Elm(PBblas.MU.From(BetaPair, mu_comp.Y));
+        modelY_NF := RebaseY.ToOld(Types.FromMatrix(modelY_M),Y_Map);
+        EXPORT modelY := modelY_NF;
+    END;//End Logis
+    
+  EXPORT LearnCS(DATASET(Types.NumericField) Indep,DATASET(Types.DiscreteField) Dep) := Logis(Indep,PROJECT(Dep,Types.NumericField)).mod;
+    EXPORT LearnC(DATASET(Types.NumericField) Indep,DATASET(Types.DiscreteField) Dep) := LearnCConcat(Indep,Dep,LearnCS);
+    EXPORT Model(DATASET(Types.NumericField) mod) := FUNCTION
+      FromField(mod,l_model,o);
+        RETURN o;
+    END;
+  EXPORT ClassifyC(DATASET(Types.NumericField) Indep,DATASET(Types.NumericField) mod) := FUNCTION
+        
+        mod0 := Model(mod);
+        Beta_0 := PROJECT(mod0,TRANSFORM(Types.NumericField,SELF.Number := LEFT.Number,SELF.id := LEFT.class_number, SELF.value := LEFT.w;SELF:=LEFT;));
+        RebaseBeta := Utils.RebaseNumericFieldID(Beta_0);
+        Beta0_Map := RebaseBeta.MappingID(1);
+        Beta0 := RebaseBeta.ToNew(Beta0_Map);
+        
+        mX_0 := Types.ToMatrix(Indep);
+        mXloc := Mat.InsertColumn(mX_0, 1, 1.0); // Insert X1=1 column 
+        
+        mXlocstats := Mat.Has(mXloc).Stats;
+        mXloc_n := mXlocstats.XMax;
+        mXloc_m := mXlocstats.YMax;
+        
+        havemaxrow := maxrows > 0;
+        havemaxcol := maxcols > 0;
+        havemaxrowcol := havemaxrow and havemaxcol;
+        
+        //Map for Matrix X. Map will be used to derive all other maps in ClassifyC
+        derivemap := IF(havemaxrowcol, PBblas.AutoBVMap(mXloc_n, mXloc_m,prows,pcols,maxrows, maxcols),
+                        IF(havemaxrow, PBblas.AutoBVMap(mXloc_n, mXloc_m,prows,pcols,maxrows),
+                           IF(havemaxcol, PBblas.AutoBVMap(mXloc_n, mXloc_m,prows,pcols,,maxcols),
+                           PBblas.AutoBVMap(mXloc_n, mXloc_m,prows,pcols))));
+                    
+        
+        sizeRec := RECORD
+            PBblas.Types.dimension_t m_rows;
+            PBblas.Types.dimension_t m_cols;
+            PBblas.Types.dimension_t f_b_rows;
+            PBblas.Types.dimension_t f_b_cols;
+        END;
+
+        sizeTable := DATASET([{derivemap.matrix_rows,derivemap.matrix_cols,derivemap.part_rows(1),derivemap.part_cols(1)}], sizeRec);
+        
+        
+        mXlocmap := PBblas.Matrix_Map(sizeTable[1].m_rows,sizeTable[1].m_cols,sizeTable[1].f_b_rows,sizeTable[1].f_b_cols);
+        
+        mXlocdist := DMAT.Converted.FromElement(mXloc,mXlocmap);
+      
+        mBeta := Types.ToMatrix(Beta0);
+        mBetastats := Mat.Has(mBeta).Stats;
+        mBeta_n := mBetastats.XMax;
+        
+        
+        mBetamap := PBblas.Matrix_Map(mBeta_n, sizeTable[1].m_cols, 1, sizeTable[1].f_b_cols);
+        mBetadist := DMAT.Converted.FromElement(mBeta,mBetamap);
+      
+        AdjYmap := PBblas.Matrix_Map(mXlocmap.matrix_rows, mBeta_n, mXlocmap.part_rows(1), 1);
+        AdjY := PBblas.PB_dgemm(FALSE, TRUE, 
+                             1.0, mXlocmap, mXlocdist, mBetamap, mBetaDist, 
+                             AdjYmap);
+        
+        // expy =  1./(1+exp(-adjy))
+        
+        negAdjY := PBblas.PB_dscal(-1, AdjY);
+        
+        PBblas.Types.value_t e(PBblas.Types.value_t v, 
+                                      PBblas.Types.dimension_t r, 
+                                      PBblas.Types.dimension_t c) := exp(v);
+                                      
+        PBblas.Types.value_t AddOne(PBblas.Types.value_t v, 
+                                      PBblas.Types.dimension_t r, 
+                                      PBblas.Types.dimension_t c) := 1+v;
+                                      
+        PBblas.Types.value_t Reciprocal(PBblas.Types.value_t v, 
+                                      PBblas.Types.dimension_t r, 
+                                      PBblas.Types.dimension_t c) := 1/v;
+        
+        e2negAdjY := PBblas.Apply2Elements(AdjYmap, negAdjY, e);
+        
+        OnePlusE2negAdjY := PBblas.Apply2Elements(AdjYmap, e2negAdjY, AddOne);
+        
+        sig := PBblas.Apply2Elements(AdjYmap, OnePlusE2negAdjY, Reciprocal);
+        
+        //Rebase IDs so correct classifiers can be used
+        sigtran := DMAT.Trans.Matrix(AdjYmap,sig);
+        
+        sigds :=DMAT.Converted.FromPart2DS(sigtran);
+        
+        sigconvds := RebaseBeta.ToOld(sigds, Beta0_Map);
+        
+        tranmap := PBblas.Matrix_Map(((mXloc_m-1)+mBeta_n), mXlocmap.matrix_rows, 1, mXlocmap.part_rows(1));
+        
+        preptranback := DMAT.Converted.FromNumericFieldDS(sigconvds, tranmap);
+        
+        sigtranback := DMAT.Trans.Matrix(tranmap, preptranback);
+        
+        sigmoid := DMAT.Converted.frompart2elm(sigtranback);
+        
+        // Now convert to classify return format
+        l_result tr(sigmoid le) := TRANSFORM
+          SELF.value := IF ( le.value > 0.5,1,0);
+          SELF.id := le.x;
+            SELF.number := le.y;
+            SELF.conf := ABS(le.value-0.5);
+            SELF.closest_conf := 0;
+        END;
+        
+        RETURN PROJECT(sigmoid,tr(LEFT));
+        
+    END;
+    
+    END; // Logistic Module 
+    
 /* From Wikipedia: 
 http://en.wikipedia.org/wiki/Decision_tree_learning#General
 "... Decision tree learning is a method commonly used in data mining.
@@ -604,61 +1041,41 @@ The Decision Tree (model) has the same structure independently of which split al
 The model  is used to predict the class from new examples.
 */
 	EXPORT DecisionTree := MODULE
-		EXPORT model_Map :=	DATASET([{'id','ID'},{'node_id','1'},{'level','2'},{'number','3'},{'value','4'},{'new_node_id','5'}], {STRING orig_name; STRING assigned_name;});
-		EXPORT STRING model_fields := 'node_id,level,number,value,new_node_id';	// need to use field map to call FromField later
-    EXPORT modelC_Map :=	DATASET([{'id','ID'},{'node_id','1'},{'level','2'},{'number','3'},{'value','4'},{'high_fork','5'},{'new_node_id','6'}], {STRING orig_name; STRING assigned_name;});
-    EXPORT STRING modelC_fields := 'node_id,level,number,value,high_fork,new_node_id';	// need to use field map to call FromField later
-		SHARED GenClassifyD(DATASET(Types.DiscreteField) Indep,DATASET(Types.NumericField) mod) := FUNCTION
-			ML.FromField(mod, Trees.SplitF, nodes, model_Map);	// need to use model_Map previously build when Learning (ToField)
-			leafs := nodes(new_node_id = 0);	// from final nodes
-			splitData:= Trees.SplitInstances(nodes, Indep);
-			l_result final_class(RECORDOF(splitData) l, RECORDOF(leafs) r ):= TRANSFORM
-				SELF.id 		:= l.id;
-				SELF.number	:= 1;
-				SELF.value	:= r.value;
-				SELF.conf				:= 0;		// added to fit in l_result, not used so far
-				SELF.closest_conf:= 0;	// added to fit in l_result, not used so far
-			END;
-			RETURN JOIN(splitData, leafs, LEFT.new_node_id = RIGHT.node_id, final_class(LEFT, RIGHT), LOOKUP);
-		END;
-		// Function to turn 'generic' classifier output into specific
-		EXPORT GenModel(DATASET(Types.NumericField) mod) := FUNCTION
-			ML.FromField(mod,Trees.SplitF,o, model_Map);
-			RETURN o;
-		END;
 /*	
 		Decision Tree Learning using Gini Impurity-Based criterion
 */
-		EXPORT GiniImpurityBased(INTEGER1 Depth=10, REAL Purity=1.0):= MODULE(DEFAULT)
-			EXPORT LearnD(DATASET(Types.DiscreteField) Indep, DATASET(Types.DiscreteField) Dep) := FUNCTION
-				nodes := ML.Trees.SplitsGiniImpurBased(Indep, Dep, Depth, Purity);
-				AppendID(nodes, id, model);
-				ToField(model, out_model, id, model_fields);
-				RETURN out_model;
-			END;
-			EXPORT ClassifyD(DATASET(Types.DiscreteField) Indep,DATASET(Types.NumericField) mod) := FUNCTION
-				RETURN GenClassifyD(Indep,mod);
-			END;
-			EXPORT Model(DATASET(Types.NumericField) mod) := FUNCTION
-				RETURN GenModel(mod);
-			END;
-		END;
+    EXPORT GiniImpurityBased(INTEGER1 Depth=10, REAL Purity=1.0):= MODULE(DEFAULT)
+      EXPORT LearnD(DATASET(Types.DiscreteField) Indep, DATASET(Types.DiscreteField) Dep) := FUNCTION
+        nodes := ML.Trees.SplitsGiniImpurBased(Indep, Dep, Depth, Purity);
+        RETURN ML.Trees.ToDiscreteTree(nodes);
+      END;
+      EXPORT ClassProbDistribD(DATASET(Types.DiscreteField) Indep,DATASET(Types.NumericField) mod) :=FUNCTION
+        RETURN ML.Trees.ClassProbDistribD(Indep, mod);
+      END;
+      EXPORT ClassifyD(DATASET(Types.DiscreteField) Indep,DATASET(Types.NumericField) mod) := FUNCTION
+        RETURN ML.Trees.ClassifyD(Indep,mod);
+      END;
+      EXPORT Model(DATASET(Types.NumericField) mod) := FUNCTION
+        RETURN ML.Trees.ModelD(mod);
+      END;
+    END;  // Gini Impurity DT Module
 /*
 		Decision Tree using C4.5 Algorithm (Quinlan, 1987)
 */
-		EXPORT C45(BOOLEAN Pruned= TRUE, INTEGER1 numFolds = 3, REAL z = 0.67449) := MODULE(DEFAULT)
-			EXPORT LearnD(DATASET(Types.DiscreteField) Indep, DATASET(Types.DiscreteField) Dep) := FUNCTION
-				nodes := IF(Pruned, Trees.SplitsIGR_Pruned(Indep, Dep, numFolds, z), Trees.SplitsInfoGainRatioBased(Indep, Dep));
-				AppendID(nodes, id, model);
-				ToField(model, out_model, id, model_fields);
-				RETURN out_model;
-			END;
-			EXPORT ClassifyD(DATASET(Types.DiscreteField) Indep,DATASET(Types.NumericField) mod) := FUNCTION
-				RETURN GenClassifyD(Indep,mod);
-			END;
-			EXPORT Model(DATASET(Types.NumericField) mod) := FUNCTION
-				RETURN GenModel(mod);
-			END;
+    EXPORT C45(BOOLEAN Pruned= TRUE, INTEGER1 numFolds = 3, REAL z = 0.67449) := MODULE(DEFAULT)
+      EXPORT LearnD(DATASET(Types.DiscreteField) Indep, DATASET(Types.DiscreteField) Dep) := FUNCTION
+        nodes := IF(Pruned, Trees.SplitsIGR_Pruned(Indep, Dep, numFolds, z), Trees.SplitsInfoGainRatioBased(Indep, Dep));
+        RETURN ML.Trees.ToDiscreteTree(nodes);
+      END;
+      EXPORT ClassProbDistribD(DATASET(Types.DiscreteField) Indep,DATASET(Types.NumericField) mod) :=FUNCTION
+        RETURN ML.Trees.ClassProbDistribD(Indep, mod);
+      END;
+      EXPORT ClassifyD(DATASET(Types.DiscreteField) Indep,DATASET(Types.NumericField) mod) := FUNCTION
+        RETURN ML.Trees.ClassifyD(Indep,mod);
+      END;
+      EXPORT Model(DATASET(Types.NumericField) mod) := FUNCTION
+        RETURN ML.Trees.ModelD(mod);
+      END;
     END;  // C45 DT Module
 
 /*  C45 Binary Decision Tree
@@ -670,33 +1087,16 @@ The model  is used to predict the class from new examples.
     EXPORT C45Binary(t_Count minNumObj=2, ML.Trees.t_level maxLevel=32) := MODULE(DEFAULT)
       EXPORT LearnC(DATASET(Types.NumericField) Indep, DATASET(Types.DiscreteField) Dep) := FUNCTION
         nodes := Trees.SplitBinaryCBased(Indep, Dep, minNumObj, maxLevel);
-        AppendID(nodes, id, model);
-        ToField(model, out_model, id, modelC_fields);
-        RETURN out_model;
+        RETURN ML.Trees.ToNumericTree(nodes);
       END;
       EXPORT ClassifyC(DATASET(Types.NumericField) Indep,DATASET(Types.NumericField) mod) := FUNCTION
-        // Transform NumericFiled "mod" to Trees.SplitC "nodes" model format using field map modelC_Map
-        ML.FromField(mod, Trees.SplitC, nodes, modelC_Map);
-        leafs := nodes(new_node_id = 0);                    // Get leaf nodes from model
-        // Locate instances into deepest split node based upon independent values
-        splitData:= Trees.SplitBinInstances(nodes, Indep);
-        // Locate instances into final leaf node and get Dependent value
-        l_result final_class(RECORDOF(splitData) l, RECORDOF(leafs) r ):= TRANSFORM
-          SELF.id 		:= l.id;
-          SELF.number	:= 1;
-          SELF.value	:= r.value;
-          SELF.conf		:= 0;		// added to fit in l_result, not used so far
-          SELF.closest_conf:= l.new_node_id;	// store final leaf node id, will use it in class distribution
-        END;
-        RETURN JOIN(splitData, leafs, LEFT.new_node_id = RIGHT.node_id, final_class(LEFT, RIGHT), LOOKUP);
+        RETURN ML.Trees.ClassifyC(Indep,mod);
       END;
       EXPORT Model(DATASET(Types.NumericField) mod) := FUNCTION
-        ML.FromField(mod, Trees.SplitC, outModel, modelC_Map);
-        RETURN outModel;
+        RETURN ML.Trees.ModelC(mod);
       END;
     END; // C45Binary DT Module
-
-	END; // DecisionTree Module
+  END; // DecisionTree Module
 	
 /* From http://www.stat.berkeley.edu/~breiman/RandomForests/cc_home.htm#overview
    "... Random Forests grows many classification trees.
@@ -718,150 +1118,113 @@ Configuration Input
    Depth      max tree level
 */
   EXPORT RandomForest(t_Count treeNum, t_Count fsNum, REAL Purity=1.0, INTEGER1 Depth=32):= MODULE
-    EXPORT model_Map :=	DATASET([{'id','ID'},{'node_id','1'},{'level','2'},{'number','3'},{'value','4'},{'new_node_id','5'},{'group_id',6}], {STRING orig_name; STRING assigned_name;});
-    EXPORT STRING model_fields := 'node_id,level,number,value,new_node_id,group_id';	// need to use field map to call FromField later
-    EXPORT modelC_Map :=	DATASET([{'id','ID'},{'node_id','1'},{'level','2'},{'number','3'},{'value','4'},{'high_fork','5'},{'new_node_id','6'},{'group_id',7}], {STRING orig_name; STRING assigned_name;});
-    EXPORT STRING modelC_fields := 'node_id,level,number,value,high_fork,new_node_id,group_id';	// need to use field map to call FromField later
-
     EXPORT LearnD(DATASET(Types.DiscreteField) Indep, DATASET(Types.DiscreteField) Dep) := FUNCTION
       nodes := Ensemble.SplitFeatureSampleGI(Indep, Dep, treeNum, fsNum, Purity, Depth);
-      AppendID(nodes, id, model);
-      ToField(model, out_model, id, model_fields);
-      RETURN out_model;
+      RETURN ML.Ensemble.ToDiscreteForest(nodes);
     END;
     EXPORT LearnC(DATASET(Types.NumericField) Indep, DATASET(Types.DiscreteField) Dep) := FUNCTION
       nodes := Ensemble.SplitFeatureSampleGIBin(Indep, Dep, treeNum, fsNum, Purity, Depth);
-      AppendID(nodes, id, model);
-      ToField(model, out_model, id, modelC_fields);
-      RETURN out_model;
+      RETURN ML.Ensemble.ToContinuosForest(nodes);
     END;
     // Transform NumericFiled "mod" to Ensemble.gSplitF "discrete tree nodes" model format using field map model_Map
     EXPORT Model(DATASET(Types.NumericField) mod) := FUNCTION
-      ML.FromField(mod, Ensemble.gSplitF, o, model_Map);
-      RETURN o;
+      RETURN ML.Ensemble.FromDiscreteForest(mod);
     END;
     // Transform NumericFiled "mod" to Ensemble.gSplitC "binary tree nodes" model format using field map modelC_Map
     EXPORT ModelC(DATASET(Types.NumericField) mod) := FUNCTION
-      ML.FromField(mod, Ensemble.gSplitC, o, modelC_Map);
-      RETURN o;
+      RETURN ML.Ensemble.FromContinuosForest(mod);
     END;
-    // The function returns instance's class probability distribution for each class value
+    // The functions return instances' class probability distribution for each class value
     // based upon independent values (Indep) and the ensemble model (mod).
-    EXPORT ClassProbabilityDistributionD(DATASET(Types.DiscreteField) Indep,DATASET(Types.NumericField) mod) := FUNCTION
-      ML.FromField(mod, Ensemble.gSplitF, nodes, model_Map);	// need to use model_Map previously build when Learning (ToField)
-      leafs := nodes(new_node_id = 0);	// from final nodes
-      splitData_raw:= Ensemble.gSplitInstD(nodes, Indep);
-      splitData:= DISTRIBUTE(splitData_raw, id);
-      gClass:= JOIN(splitData, leafs, LEFT.new_node_id = RIGHT.node_id AND LEFT.group_id = RIGHT.group_id,
-                TRANSFORM(Types.DiscreteField, SELF.id:= LEFT.id, SELF.number := 1, SELF.value:= RIGHT.value), LOOKUP);
-      accClass:= TABLE(gClass, {id, number, value, cnt:= COUNT(GROUP)}, id, number, value, LOCAL);
-      tClass := TABLE(accClass, {id, number, tot:= SUM(GROUP, cnt)}, id, number, LOCAL);
-      sClass:= JOIN(accClass, tClass, LEFT.number=RIGHT.number AND LEFT.id=RIGHT.id, LOCAL);
-      RETURN PROJECT(sClass, TRANSFORM(l_result, SELF.conf:= LEFT.cnt/LEFT.tot, SELF:= LEFT, SELF:=[]), LOCAL);
+    EXPORT ClassProbDistribD(DATASET(Types.DiscreteField) Indep, DATASET(Types.NumericField) mod) :=FUNCTION
+      RETURN ML.Ensemble.ClassProbDistribForestD(Indep, mod);
     END;
-    EXPORT ClassProbabilityDistributionC(DATASET(Types.NumericField) Indep,DATASET(Types.NumericField) mod) := FUNCTION
-      ML.FromField(mod, Ensemble.gSplitC, nodes, modelC_Map);	// need to use modelC_Map previously build when Learning (ToField)
-      leafs := nodes(new_node_id = 0);	// from final nodes
-      splitData_raw:= Ensemble.gSplitInstC(nodes, Indep);
-      splitData:= DISTRIBUTE(splitData_raw, id);
-      gClass:= JOIN(splitData, leafs, LEFT.new_node_id = RIGHT.node_id AND LEFT.group_id = RIGHT.group_id,
-                TRANSFORM(Types.DiscreteField, SELF.id:= LEFT.id, SELF.number := 1, SELF.value:= RIGHT.value), LOOKUP);
-      accClass:= TABLE(gClass, {id, number, value, cnt:= COUNT(GROUP)}, id, number, value, LOCAL);
-      tClass := TABLE(accClass, {id, number, tot:= SUM(GROUP, cnt)}, id, number, LOCAL);
-      sClass:= JOIN(accClass, tClass, LEFT.number=RIGHT.number AND LEFT.id=RIGHT.id, LOCAL);
-      RETURN PROJECT(sClass, TRANSFORM(l_result, SELF.conf:= LEFT.cnt/LEFT.tot, SELF:= LEFT, SELF:=[]), LOCAL);
+    EXPORT ClassProbDistribC(DATASET(Types.NumericField) Indep,DATASET(Types.NumericField) mod) :=FUNCTION
+      RETURN ML.Ensemble.ClassProbDistribForestC(Indep, mod);
     END;
-    // Classification function for discrete independent values and model
+    // Classification functions based upon independent values (Indep) and the ensemble model (mod).
     EXPORT ClassifyD(DATASET(Types.DiscreteField) Indep,DATASET(Types.NumericField) mod) := FUNCTION
-      // get class probabilities for each instance
-      dClass:= ClassProbabilityDistributionD(Indep, mod);
-      // select the class with greatest probability for each instance
-      sClass := SORT(dClass, id, -conf, LOCAL);
-      finalClass:=DEDUP(sClass, id, LOCAL);
-      RETURN PROJECT(finalClass, TRANSFORM(l_result, SELF:= LEFT, SELF:=[]), LOCAL);
+      RETURN ML.Ensemble.ClassifyDForest(Indep, mod);
     END;
     EXPORT ClassifyC(DATASET(Types.NumericField) Indep,DATASET(Types.NumericField) mod) := FUNCTION
-      // get class probabilities for each instance
-      dClass:= ClassProbabilityDistributionC(Indep, mod);
-      // select the class with greatest probability for each instance
-      sClass := SORT(dClass, id, -conf, LOCAL);
-      finalClass:=DEDUP(sClass, id, LOCAL);
-      RETURN PROJECT(finalClass, TRANSFORM(l_result, SELF:= LEFT, SELF:=[]), LOCAL);
+      RETURN ML.Ensemble.ClassifyCForest(Indep,mod);
     END;
+  END; // RandomTree module
 
-    // The function calculate the Area Under the ROC curve based on:
-    // - classProbDistclass : probability distribution for each instance
-    // - positiveClass      : the class of interest
-    // - Dep                : instance's class value
-    // The function returns all points of the ROC curve for graphic purposes:
-    // label: threshold, point: (threshold's false negative rate, threshold's true positive rate).
-    // The area under the ROC curve is returned in the AUC field of the last record.
-    // Note: threshold = 100 means classifying all instances as negative, it is not necessarily part of the curve
-    EXPORT AUC_ROC(DATASET(l_result) classProbDist, Types.t_Discrete positiveClass, DATASET(Types.DiscreteField) Dep) := FUNCTION
-      SHARED cntREC:= RECORD
-        Types.t_FieldNumber classifier;  // The classifier in question (value of 'number' on outcome data)
-        Types.t_Discrete  c_actual;      // The value of c provided
-        Types.t_FieldReal score :=-1;
-        Types.t_count     tp_cnt:=0;
-        Types.t_count     fn_cnt:=0;
-        Types.t_count     fp_cnt:=0;
-        Types.t_count     tn_cnt:=0;
-      END;
-      SHARED compREC:= RECORD(cntREC)
-        Types.t_Discrete  c_modeled;
-      END;
-      classOfInterest := classProbDist(value = positiveClass);
-      compared:= JOIN(classOfInterest, Dep, LEFT.id=RIGHT.id AND LEFT.number=RIGHT.number,
-                              TRANSFORM(compREC, SELF.classifier:= LEFT.number, SELF.c_actual:=RIGHT.value,
-                              SELF.c_modeled:=LEFT.value, SELF.score:=LEFT.conf), HASH);
-      sortComp:= SORT(compared, score);
-      coi_acc:= TABLE(sortComp, {classifier, score, cntPos:= COUNT(GROUP, c_actual = c_modeled),
-                                    cntNeg:= COUNT(GROUP, c_actual<>c_modeled)}, classifier, score, LOCAL);
-      coi_tot:= TABLE(coi_acc, {classifier, totPos:= SUM(GROUP, cntPos), totNeg:= SUM(GROUP, cntNeg)}, classifier, FEW);
-      totPos:=EVALUATE(coi_tot[1], totPos);
-      totNeg:=EVALUATE(coi_tot[1], totNeg);
-      // Count and accumulate number of TP, FP, TN and FN instances for each threshold (score)
-      acc_sorted:= PROJECT(coi_acc, TRANSFORM(cntREC, SELF.c_actual:= positiveClass, SELF.fn_cnt:= LEFT.cntPos,
-                                    SELF.tn_cnt:= LEFT.cntNeg, SELF:= LEFT), LOCAL);
-      cntREC accNegPos(cntREC l, cntREC r) := TRANSFORM
-        deltaPos:= l.fn_cnt + r.fn_cnt;
-        deltaNeg:= l.tn_cnt + r.tn_cnt;
-        SELF.score:= r.score;
-        SELF.tp_cnt:=  totPos - deltaPos;
-        SELF.fn_cnt:=  deltaPos;
-        SELF.fp_cnt:=  totNeg - deltaNeg;
-        SELF.tn_cnt:= deltaNeg;
-        SELF:= r;
-      END;
-      cntNegPos:= ITERATE(acc_sorted, accNegPos(LEFT, RIGHT));
-      accnew := DATASET([{1,positiveClass,-1,totPos,0,totNeg,0}], cntREC) + cntNegPos;
-      curvePoint:= RECORD
-        Types.t_Count       id;
-        Types.t_FieldNumber classifier;
-        Types.t_FieldReal   thresho;
-        Types.t_FieldReal   fpr;
-        Types.t_FieldReal   tpr;
-        Types.t_FieldReal   deltaPos:=0;
-        Types.t_FieldReal   deltaNeg:=0;
-        Types.t_FieldReal   cumNeg:=0;
-        Types.t_FieldReal   AUC:=0;
-      END;
-      // Transform all into ROC curve points
-      rocPoints:= PROJECT(accnew, TRANSFORM(curvePoint, SELF.id:=COUNTER, SELF.thresho:=LEFT.score,
-                                  SELF.fpr:= LEFT.fp_cnt/totNeg, SELF.tpr:= LEFT.tp_cnt/totPos, SELF.AUC:=IF(totNeg=0,1,0) ,SELF:=LEFT));
-      // Calculate the area under the curve (cumulative iteration)
-      curvePoint rocArea(curvePoint l, curvePoint r) := TRANSFORM
-        deltaPos  := if(l.tpr > r.tpr, l.tpr - r.tpr, 0.0);
-        deltaNeg  := if( l.fpr > r.fpr, l.fpr - r.fpr, 0.0);
-        SELF.deltaPos := deltaPos;
-        SELF.deltaNeg := deltaNeg;
-        // A classification without incorrectly classified instances must return AUC = 1
-        SELF.AUC      := IF(r.fpr=0 AND l.tpr=0 AND r.tpr=1, 1, l.AUC) + deltaPos * (l.cumNeg + 0.5* deltaNeg);
-        SELF.cumNeg   := l.cumNeg + deltaNeg;
-        SELF:= r;
-      END;
-      RETURN ITERATE(rocPoints, rocArea(LEFT, RIGHT));
+/*
+  Area Under the ROC curve
+*/
+  // The function calculate the Area Under the ROC curve based on:
+  // - classProbDistclass : probability distribution for each instance
+  // - positiveClass      : the class of interest
+  // - Dep                : instance's class value
+  // The function returns all points of the ROC curve for graphic purposes:
+  // label: threshold, point: (threshold's false negative rate, threshold's true positive rate).
+  // The area under the ROC curve is returned in the AUC field of the last record.
+  // Note: threshold = 100 means classifying all instances as negative, it is not necessarily part of the curve
+  EXPORT AUC_ROC(DATASET(l_result) classProbDist, Types.t_Discrete positiveClass, DATASET(Types.DiscreteField) Dep) := FUNCTION
+    SHARED cntREC:= RECORD
+      Types.t_FieldNumber classifier;  // The classifier in question (value of 'number' on outcome data)
+      Types.t_Discrete  c_actual;      // The value of c provided
+      Types.t_FieldReal score :=-1;
+      Types.t_count     tp_cnt:=0;
+      Types.t_count     fn_cnt:=0;
+      Types.t_count     fp_cnt:=0;
+      Types.t_count     tn_cnt:=0;
     END;
+    SHARED compREC:= RECORD(cntREC)
+      Types.t_Discrete  c_modeled;
+    END;
+    classOfInterest := classProbDist(value = positiveClass);
+    compared:= JOIN(classOfInterest, Dep, LEFT.id=RIGHT.id AND LEFT.number=RIGHT.number,
+                            TRANSFORM(compREC, SELF.classifier:= LEFT.number, SELF.c_actual:=RIGHT.value,
+                            SELF.c_modeled:=LEFT.value, SELF.score:=LEFT.conf), HASH);
+    sortComp:= SORT(compared, score);
+    coi_acc:= TABLE(sortComp, {classifier, score, cntPos:= COUNT(GROUP, c_actual = c_modeled),
+                                  cntNeg:= COUNT(GROUP, c_actual<>c_modeled)}, classifier, score, LOCAL);
+    coi_tot:= TABLE(coi_acc, {classifier, totPos:= SUM(GROUP, cntPos), totNeg:= SUM(GROUP, cntNeg)}, classifier, FEW);
+    totPos:=EVALUATE(coi_tot[1], totPos);
+    totNeg:=EVALUATE(coi_tot[1], totNeg);
+    // Count and accumulate number of TP, FP, TN and FN instances for each threshold (score)
+    acc_sorted:= PROJECT(coi_acc, TRANSFORM(cntREC, SELF.c_actual:= positiveClass, SELF.fn_cnt:= LEFT.cntPos,
+                                  SELF.tn_cnt:= LEFT.cntNeg, SELF:= LEFT), LOCAL);
+    cntREC accNegPos(cntREC l, cntREC r) := TRANSFORM
+      deltaPos:= l.fn_cnt + r.fn_cnt;
+      deltaNeg:= l.tn_cnt + r.tn_cnt;
+      SELF.score:= r.score;
+      SELF.tp_cnt:=  totPos - deltaPos;
+      SELF.fn_cnt:=  deltaPos;
+      SELF.fp_cnt:=  totNeg - deltaNeg;
+      SELF.tn_cnt:= deltaNeg;
+      SELF:= r;
+    END;
+    cntNegPos:= ITERATE(acc_sorted, accNegPos(LEFT, RIGHT));
+    accnew := DATASET([{1,positiveClass,-1,totPos,0,totNeg,0}], cntREC) + cntNegPos;
+    curvePoint:= RECORD
+      Types.t_Count       id;
+      Types.t_FieldNumber classifier;
+      Types.t_FieldReal   thresho;
+      Types.t_FieldReal   fpr;
+      Types.t_FieldReal   tpr;
+      Types.t_FieldReal   deltaPos:=0;
+      Types.t_FieldReal   deltaNeg:=0;
+      Types.t_FieldReal   cumNeg:=0;
+      Types.t_FieldReal   AUC:=0;
+    END;
+    // Transform all into ROC curve points
+    rocPoints:= PROJECT(accnew, TRANSFORM(curvePoint, SELF.id:=COUNTER, SELF.thresho:=LEFT.score,
+                                SELF.fpr:= LEFT.fp_cnt/totNeg, SELF.tpr:= LEFT.tp_cnt/totPos, SELF.AUC:=IF(totNeg=0,1,0) ,SELF:=LEFT));
+    // Calculate the area under the curve (cumulative iteration)
+    curvePoint rocArea(curvePoint l, curvePoint r) := TRANSFORM
+      deltaPos  := if(l.tpr > r.tpr, l.tpr - r.tpr, 0.0);
+      deltaNeg  := if( l.fpr > r.fpr, l.fpr - r.fpr, 0.0);
+      SELF.deltaPos := deltaPos;
+      SELF.deltaNeg := deltaNeg;
+      // A classification without incorrectly classified instances must return AUC = 1
+      SELF.AUC      := IF(r.fpr=0 AND l.tpr=0 AND r.tpr=1, 1, l.AUC) + deltaPos * (l.cumNeg + 0.5* deltaNeg);
+      SELF.cumNeg   := l.cumNeg + deltaNeg;
+      SELF:= r;
+    END;
+    RETURN ITERATE(rocPoints, rocArea(LEFT, RIGHT));
   END;
-  // RandomTree module
 END;
