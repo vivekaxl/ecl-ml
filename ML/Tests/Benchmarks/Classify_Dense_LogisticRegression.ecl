@@ -16,7 +16,7 @@
 //
 // For this example, the training set is tested against itself for accuracy.
 //
-// PATH TO DATASET MUST BE CHANGED YOU YOUR OWN! --> Line 64
+// PATH TO DATASET MUST BE CHANGED TO YOUR OWN! --> Line 64
 //
 //---------------------------------------------------------------------------
 
