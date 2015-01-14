@@ -75,7 +75,7 @@ Indep := PROJECT(preindep,remove(LEFT))(value<>0);
 Dep := ML.Discretize.ByRounding(pretargets);
 
 //Set Classification Method
-MyLogisticRegression:=ML.ClassifyBlas.Logistic();
+MyLogisticRegression:=ML.Classify.Logistic();
 
 //Learn model
 Model3 := MyLogisticRegression.LearnC(Indep,Dep);
@@ -94,6 +94,7 @@ predicted_v_actual :=
                   ,SELF.avalue:=RIGHT.value
                   ,SELF := LEFT
         )
+       ,SMART
   );
 OUTPUT(SORT(predicted_v_actual,id,number),NAMED('predicted_v_actual'));
 

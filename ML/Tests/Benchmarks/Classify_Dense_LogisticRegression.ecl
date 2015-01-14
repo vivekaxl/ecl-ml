@@ -117,7 +117,7 @@ Dep := ML.Discretize.ByRounding(Higgsflds0(number=29));
 Indep := Higgsflds0(number<29);
 
 //Set Classification Method
-MyLogisticRegression:=ML.ClassifyBlas.Logistic();
+MyLogisticRegression:=ML.Classify.Logistic();
 
 //Learn model
 Model3 := MyLogisticRegression.LearnC(Indep,Dep);
@@ -136,6 +136,7 @@ predicted_v_actual :=
                   ,SELF.avalue:=RIGHT.value
                   ,SELF := LEFT
         )
+       ,SMART
   );
 OUTPUT(SORT(predicted_v_actual,id,number),NAMED('predicted_v_actual'));
 
