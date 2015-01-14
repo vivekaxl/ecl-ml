@@ -3,6 +3,12 @@
 // Demonstrates logistic regression on large, dense dataset.
 //
 // Dataset download location: https://archive.ics.uci.edu/ml/datasets/HIGGS
+
+
+//Insert your path and filename
+pathToFile := 'simulations::higgs';
+
+
 //
 // 		Runtime on 20-node Thor 4GB RAM
 //        Sample Size                       Thor time
@@ -16,13 +22,11 @@
 //
 // For this example, the training set is tested against itself for accuracy.
 //
-// PATH TO DATASET MUST BE CHANGED TO YOUR OWN! --> Line 64
-//
 //---------------------------------------------------------------------------
 
 IMPORT ML;
 
-//Number of rows set at 100,000
+//Number of rows set at 1,000,000
 Training := 1000000;
 
 //Record Structure for initial data
@@ -60,8 +64,8 @@ Layout := RECORD
 	END;
 
 
-//Insert your path and file name
-File := DATASET('simulations::higgs', Layout, CSV);
+//Import data set
+File := DATASET(pathToFile, Layout, CSV);
 
 //Record Structure for dataset with Record ID
 HiggsIDRec := RECORD
