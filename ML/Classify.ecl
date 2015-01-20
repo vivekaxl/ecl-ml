@@ -201,6 +201,7 @@ END;
 			CLTots := TABLE(CTots,{number,TSupport := SUM(GROUP,Support), GC := COUNT(GROUP)},number,FEW);
 			P_C_Rec := RECORD
 				Types.t_Discrete c;            // The value within the class
+				Types.t_Discrete f;            // The number of features within the class
 				Types.t_Discrete class_number; // Used when multiple classifiers being produced at once
 				Types.t_FieldReal support;     // Used to store total number of C
 				REAL8 w;                       // P(C)
@@ -208,11 +209,12 @@ END;
 			// Apply Laplace Estimator to P(C) in order to be consistent with attributes' probability
 			P_C_Rec pct(CTots le,CLTots ri) := TRANSFORM
 				SELF.c := le.value;
+				SELF.f := 0; // to be claculated later on
 				SELF.class_number := ri.number;
 				SELF.support := le.Support + SampleCorrection;
 				SELF.w := (le.Support + SampleCorrection) / (ri.TSupport + ri.GC*SampleCorrection);
 			END;
-			PC := JOIN(CTots,CLTots,LEFT.number=RIGHT.number,pct(LEFT,RIGHT),FEW);
+			PC_0 := JOIN(CTots,CLTots,LEFT.number=RIGHT.number,pct(LEFT,RIGHT),FEW);
 			// Computing Attributes' probability
 			AttribValue_Rec := RECORD
 				Cnts.class_number; 	// Used when multiple classifiers being produced at once
@@ -245,7 +247,8 @@ END;
 														form_ACnts(LEFT,RIGHT),
 														LEFT OUTER, LOOKUP);
 			// Summarizing and getting value 'GC' to apply in Laplace Estimator
-			TotalFs := TABLE(ACnts,{c,number,class_number,Types.t_Count Support := SUM(GROUP,Support),GC := COUNT(GROUP)},c,number,class_number,FEW);
+			TotalFs0 := TABLE(ACnts,{c,number,class_number,Types.t_Count Support := SUM(GROUP,Support),GC := COUNT(GROUP)},c,number,class_number,FEW);
+			TotalFs := TABLE(TotalFs0,{c,class_number,ML.Types.t_Count Support := SUM(GROUP,Support),Types.t_Count GC := SUM(GROUP,GC)},c,class_number,FEW);
 			// Merge and Laplace Estimator
 			F_Given_C_Rec := RECORD
 				ACnts.c;
@@ -261,7 +264,12 @@ END;
 				SELF := le;
 			END;
 			// Calculating final probabilties
-			FC := JOIN(ACnts,TotalFs,LEFT.C = RIGHT.C AND LEFT.number=RIGHT.number AND LEFT.class_number=RIGHT.class_number,mp(LEFT,RIGHT),LOOKUP);
+			FC := JOIN(ACnts,TotalFs,LEFT.C = RIGHT.C AND LEFT.class_number=RIGHT.class_number,mp(LEFT,RIGHT),LOOKUP);
+			PC_0 form_TotalFs(PC_0 le, TotalFs ri) := TRANSFORM
+				SELF.f	:= ri.Support+ri.GC*SampleCorrection;
+				SELF		:= le;
+			END;
+			PC := JOIN(PC_0, TotalFs, LEFT.C = RIGHT.C AND LEFT.class_number=RIGHT.class_number,form_TotalFs(LEFT,RIGHT),LOOKUP);		
 			Pret := PROJECT(FC,TRANSFORM(BayesResultD, SELF.PC:=LEFT.w, SELF := LEFT))+PROJECT(PC,TRANSFORM(BayesResultD, SELF.PC:=LEFT.w, SELF.number:= 0,SELF:=LEFT));
 			Pret1 := PROJECT(Pret,TRANSFORM(BayesResultD, SELF.PC := LogScale(LEFT.PC),SELF.id := Base+COUNTER,SELF := LEFT));
 			ToField(Pret1,o);
@@ -313,7 +321,7 @@ END;
 			END;
 			MissingNoted := JOIN(Tsum,FTots,LEFT.id=RIGHT.id,NoteMissing(LEFT,RIGHT),LOOKUP);
 			InterCounted NoteC(MissingNoted le,mo ri) := TRANSFORM
-				SELF.P := le.P+ri.PC+le.Missing*LogScale(SampleCorrection/ri.support);
+				SELF.P := le.P+ri.PC+le.Missing*LogScale(SampleCorrection/ri.f);
 				SELF := le;
 			END;
 			CNoted := JOIN(MissingNoted,mo(number=0),LEFT.c=RIGHT.c,NoteC(LEFT,RIGHT),LOOKUP);
