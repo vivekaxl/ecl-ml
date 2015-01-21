@@ -136,7 +136,7 @@ VocabSrcAnnotated := PROJECT(VocabSrc,TRANSFORM(ML.Docs.Types.Raw,SELF.id := COU
 Vocab := Vocabulary(VocabSrcAnnotated);
 OUTPUT(Vocab, named('Vocab'));
 TextModule := Test(TrainingSet, Vocab);
-OUTPUT(TextModule.Raw, named('Raw'));
+
 OUTPUT(TextModule.CrossAssignments, named('CrossAssignments'));
 //RecallByClass, it returns the percentage of instances belonging to a class that was correctly classified,
 //               also know as True positive rate and sensivity, TP/(TP+FN).
@@ -147,7 +147,7 @@ OUTPUT(TextModule.PrecisionByClass, named('ArsonPrecisionByClass'));
 //                 also known as False Positive rate FP / (FP + TN).
 OUTPUT(TextModule.FP_Rate_ByClass, named('FP_Rate_ByClass'));
 // Accuracy, it returns the percentage of instances correctly classified (total, without class distinction)
-OUTPUT(TextModule.Headline, named('Headline'));
+OUTPUT(TextModule.Accuracy, named('Accuracy'));
 
 
 mText0 := Learn(TrainingSet, Vocab);
