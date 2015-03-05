@@ -2,23 +2,17 @@
 //
 // Demonstrates logistic regression on large, spare dataset.
 //
-// Dataset is randomly generated here: 1,000,000 rows x 30 columns 
-// 		Runtime on 20-node Thor 4GB RAM
-//        Sample Size                       Thor time
-//				1,000 rows     x 30 columns       50s
-//				10,000 rows    x 30 columns       48s
-//				100,000 rows   x 30 columns       1m 1s
-//				1,000,000 rows x 30 columns       8m 16s
+// Dataset is randomly generated.
 //
 // For this example, the training set is tested against itself for accuracy.
 //
-// Currently set to 5% density! --> Line 23
+// Currently set to 5% density! --> Line 16
 //
 //---------------------------------------------------------------------------
 
 IMPORT ML;
 
-TestSize := 1000000;
+TestSize := 100000;
 density := .05;
 a1 := ML.Distribution.Uniform(0,1,10000);
 
