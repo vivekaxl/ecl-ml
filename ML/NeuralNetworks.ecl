@@ -535,20 +535,21 @@ EXPORT NeuralNetworks (DATASET(Types.DiscreteField) net,UNSIGNED4 prows=0, UNSIG
     END;// END NNOutput
     EXPORT NNClassify(DATASET(Types.NumericField) Indep,DATASET(Types.NumericField) Learntmod) := FUNCTION
       Dist := NNOutput(Indep, Learntmod);
-      numrow := MAX (Dist,Dist.value);
-      S:= SORT(Dist,id,conf);
+      numrow := MAX (Dist,Dist.value);//number of nodes in the last layer of the neural network
+      d_Dist := DISTRIBUTE (Dist, id);
+      S:= SORT(d_Dist,id,conf,LOCAL);
       SeqRec := RECORD
       l_result;
       INTEGER8 Sequence := 0;
       END;
       //add seq field to S
       SeqRec AddS (S l, INTEGER c) := TRANSFORM
-      SELF.Sequence := c%numrow;
-      SELF := l;
+        SELF.Sequence := c%numrow;
+        SELF := l;
       END;
-      Sseq := PROJECT(S, AddS(LEFT,COUNTER));
+      Sseq := PROJECT(S, AddS(LEFT,COUNTER),LOCAL);
       classified := Sseq (Sseq.Sequence=0);
-      RETURN PROJECT(classified,l_result);
+      RETURN PROJECT(classified,l_result,LOCAL);
     END; // END NNClassify
   
 END;//END NeuralNetworks

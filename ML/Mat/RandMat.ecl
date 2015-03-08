@@ -20,17 +20,17 @@ EXPORT RandMat (UNSIGNED Nrows, UNSIGNED NCols) := FUNCTION
 
 ONE := DATASET ([{1,1,0}],Types.Element);
 
-MatZero := Mat.Repmat (ONE, Nrows, NCols); // matrix of zeros of the size NRows*NCols
-
-//replce zero values in MatZero with random generated values
-Types.Element RandomizeMat(Types.Element l) := TRANSFORM
+Types.Element RandomizeMat(Types.Element l, UNSIGNED4 C) := TRANSFORM
   r1 := Produce_Random();
-  Self.Value := r1;
-  Self := l;
+  SELF.x := ((C-1) DIV NCols) + 1;
+  SELF.y := ((C-1) % NCols) + 1;
+  SELF.Value := r1;
 END;
 
+Result := NORMALIZE(ONE, Nrows*NCols, RandomizeMat(LEFT,COUNTER));
 
-Result := PROJECT (MatZero,RandomizeMat(LEFT) );
+
+
 RETURN Result;
 
 END;

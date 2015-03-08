@@ -1124,7 +1124,7 @@ EXPORT SoftMax(DATASET (MAT.Types.Element) IntTHETA, REAL8 LAMBDA=0.001, REAL8 A
       SELF.v := 1;
     END;
     //Create Ones Vector for the calculations in the step fucntion
-    Ones_Vec := DATASET(NumClass, gen(COUNTER, NumClass),DISTRIBUTED);
+    Ones_Vec := DATASET(NumClass, gen(COUNTER, NumClass));
     Ones_Vecdist := DMAT.Converted.FromCells(Ones_VecMap, Ones_Vec);
     //Create block matrix d
     dmap := PBblas.Matrix_Map(sizeTable[1].m_rows,sizeTable[1].m_cols,sizeTable[1].f_b_rows,sizeTable[1].f_b_cols);
@@ -1170,8 +1170,9 @@ EXPORT SoftMax(DATASET (MAT.Types.Element) IntTHETA, REAL8 LAMBDA=0.001, REAL8 A
       second_term := PBblas.PB_dscal((1-ALPHA*LAMBDA), THETA);
       groundTruth_Prob := PBblas.PB_daxpy(1.0,groundTruthdist,PBblas.PB_dscal(-1, Prob));
       groundTruth_Prob_x := PBblas.PB_dgemm(FALSE, True, 1.0, txmap, groundTruth_Prob, dmap, ddist, THETAmap);
-      first_term := PBblas.PB_dscal((-1*ALPHA*m_1), groundTruth_Prob_x);
-      UpdatedTHETA := PBblas.PB_daxpy(1.0, first_term, second_term);
+      // first_term := PBblas.PB_dscal((-1*ALPHA*m_1), groundTruth_Prob_x);
+      // UpdatedTHETA := PBblas.PB_daxpy(1.0, first_term, second_term);
+      UpdatedTHETA := PBblas.PB_daxpy((-1*ALPHA*m_1), groundTruth_Prob_x, second_term);
       RETURN UpdatedTHETA;
     END; // END step
     param := LOOP(IntTHETAdist, COUNTER <= MaxIter, Step(ROWS(LEFT)));
