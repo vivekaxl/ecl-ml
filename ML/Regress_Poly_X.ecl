@@ -10,13 +10,13 @@ EXPORT Regress_Poly_X(DATASET(Types.NumericField) X,
                       UNSIGNED1 maxN=6) := MODULE
   SHARED  newX := ML.Generate.ToPoly(X,maxN);
 	
-	// Transform fieldNumber of Y to max(field number of new X) + 1
-	// Needed for FUNCTION Extrapolated to work correctly
-	SHARED Types.NumericField transformY_Number(Types.NumericField Dt) := TRANSFORM
-		SELF.number := maxN + 1;
-		SELF := Dt;
-	END;	
-	SHARED newY := PROJECT(Y, transformY_Number(LEFT));
+  // Transform fieldNumber of Y to max(field number of new X) + 1
+  // Needed for FUNCTION Extrapolated to work correctly
+  SHARED Types.NumericField transformY_Number(Types.NumericField Dt) := TRANSFORM
+     SELF.number := maxN + 1;
+     SELF := Dt;
+  END;	
+  SHARED newY := PROJECT(Y, transformY_Number(LEFT));
 
   SHARED B := OLS2Use(newX, newY);
 
@@ -33,12 +33,12 @@ EXPORT Regress_Poly_X(DATASET(Types.NumericField) X,
 
   EXPORT RSquared := B.RSquared;
 	
-	// Predict Y values given new Data (in format of X) in Dt
-	EXPORT DATASET(Types.NumericField) Extrapolated(DATASET(Types.NumericField) Dt) := FUNCTION
-		newDt := ML.Generate.ToPoly(Dt, maxN);
-		rslt := B.Extrapolated(newDt);
-		RETURN rslt;
-	END;
+  // Predict Y values given new Data (in format of X) in Dt
+  EXPORT DATASET(Types.NumericField) Extrapolated(DATASET(Types.NumericField) Dt) := FUNCTION
+     newDt := ML.Generate.ToPoly(Dt, maxN);
+     rslt := B.Extrapolated(newDt);
+     RETURN rslt;
+  END;
 
   // use K out of N polynomial components, and find the best model
   EXPORT SubBeta(UNSIGNED1 K, UNSIGNED1 N) := FUNCTION
