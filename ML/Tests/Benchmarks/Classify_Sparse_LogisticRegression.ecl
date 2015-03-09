@@ -59,7 +59,7 @@ pretargets := ML.Distribution.GenData(TestSize,a1,31);
 //Creates sparse matrix
 ML.Types.NumericField remove(preindep L) := TRANSFORM
 
-SELF.value := IF(L.value < .05, L.value, 0);
+SELF.value := IF(L.value < density, L.value, 0);
 SELF := L;
 
 END;
