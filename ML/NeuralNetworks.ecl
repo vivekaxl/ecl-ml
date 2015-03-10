@@ -536,8 +536,8 @@ EXPORT NeuralNetworks (DATASET(Types.DiscreteField) net,UNSIGNED4 prows=0, UNSIG
     EXPORT NNClassify(DATASET(Types.NumericField) Indep,DATASET(Types.NumericField) Learntmod) := FUNCTION
       Dist := NNOutput(Indep, Learntmod);
       numrow := MAX (Dist,Dist.value);//number of nodes in the last layer of the neural network
-      d_Dist := DISTRIBUTE (Dist, id);
-      S:= SORT(d_Dist,id,conf,LOCAL);
+      d_grpd := GROUP(Dist, id, ALL);
+      S := SORT(d_grpd, conf);
       SeqRec := RECORD
       l_result;
       INTEGER8 Sequence := 0;
