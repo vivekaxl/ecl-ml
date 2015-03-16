@@ -434,6 +434,27 @@ RETURN TABLE(LOOP(Init,K,Permutate(ROWS(LEFT))), {Kperm});
 
 END;
 	
+EXPORT ToGroundTruth(DATASET(Types.NumericField) Y ) := FUNCTION
+
+
+zero_mat    := DATASET ([{1,1,0}],Mat.Types.Element);
+sample_num  := MAX (Y,Y.id);
+class_num   := MAX (Y, Y.value);
+scratch_mat := Mat.Repmat (zero_mat, class_num, sample_num);
+
+
+
+Mat.Types.Element ToGT(scratch_mat l, Y r) := TRANSFORM
+  SELF.value := IF(l.x=r.value,1,0);
+  SELF := l;
+END;
+
+
+Result := JOIN (scratch_mat, Y, LEFT.y=RIGHT.id , ToGT(LEFT,RIGHT));
+
+RETURN Result;
+
+END; // END ToGroundTruth
 
 	
 	
