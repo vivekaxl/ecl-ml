@@ -16,7 +16,7 @@ Reg := ML.Regression.Dense.OLS_LU(X,Y);
 B := Reg.Betas();
 B;
 Reg.ModelY;
-Reg.Extrapolate(X);
+Reg.Extrapolated(X);
 
 Reg.RSquared;
 Reg.Anova;
