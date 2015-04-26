@@ -70,14 +70,12 @@ EXPORT IRegression := MODULE,VIRTUAL
     SELF.Error_MS := (SST - SSM)/(le.countval-k-1);
     SELF.Model_F := (SSM/k)/((SST - SSM)/(le.countval-k-1));
   END;
-	
+
+  //http://www.stat.yale.edu/Courses/1997-98/101/anovareg.htm
+  //Tested using the "Healthy Breakfast" dataset	
 	EXPORT Anova := PROJECT(Singles1, getResult(LEFT));
 	
-	mX_0 := Types.ToMatrix(Independents);
-	mX := Mat.InsertColumn(mX_0, 1, 1.0); // Insert X1=1 column
-  mXt := Mat.Trans(mX);	
-	mXtX_inv := Mat.Inv(Mat.Mul(mXt, mX));
-	var_covar := Types.FromMatrix(Mat.Scale(mXtX_inv, Anova[1].Error_MS));	
+	EXPORT Dataset(NumericField) var_covar;
 	
 	NumericField sErr(NumericField b) :=TRANSFORM
 		SELF.value := sqrt(var_covar(id = b.number + 1 AND number = b.number + 1)[1].value);
@@ -97,12 +95,13 @@ EXPORT IRegression := MODULE,VIRTUAL
 	dist := ML.Distribution.StudentT(Anova[1].Total_DF - 1, 100000);
 	
 	NumericField pVal_transform(NumericField b) := TRANSFORM 
-		SELF.value := 2 * (1 - dist.Cumulative(ABS(b.value)));
+		SELF.value := 2 * ( 1 - dist.Cumulative(ABS(b.value))); 
 		SELF := b;
 	END;
 	
 	EXPORT pVal := PROJECT(tStat, pVal_transform(LEFT));
-  //http://www.stat.yale.edu/Courses/1997-98/101/anovareg.htm
-  //Tested using the "Healthy Breakfast" dataset
+  EXPORT Dataset(CoRec) AdjRSquared := PROJECT(RSquared, TRANSFORM(CoRec, 
+																SELF.RSquared := 1 - ( 1 - LEFT.RSquared ) * ( Anova[1].Total_DF/Anova[1].Error_DF); 
+																SELF := LEFT));
 
 END;
