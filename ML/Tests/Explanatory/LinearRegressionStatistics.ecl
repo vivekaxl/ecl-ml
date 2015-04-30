@@ -1,6 +1,8 @@
 ﻿/*
 R Code for Testing :
 
+Code :
+
 A <- matrix(c(1,0.13197,25.114,3,0.94205,72.009,5,0.95613,71.9,7,0.57521,97.906,9,0.05978,102.2,
 11,0.23478,118.48,13,0.35316,145.83,15,0.82119,181.51,17,0.015403,197.38,19,0.043024,214.03,
 21,0.16899,216.61,23,0.64912,270.63,25,0.73172,281.17,27,0.64775,295.11,29,0.45092,314.04,
@@ -13,9 +15,6 @@ model <- lm(Y ~ 1 + X1 + X2);
 summary(model)
 
 Output :
-Call:
-lm(formula = Y ~ 1 + X1 + X2)
-
 Residuals:
         Min          1Q      Median          3Q         Max 
 -11.2473853  -5.1166972   0.4066936   3.0663545  13.3339088 
@@ -31,6 +30,20 @@ Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’
 Residual standard error: 7.585232 on 17 degrees of freedom
 Multiple R-squared:  0.9964462, Adjusted R-squared:  0.9960281 
 F-statistic: 2383.296 on 2 and 17 DF,  p-value: < 2.2204e-16
+
+Code : confint(model, level=0.95)
+Output :
+               2.5 %   97.5 %
+(Intercept) 2.677072 20.56630
+X1          9.812622 10.43344
+X2          9.656748 33.56526
+
+Code : confint(model, level =0.99)
+Output:
+                 0.5 %   99.5 %
+(Intercept) -0.6654315 23.90880
+X1           9.6966253 10.54944
+X2           5.1895742 38.03243
 
 */
 
@@ -58,6 +71,8 @@ F-statistic: 2383.296 on 2 and 17 DF,  p-value: < 2.2204e-16
 	 model.Anova;
 	 model.RSquared;
 	 model.AdjRSquared;
+	 model.confInt(95);
+	 model.confInt(99);
 	 
 	 model_dense := ML.Regression.Dense.OLS_LU(X, Y);
 	 model_dense.Betas;
@@ -68,3 +83,5 @@ F-statistic: 2383.296 on 2 and 17 DF,  p-value: < 2.2204e-16
 	 model_dense.Anova;
 	 model_dense.RSquared;
 	 model_dense.AdjRSquared;
+	 model.confInt(95);
+	 model.confInt(99);

@@ -103,4 +103,24 @@ EXPORT IRegression := MODULE,VIRTUAL
   EXPORT Dataset(CoRec) AdjRSquared := PROJECT(RSquared, TRANSFORM(CoRec, 
 																SELF.RSquared := 1 - ( 1 - LEFT.RSquared ) * ( Anova[1].Total_DF/Anova[1].Error_DF); 
 																SELF := LEFT));
+		
+	confintRec := RECORD
+		Types.t_RecordID id;
+		Types.t_FieldNumber number;
+		Types.t_Fieldreal LowerInt;
+		Types.t_Fieldreal UpperInt;
+	END;
+	
+	confintRec confint_transform(NumericField b, REAL Margin) := TRANSFORM
+		SELF.UpperInt := b.value + Margin * SE(id = b.id AND number = b.number)[1].value;
+		SELF.LowerInt := b.value - Margin * SE(id = b.id AND number = b.number)[1].value;
+		SELF := b;
+	END;
+																
+  EXPORT ConfInt(Types.t_fieldReal level) := FUNCTION
+		newlevel := 100 - (100 - level)/2;
+		Margin := dist.NTile(newlevel);
+		RETURN PROJECT(betas, confint_transform(LEFT, Margin));
+	END;
+	
 END;
