@@ -92,7 +92,7 @@ EXPORT IRegression := MODULE,VIRTUAL
 	
 	EXPORT tStat := PROJECT(betas, tStat_transform(LEFT));
 	
-	dist := ML.Distribution.StudentT(Anova[1].Total_DF - 1, 100000);
+	EXPORT dist := ML.Distribution.StudentT(Anova[1].Error_DF, 100000);
 	
 	NumericField pVal_transform(NumericField b) := TRANSFORM 
 		SELF.value := 2 * ( 1 - dist.Cumulative(ABS(b.value))); 
@@ -103,5 +103,4 @@ EXPORT IRegression := MODULE,VIRTUAL
   EXPORT Dataset(CoRec) AdjRSquared := PROJECT(RSquared, TRANSFORM(CoRec, 
 																SELF.RSquared := 1 - ( 1 - LEFT.RSquared ) * ( Anova[1].Total_DF/Anova[1].Error_DF); 
 																SELF := LEFT));
-
 END;

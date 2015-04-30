@@ -40,8 +40,11 @@ EXPORT Default := MODULE,VIRTUAL
 	// Default Cumulative works from the Cumulative Vector
 	EXPORT t_FieldReal Cumulative(t_FieldReal RH) :=FUNCTION // Cumulative probability at stated point
 	  cv := CumulativeV();
-		// If the range high value is at an intermediate point of a range then interpolate the result
-		InterC(Layout v) := IF ( RH=v.RangeHigh, v.P, v.P+Density((v.RangeHigh+v.RangeLow)/2)*(RH-v.RangeHigh)/RangeWidth );
+		// If the range high value is at an intermediate point of a range then interpolate the result\
+		// Interpolation done as follows :
+		// cumulative(RH) = cumulative(v.RangeHigh) - prob(RH <= x < v.Rangehigh)
+		// prob(RH <= x < v.Rangehigh) =  Density((RH + Rangehigh)/2) * (RH - Rangehigh) [Rectangle Rule for integration]
+		InterC(Layout v) := IF ( RH=v.RangeHigh, v.P, v.P - Density((v.RangeHigh+RH)/2)*(v.RangeHigh - RH));
 	  RETURN MAP( RH >= MAX(cv,RangeHigh) => 1.0,
 								RH <= MIN(cv,RangeLow) => 0.0,
 								InterC(cv(RH>RangeLow,RH<=RangeHigh)[1]) );
@@ -144,7 +147,7 @@ EXPORT StudentT(t_Discrete v,t_Count NRanges = 10000) := MODULE(Default)
 		Layout Accum(Layout le,Layout ri) := TRANSFORM
 		  SELF.p := MAP( v = 1 => 0.5+ATAN(ri.RangeHigh)/Utils.Pi, // Special case CDF for v = 1
 			               v = 2 => (1+ri.RangeHigh/SQRT(2+POWER(ri.RangeHigh,2)))/2, // Special case of CDF for v=2
-										 IF(le.p=0,0.5,le.p)+ri.p*RangeWidth );
+										 IF(le.p=0,0.5,le.p)+ ri.p*RangeWidth );
 		  SELF := ri;
 		END;
 		RETURN ITERATE(d,Accum(LEFT,RIGHT)); // Global iterates are horrible - but this should be tiny
