@@ -206,6 +206,18 @@ EXPORT Poisson(t_FieldReal lamda,t_Count NRanges = 100) := MODULE(Default)
 	// Uses the 'default' integration module to construct the cumulative values
 	EXPORT Discrete := TRUE;
   END;
+	
+EXPORT FDist(t_Discrete d1, t_Discrete d2, t_Count NRanges = 10000) := MODULE(Default)
+	SHARED Multiplier := (1 / Utils.Beta(d1/2, d2/2)) * POWER(d1/d2, d1/2);
+	SHARED high := 15;
+  SHARED Low := 0;
+	EXPORT RangeWidth := (high - low)/NRanges;
+  EXPORT t_FieldReal Density(t_FieldReal RH) := Multiplier * POWER(RH, d1/2 - 1) / POWER(1 + d1 * RH/d2, (d1 + d2)/2);
+  EXPORT DensityV() := PROJECT(DVec(NRanges,low,RangeWidth),
+	                       TRANSFORM(Layout,
+													 SELF.P := Density((LEFT.RangeLow+LEFT.RangeHigh)/2),
+													 SELF := LEFT));	
+END;
 
 // Generate N records (with record ID 1..N)
 // Fill in the field 'fld'
