@@ -10,15 +10,16 @@ IMPORT Std.Str;
 OLS2Use := ML.Regression.Sparse.OLS_LU;
 
 EXPORT StepRegression(DATASET(Types.NumericField) X,
-                      DATASET(Types.NumericField) Y,
-											UNSIGNED1 maxN) := MODULE
+                      DATASET(Types.NumericField) Y) := MODULE
 											
 	VarIndex := RECORD
 		UNSIGNED1 number;
 	END;
 	
 	//Use Normalize
-	DATASET(VarIndex) Indices := NORMALIZE(DATASET([{0}], VarIndex), maxN, TRANSFORM(VarIndex, SELF.number := COUNTER));
+	DATASET(VarIndex) Indices := NORMALIZE(DATASET([{0}], VarIndex), 
+																					COUNT(ML.FieldAggregates(X).Cardinality), 
+																					TRANSFORM(VarIndex, SELF.number := COUNTER));
 	
 	StepRec := RECORD
 		DATASET(VarIndex) Selected := DATASET([], VarIndex);
@@ -56,5 +57,10 @@ EXPORT StepRegression(DATASET(Types.NumericField) X,
 	END;
 
 	EXPORT DATASET(StepRec) FillRecs := ITERATE(EmptyRecs, Step_Trans(LEFT, RIGHT));
-
+	
+	BestRec := FillRecs(AIC = MIN(FillRecs, AIC))[1];
+	var_subset := SET(BestRec.Selected, number);
+	x_subset := X(number IN var_subset);
+	EXPORT Model := OLS2Use(x_subset, Y);
+	
 END;
