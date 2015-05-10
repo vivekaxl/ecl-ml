@@ -127,6 +127,15 @@ EXPORT IRegression := MODULE,VIRTUAL
 		RETURN PROJECT(betas, confint_transform(LEFT, Margin));
 	END;
 	
-	
+	AICRec := RECORD
+		Types.t_FieldNumber number;
+		Types.t_FieldReal AIC;
+	END;
+
+	EXPORT Dataset(AICRec) AIC := PROJECT(Anova, TRANSFORM(AICRec, 
+																n := LEFT.Total_DF + 1;
+																p := LEFT.Model_DF + 1;
+																SELF.AIC := n * LN(LEFT.Error_SS / n) + 2 * p; 
+																SELF := LEFT));
 	
 END;
