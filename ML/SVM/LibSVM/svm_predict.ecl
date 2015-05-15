@@ -6,8 +6,11 @@ IMPORT ML.SVM.LibSVM.Converted;
 // aliases
 Model := Types.ECL_LibSVM_Model;
 Node  := Types.LibSVM_Node;
+Rqst  := Types.LibSVM_Output;
 ErrCode := Constants.LibSVM_BadParm;
-EXPORT REAL8 svm_predict(Model ecl_model, DATASET(Node) ecl_nodes) := BEGINC++
+R8Entry := Types.R8Entry;
+EXPORT DATASET(R8Entry) svm_predict(Model ecl_model, DATASET(Node) ecl_nodes,
+                                    Rqst output_request ) := BEGINC++
   extern "C" {
     #include <libsvm/svm.h>
   }
@@ -115,7 +118,36 @@ EXPORT REAL8 svm_predict(Model ecl_model, DATASET(Node) ecl_nodes) := BEGINC++
     memcpy(mdl->nSV, nSV, in_mdl->nr_nSV*sizeof(int));
   } else mdl->nSV = (int*) NULL;
   // get prediction
-  double rslt = svm_predict(mdl, x);
+  // first, determine number of answers
+  int answers;
+  if (output_request==1) { // values
+    if (in_mdl->svm_type==ONE_CLASS
+      ||in_mdl->svm_type==EPSILON_SVR
+      ||in_mdl->svm_type==NU_SVR) answers=2;
+    else answers = 1 + (in_mdl->k * (in_mdl->k-1)/2);
+  } else if (output_request==2) { // probability
+    switch (in_mdl->svm_type) {
+      case C_SVC:
+      case NU_SVC:
+        if (probA && probB) answers = 1 + in_mdl->k;
+        else answers = 1;
+        break;
+      case EPSILON_SVR:
+      case NU_SVR:
+        if (probA) answers = 2;
+        else answers = 1;
+        break;
+      default:
+        answers = 1;
+        break;
+    }
+  } else answers=1;
+  __lenResult = answers * sizeof(double);
+  __result = rtlMalloc(__lenResult);
+  double* rslt = (double*) __result;
+  if (answers==1) rslt[0] = svm_predict(mdl, x);
+  else if (output_request==1) rslt[0] = svm_predict_values(mdl, x, rslt+1);
+  else rslt[0] = svm_predict_probability(mdl, x, rslt+1);
   // Free work areas
   if (mdl->label) free(mdl->label);
   //if (mdl->sv_indices) free(mdl->sv_indices);
@@ -129,5 +161,4 @@ EXPORT REAL8 svm_predict(Model ecl_model, DATASET(Node) ecl_nodes) := BEGINC++
   free(mdl);
   free(x);
   // all done
-  return rslt;
 ENDC++;

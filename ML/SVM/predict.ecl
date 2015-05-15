@@ -4,6 +4,7 @@ IMPORT ML.SVM.LibSVM;
 // aliases
 Model := SVM.Types.Model;
 SVM_Model := LibSVM.Types.ECL_LibSVM_Model;
+SVM_Output:= LibSVM.Types.LibSVM_Output;
 SVM_Instance := SVM.Types.SVM_Instance;
 SVM_Prediction := SVM.Types.SVM_Prediction;
 SVM_Predict := LibSVM.SVM_Predict;
@@ -46,7 +47,7 @@ EXPORT predict(DATASET(Model) models, DATASET(SVM_Instance) d) := FUNCTION
     SELF.id := m.id;
     SELF.rid := inst.rid;
     SELF.target_y := inst.y;
-    SELF.predict_y := SVM_Predict(m, x_nodes);
+    SELF.predict_y := SVM_Predict(m, x_nodes, SVM_Output.LABEL_ONLY)[1].v;
   END;
   rslt := JOIN(d, svm_mdls, TRUE, predict(LEFT, RIGHT), ALL);
   RETURN rslt;

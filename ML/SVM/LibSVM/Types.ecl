@@ -1,6 +1,7 @@
 // Types for the LibSVM and LibLINEAR implementations
 EXPORT Types := MODULE
   //Interfqce for C++ wrappers, DO NOT ALTER BELOW WITHOUT CHANGING WRAPPERS
+  EXPORT LibSVM_Output:= ENUM(UNSIGNED2, LABEL_ONLY=0, VALUES, PROBS);
   EXPORT LibSVM_Kernel:= ENUM(UNSIGNED2, LINEAR=0, POLY, RBF, SIGMOID, PRECOMPUTED);
   EXPORT LibSVM_Type := ENUM(UNSIGNED2, C_SVC=0, NU_SVC, ONE_CLASS, EPSILON_SVR, NU_SVR);
   EXPORT LibSVM_Node := RECORD  // Sparse 1 based and 0 based for pre-computed
