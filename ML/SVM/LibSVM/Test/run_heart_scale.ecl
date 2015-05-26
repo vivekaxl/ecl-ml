@@ -102,7 +102,7 @@ OUTPUT(heart_labels, NAMED('Heart_Label'));
 heart_nSV := PROJECT(heart_model, extractI4(LEFT, 2));
 OUTPUT(heart_nSV, NAMED('heart_nSV'));
 
-heart_pred := SVM.Predict(heart_model, instance_data);
+heart_pred := SVM.Predict(heart_model, instance_data).Prediction;
 OUTPUT(CHOOSEN(heart_pred, 100), NAMED('Detail_pred'));
 Raw_Result := RECORD
   heart_pred.rid;
