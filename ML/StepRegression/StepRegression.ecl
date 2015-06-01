@@ -12,7 +12,7 @@ EXPORT StepRegression(DATASET(Types.NumericField) X,
                       DATASET(Types.NumericField) Y) := MODULE, VIRTUAL
 											
 	SHARED VarIndex := RECORD
-		UNSIGNED1 number;
+		UNSIGNED4 number;
 	END;
 	
 	//Numeric Index of all the variables in X
@@ -22,6 +22,8 @@ EXPORT StepRegression(DATASET(Types.NumericField) X,
 	
 	//Record for Each variable tested at every Step
 	SHARED VarRec := RECORD
+		//Denotes if variable was added or removed
+		STRING Op := '+';
 		//Variable's Numeric Index
 		UNSIGNED1 VarID;
 		//AIC obtained after adding this Variable
@@ -41,10 +43,10 @@ EXPORT StepRegression(DATASET(Types.NumericField) X,
 	END;
 	
 	//Dataset of All Steps Taken
-	EXPORT DATASET(StepRec) FillRecs;
+	EXPORT DATASET(StepRec) Steps;
 	
 	//Choose best Model among all Steps
-	BestRec := FillRecs(AIC = MIN(FillRecs, AIC))[1];
+	BestRec := Steps[COUNT(Steps)];
 	var_subset := SET(BestRec.Final, number);
 	x_subset := X(number IN var_subset);
 	EXPORT BestModel := OLS2Use(x_subset, Y);

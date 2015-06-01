@@ -149,7 +149,14 @@ F-statistic: 3.57e+04 on 5 and 14 DF,  p-value: < 2.2e-16
    	ML.ToField(d,o);
 	X := O(Number IN [1, 2, 3, 4, 5, 6]); // Pull out the X
   Y := O(Number = 7); // Pull out the Y
+	vars := DATASET([{1},{2},{4}], {UNSIGNED4 number});
 	modelf := ML.StepRegression.ForwardRegression(X, Y);
 	modelb := ML.StepRegression.BackwardRegression(X, Y);
-	modelf.fillrecs;
-	modelb.fillrecs; 
+	modelbi := ML.StepRegression.BidirecRegression(X, Y, vars);
+	OUTPUT(modelf.Steps, NAMED('ForwardSteps'));
+	OUTPUT(modelf.BestModel.betas, NAMED('ForwardBestBetas'));
+	OUTPUT(modelb.Steps, NAMED('BackwardSteps'));
+	OUTPUT(modelb.BestModel.betas, NAMED('BackwardBestBetas'));
+	OUTPUT(modelbi.Steps, NAMED('BidirecSteps'));
+	OUTPUT(modelbi.BestModel.betas, NAMED('BidirecBestBetas'));
+	

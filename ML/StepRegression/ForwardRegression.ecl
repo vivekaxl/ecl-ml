@@ -9,41 +9,38 @@ EXPORT ForwardRegression(DATASET(Types.NumericField) X,
 												DATASET(Types.NumericField) Y) := MODULE(Step.StepRegression(X,Y))
 											
 
-	SHARED DATASET(StepRec) EmptyRecs := PROJECT(Indices, TRANSFORM(StepRec, SELF.AIC := 0; 
-																									SELF.Final := DATASET([], VarIndex);
-																									SELF.StepRecs := DATASET([], VarRec);
-																									SELF.Initial := DATASET([], VarIndex)
-																					));
+	AIC := OLS2Use(X(number IN [0]), Y).AIC[1].AIC;
+	SHARED DATASET(StepRec) InitialRec := DATASET([{DATASET([], VarIndex), DATASET([], VarRec), DATASET([], VarIndex), AIC}], StepRec);
 		
-	//Main Regression Transform		
-	StepRec Step_Trans_Forward(StepRec le, StepRec ri) := TRANSFORM
+	DATASET(StepRec) Step_Forward(DATASET(StepRec) recs, INTEGER c) := FUNCTION
 	
-			//Variables Selected in Previous Best Model
+			le := recs[c];			
 			Selected := SET(le.Final, number);
-			//Variables still left to add + <None>
-			NotChosen := Indices(number NOT IN Selected) + DATASET([{0}], VarIndex);			
+						
+			NotChosen := Indices(number NOT IN Selected) + DATASET([{0}], VarIndex);
 			ChooseRecs := PROJECT(NotChosen, TRANSFORM(VarRec, SELF.VarID := LEFT.number; SELF.AIC := 0));
-			
-			//Create model after adding each variable from NotChosen 
-			VarRec T(VarRec le) := TRANSFORM
+			 
+			VarRec T_Choose(VarRec le) := TRANSFORM
 				x_subset := X(number IN (Selected + [le.VarID]));
 				reg := OLS2Use(x_subset, Y);
 				SELF.AIC := (reg.AIC)[1].AIC;
+				SELF.Op := '+';
 				SELF := le;
-			END;			
-			Calculated := PROJECT(ChooseRecs, T(LEFT));
+			END;		
 			
-			//Choose best Model among models calculated
-			bestRec := Calculated(AIC = MIN(Calculated, AIC))[1];
+			ChooseCalculated := PROJECT(ChooseRecs, T_Choose(LEFT));
+			bestCR := ChooseCalculated(AIC = MIN(ChooseCalculated, AIC))[1];			
 			
-			//Add Record for Best Model obtained in this Step
-			SELF.Initial := le.Final;
-			SELF.StepRecs := Calculated;
-			SELF.Final := le.Final + DATASET([{bestRec.VarID}], VarIndex);
-			SELF.AIC := bestRec.AIC;
+			Initial := le.Final;
+			StepRecs := ChooseCalculated;
+			Final := Indices(number IN Selected OR number IN [bestCR.VarID]);
+			AIC := bestCR.AIC;
+			
+			RETURN recs + ROW({Initial, StepRecs, Final, AIC}, Steprec);
 	END;
 
-	//Dataset of All Steps Taken
-	EXPORT DATASET(StepRec) FillRecs := ITERATE(EmptyRecs, Step_Trans_Forward(LEFT, RIGHT));
+	EXPORT DATASET(StepRec) Steps := LOOP(InitialRec, 
+																						COUNTER = 1 OR ROWS(LEFT)[COUNTER].Initial != ROWS(LEFT)[COUNTER].Final,
+																						Step_Forward(ROWS(LEFT), COUNTER));
 	
 END;
