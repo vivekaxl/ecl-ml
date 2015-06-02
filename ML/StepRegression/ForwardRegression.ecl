@@ -10,19 +10,20 @@ EXPORT ForwardRegression(DATASET(Types.NumericField) X,
 											
 
 	AIC := OLS2Use(X(number IN [0]), Y).AIC[1].AIC;
-	SHARED DATASET(StepRec) InitialRec := DATASET([{DATASET([], VarIndex), DATASET([], VarRec), DATASET([], VarIndex), AIC}], StepRec);
+	SHARED DATASET(StepRec) InitialStep := DATASET([{DATASET([], Parameter), DATASET([], ParamRec), DATASET([], Parameter), AIC}], StepRec);
 		
 	DATASET(StepRec) Step_Forward(DATASET(StepRec) recs, INTEGER c) := FUNCTION
 	
 			le := recs[c];			
 			Selected := SET(le.Final, number);
 						
-			NotChosen := Indices(number NOT IN Selected) + DATASET([{0}], VarIndex);
-			ChooseRecs := PROJECT(NotChosen, TRANSFORM(VarRec, SELF.VarID := LEFT.number; SELF.AIC := 0));
+			NotChosen := Indices(number NOT IN Selected) + DATASET([{0}], Parameter);
+			ChooseRecs := PROJECT(NotChosen, TRANSFORM(ParamRec, SELF.ParamNum := LEFT.number; SELF.AIC := 0));
 			 
-			VarRec T_Choose(VarRec le) := TRANSFORM
-				x_subset := X(number IN (Selected + [le.VarID]));
+			ParamRec T_Choose(ParamRec le) := TRANSFORM
+				x_subset := X(number IN (Selected + [le.ParamNum]));
 				reg := OLS2Use(x_subset, Y);
+				SELF.RSS := (reg.Anova)[1].Error_SS;
 				SELF.AIC := (reg.AIC)[1].AIC;
 				SELF.Op := '+';
 				SELF := le;
@@ -33,13 +34,13 @@ EXPORT ForwardRegression(DATASET(Types.NumericField) X,
 			
 			Initial := le.Final;
 			StepRecs := ChooseCalculated;
-			Final := Indices(number IN Selected OR number IN [bestCR.VarID]);
+			Final := Indices(number IN Selected OR number IN [bestCR.ParamNum]);
 			AIC := bestCR.AIC;
 			
 			RETURN recs + ROW({Initial, StepRecs, Final, AIC}, Steprec);
 	END;
 
-	EXPORT DATASET(StepRec) Steps := LOOP(InitialRec, 
+	EXPORT DATASET(StepRec) Steps := LOOP(InitialStep, 
 																						COUNTER = 1 OR ROWS(LEFT)[COUNTER].Initial != ROWS(LEFT)[COUNTER].Final,
 																						Step_Forward(ROWS(LEFT), COUNTER));
 	
