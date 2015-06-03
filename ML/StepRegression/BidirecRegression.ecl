@@ -40,13 +40,13 @@ EXPORT BidirecRegression(DATASET(Types.NumericField) X,
 				SELF := le;
 			END;		
 			
-			SelectCalculated := PROJECT(SelectRecs, T_Select(LEFT));
-			ChooseCalculated := PROJECT(ChooseRecs, T_Choose(LEFT));
-			bestSR := SelectCalculated(AIC = MIN(SelectCalculated, AIC))[1];
-			bestCR := ChooseCalculated(AIC = MIN(ChooseCalculated, AIC))[1];			
+			SelectCalculated := SORT(PROJECT(SelectRecs, T_Select(LEFT)), AIC);
+			ChooseCalculated := SORT(PROJECT(ChooseRecs, T_Choose(LEFT)), AIC);
+			bestSR := SelectCalculated[1];
+			bestCR := ChooseCalculated[1];			
 			
 			Initial := le.Final;
-			StepRecs := SelectCalculated + ChooseCalculated;
+			StepRecs := MERGE(SelectCalculated,ChooseCalculated,SORTED(AIC));
 			Final := IF(bestSR.AIC < bestCR.AIC, Indices(number IN Selected AND number NOT IN [bestSR.ParamNum]),
 																								Indices(number IN Selected OR number IN [bestCR.ParamNum]));
 			AIC := IF(bestSR.AIC < bestCR.AIC, bestSR.AIC, bestCR.AIC);

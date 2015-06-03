@@ -29,8 +29,8 @@ EXPORT ForwardRegression(DATASET(Types.NumericField) X,
 				SELF := le;
 			END;		
 			
-			ChooseCalculated := PROJECT(ChooseRecs, T_Choose(LEFT));
-			bestCR := ChooseCalculated(AIC = MIN(ChooseCalculated, AIC))[1];			
+			ChooseCalculated := SORT(PROJECT(ChooseRecs, T_Choose(LEFT)), AIC);
+			bestCR := ChooseCalculated[1];			
 			
 			Initial := le.Final;
 			StepRecs := ChooseCalculated;

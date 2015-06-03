@@ -29,8 +29,8 @@ EXPORT BackwardRegression(DATASET(Types.NumericField) X,
 				SELF := le;
 			END;			
 			
-			SelectCalculated := PROJECT(SelectRecs, T_Select(LEFT));
-			bestSR := SelectCalculated(AIC = MIN(SelectCalculated, AIC))[1];		
+			SelectCalculated := SORT(PROJECT(SelectRecs, T_Select(LEFT)), AIC);
+			bestSR := SelectCalculated[1];		
 			
 			Initial := le.Final;
 			StepRecs := SelectCalculated;

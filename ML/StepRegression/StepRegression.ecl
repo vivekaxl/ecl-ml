@@ -27,7 +27,7 @@ EXPORT StepRegression(DATASET(Types.NumericField) X,
 		STRING Op := '+';
 		//Parameters's Numeric Index
 		UNSIGNED1 ParamNum;
-		//AIC obtained after adding this Parameter
+		//AIC and RSS obtained after adding this Parameter
 		REAL RSS := 0;
 		REAL AIC := 0;
 	END;
@@ -36,7 +36,7 @@ EXPORT StepRegression(DATASET(Types.NumericField) X,
 	EXPORT StepRec := RECORD
 		//Parameters in model before in this Step
 		DATASET(Parameter) Initial;
-		//Records of Parameter Tested
+		//Records of Parameters Tested
 		DATASET(ParamRec) ParamSteps;
 		//Selected Parameters at end of this Step
 		DATASET(Parameter) Final;
