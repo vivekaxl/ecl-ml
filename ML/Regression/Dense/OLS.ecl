@@ -56,7 +56,7 @@ EXPORT OLS(DATASET(NumericField) X,DATASET(NumericField) Y)
   // the model Y values.
   y_est := PBblas.PB_dgemm(FALSE, FALSE, 1.0, x_map, x_part, b_map, BetasAsPartition, y_map);
   EXPORT DATASET(Part) modelY_part := y_est;
-  Y_numbers := SET(dedup(sort(Y,number),number),number);
+  Y_numbers := SET(DEDUP(SORT(Y,number),number),number);
   y_est_nf := DMat.Converted.FromPart2DS(modelY_part)(number IN Y_numbers);
   EXPORT DATASET(NumericField) modelY := y_est_nf;
 
@@ -71,7 +71,7 @@ EXPORT OLS(DATASET(NumericField) X,DATASET(NumericField) Y)
     RETURN ny_ex;
   END;
   EXPORT DATASET(NumericField) Extrapolated(DATASET(NumericField) newX) := FUNCTION
-    newX_numbers := SET(dedup(sort(newX,number),number),number);
+    newX_numbers := SET(DEDUP(SORT(newX,number),number),number);
     yex_p := Extrapolated_part(newX);
     rslt := DMat.Converted.FromPart2DS(yex_p)(number NOT IN newX_numbers);
     RETURN rslt;
@@ -101,5 +101,5 @@ EXPORT OLS(DATASET(NumericField) X,DATASET(NumericField) Y)
 	inv_xTx_part := DMat.Inv(xTx_map, xTx_part);
 	var_covar_part := DMat.Scale(xTx_map, Anova[1].Error_MS, inv_xTx_part);
 	
-	EXPORT Dataset(NumericField) var_covar := DMat.Converted.FromPart2DS(var_covar_part);
+	EXPORT DATASET(NumericField) var_covar := DMat.Converted.FromPart2DS(var_covar_part);
 END;

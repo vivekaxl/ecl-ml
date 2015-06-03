@@ -55,7 +55,7 @@ EXPORT BidirecRegression(DATASET(Types.NumericField) X,
 	END;
 
 	EXPORT DATASET(StepRec) Steps := LOOP(InitialStep, 
-																						ROWS(LEFT)[COUNTER].Initial != ROWS(LEFT)[COUNTER].Final,
+																						COUNTER = 1 OR ROWS(LEFT)[COUNTER].Initial != ROWS(LEFT)[COUNTER].Final,
 																						Step_Bidirec(ROWS(LEFT), COUNTER));
 	
 END;

@@ -65,5 +65,5 @@ EXPORT OLS(DATASET(NumericField) X,DATASET(NumericField) Y)
   rslt := PROJECT(corr_ds(left_number&1=0,left_number+1=right_number), getResult(LEFT));
   EXPORT DATASET(CoRec) RSquared := rslt;
 	
-	EXPORT Dataset(NumericField) var_covar := Types.FromMatrix(Mat.Scale(Mat.Inv(Mat.Mul(mXt, mX)), Anova[1].Error_MS));
+	EXPORT DATASET(NumericField) var_covar := Types.FromMatrix(Mat.Scale(Mat.Inv(Mat.Mul(mXt, mX)), Anova[1].Error_MS));
 END;

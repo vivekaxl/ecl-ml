@@ -28,7 +28,7 @@ EXPORT Regress_Poly_X(DATASET(Types.NumericField) X,
 	// Predict Y values given new Data (in format of X) in Dt
 	EXPORT DATASET(Types.NumericField) Extrapolated(DATASET(Types.NumericField) Dt) := FUNCTION
 		newDt := ML.Generate.ToPoly(Dt, maxN);
-		Y_numbers := SET(dedup(sort(Y,number),number),number);
+		Y_numbers := SET(Y,number);
     yex_p := B.Extrapolated_part(newDt);
     rslt := ML.DMat.Converted.FromPart2DS(yex_p)(number IN Y_numbers);
     RETURN rslt;

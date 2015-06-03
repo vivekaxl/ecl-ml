@@ -79,22 +79,22 @@ EXPORT IRegression := MODULE,VIRTUAL
   //Tested using the "Healthy Breakfast" dataset	
 	EXPORT Anova := PROJECT(Singles1, getResult(LEFT));
 	
-	EXPORT Dataset(NumericField) var_covar;
+	EXPORT DATASET(NumericField) var_covar;	
 	
-	NumericField sErr(NumericField b) :=TRANSFORM
-		SELF.value := sqrt(var_covar(id = b.number + 1 AND number = b.number + 1)[1].value);
+	NumericField sErr(NumericField v, NumericField b) := TRANSFORM
+		SELF.value := SQRT(v.value);
 		SELF.id := b.id;
 		SELF.number := b.number;
 	END;
 	
-	EXPORT DATASET(NumericField) SE := PROJECT(betas, sErr(LEFT));
+	EXPORT SE := JOIN(var_covar, betas, LEFT.id = RIGHT.number + 1 AND LEFT.number = RIGHT.number + 1,sErr(LEFT, RIGHT));
 	
-	NumericField tStat_transform(NumericField b) := TRANSFORM
-		SELF.value := b.value / SE(id = b.id AND number = b.number)[1].value;
+	NumericField tStat_transform(NumericField b, NumericField s) := TRANSFORM
+		SELF.value := b.value / s.value;
 		SELF := b;
 	END;
 	
-	EXPORT tStat := PROJECT(betas, tStat_transform(LEFT));
+	EXPORT tStat := JOIN(betas, SE, LEFT.id = RIGHT.id AND LEFT.number = RIGHT.number, tStat_transform(LEFT, RIGHT));
 	
 	EXPORT dist := ML.Distribution.StudentT(Anova[1].Error_DF, 100000);
 	
@@ -104,7 +104,7 @@ EXPORT IRegression := MODULE,VIRTUAL
 	END;
 	
 	EXPORT pVal := PROJECT(tStat, pVal_transform(LEFT));
-  EXPORT Dataset(CoRec) AdjRSquared := PROJECT(RSquared, TRANSFORM(CoRec, 
+  EXPORT DATASET(CoRec) AdjRSquared := PROJECT(RSquared, TRANSFORM(CoRec, 
 																SELF.RSquared := 1 - ( 1 - LEFT.RSquared ) * ( Anova[1].Total_DF/Anova[1].Error_DF); 
 																SELF := LEFT));
 		
@@ -115,16 +115,16 @@ EXPORT IRegression := MODULE,VIRTUAL
 		Types.t_Fieldreal UpperInt;
 	END;
 	
-	confintRec confint_transform(NumericField b, REAL Margin) := TRANSFORM
-		SELF.UpperInt := b.value + Margin * SE(id = b.id AND number = b.number)[1].value;
-		SELF.LowerInt := b.value - Margin * SE(id = b.id AND number = b.number)[1].value;
+	confintRec confint_transform(NumericField b, NumericField s, REAL Margin) := TRANSFORM
+		SELF.UpperInt := b.value + Margin * s.value;
+		SELF.LowerInt := b.value - Margin * s.value;
 		SELF := b;
 	END;
 																
   EXPORT ConfInt(Types.t_fieldReal level) := FUNCTION
 		newlevel := 100 - (100 - level)/2;
 		Margin := dist.NTile(newlevel);
-		RETURN PROJECT(betas, confint_transform(LEFT, Margin));
+		RETURN JOIN(betas, SE, LEFT.id = RIGHT.id AND LEFT.number = RIGHT.number, confint_transform(LEFT,RIGHT,Margin));
 	END;
 	
 	AICRec := RECORD
@@ -132,7 +132,7 @@ EXPORT IRegression := MODULE,VIRTUAL
 		Types.t_FieldReal AIC;
 	END;
 
-	EXPORT Dataset(AICRec) AIC := PROJECT(Anova, TRANSFORM(AICRec, 
+	EXPORT DATASET(AICRec) AIC := PROJECT(Anova, TRANSFORM(AICRec, 
 																n := LEFT.Total_DF + 1;
 																p := LEFT.Model_DF + 1;
 																SELF.AIC := n * LN(LEFT.Error_SS / n) + 2 * p; 
