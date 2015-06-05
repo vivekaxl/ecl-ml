@@ -69,6 +69,7 @@ X2           5.1895742 38.03243
 	 model.tStat;
 	 model.pVal;
 	 model.Anova;
+	 model.FTest;
 	 model.RSquared;
 	 model.AdjRSquared;
 	 model.confInt(95);
@@ -81,6 +82,7 @@ X2           5.1895742 38.03243
 	 model_dense.tStat;
 	 model_dense.pVal;
 	 model_dense.Anova;
+	 model.FTest;
 	 model_dense.RSquared;
 	 model_dense.AdjRSquared;
 	 model.confInt(95);
