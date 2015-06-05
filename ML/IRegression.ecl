@@ -48,7 +48,6 @@ EXPORT IRegression := MODULE,VIRTUAL
     Types.t_fieldreal      Model_SS; // Sum of Squares
     Types.t_fieldreal      Model_MS; // Mean Square
     Types.t_fieldreal      Model_F;  // F-value
-		Types.t_fieldreal			Model_pValue;
     Types.t_RecordID      Error_DF; // Degrees of Freedom
     Types.t_fieldreal      Error_SS;
     Types.t_fieldreal      Error_MS;
@@ -70,9 +69,6 @@ EXPORT IRegression := MODULE,VIRTUAL
     SELF.Model_MS := SSM/k;
     SELF.Error_MS := (SST - SSM)/(le.countval-k-1);
     SELF.Model_F := (SSM/k)/((SST - SSM)/(le.countval-k-1));
-		
-		dist := ML.Distribution.FDist(SELF.Model_DF, SELF.Error_DF, 100000);
-		SELF.Model_pValue := 1 - dist.cumulative(SELF.Model_F);
   END;
 
   //http://www.stat.yale.edu/Courses/1997-98/101/anovareg.htm
@@ -137,5 +133,15 @@ EXPORT IRegression := MODULE,VIRTUAL
 																p := LEFT.Model_DF + 1;
 																SELF.AIC := n * LN(LEFT.Error_SS / n) + 2 * p; 
 																SELF := LEFT));
+																
+	FTestRec := RECORD
+		Types.t_FieldReal Model_F;
+		Types.t_FIeldReal pValue;
+	END;
+	
+	EXPORT DATASET(FTestRec) FTest := PROJECT(Anova, TRANSFORM(FTestRec, 
+																										SELF.Model_F := LEFT.Model_F;
+																										dist := ML.Distribution.FDist(LEFT.Model_DF, LEFT.Error_DF, 100000);
+																										SELF.pValue := 1 - dist.cumulative(LEFT.Model_F)));
 	
 END;
