@@ -100,9 +100,9 @@ EXPORT IRegression := MODULE,VIRTUAL
 	END;
 	
 	EXPORT pVal := PROJECT(tStat, pVal_transform(LEFT));
-  EXPORT DATASET(CoRec) AdjRSquared := PROJECT(RSquared, TRANSFORM(CoRec, 
-																SELF.RSquared := 1 - ( 1 - LEFT.RSquared ) * ( Anova[1].Total_DF/Anova[1].Error_DF); 
-																SELF := LEFT));
+	EXPORT DATASET(CoRec) AdjRSquared := PROJECT(RSquared, TRANSFORM(CoRec, 
+								SELF.RSquared := 1 - ( 1 - LEFT.RSquared ) * ( Anova[1].Total_DF/Anova[1].Error_DF); 
+								SELF := LEFT));
 		
 	confintRec := RECORD
 		Types.t_RecordID id;
@@ -117,7 +117,7 @@ EXPORT IRegression := MODULE,VIRTUAL
 		SELF := b;
 	END;
 																
-  EXPORT ConfInt(Types.t_fieldReal level) := FUNCTION
+	EXPORT ConfInt(Types.t_fieldReal level) := FUNCTION
 		newlevel := 100 - (100 - level)/2;
 		Margin := dist.NTile(newlevel);
 		RETURN JOIN(betas, SE, LEFT.id = RIGHT.id AND LEFT.number = RIGHT.number, confint_transform(LEFT,RIGHT,Margin));
@@ -129,19 +129,18 @@ EXPORT IRegression := MODULE,VIRTUAL
 	END;
 
 	EXPORT DATASET(AICRec) AIC := PROJECT(Anova, TRANSFORM(AICRec, 
-																n := LEFT.Total_DF + 1;
-																p := LEFT.Model_DF + 1;
-																SELF.AIC := n * LN(LEFT.Error_SS / n) + 2 * p; 
-																SELF := LEFT));
+						n := LEFT.Total_DF + 1;
+						p := LEFT.Model_DF + 1;
+						SELF.AIC := n * LN(LEFT.Error_SS / n) + 2 * p; 
+						SELF := LEFT));
 																
 	FTestRec := RECORD
 		Types.t_FieldReal Model_F;
 		Types.t_FIeldReal pValue;
 	END;
 	
-	EXPORT DATASET(FTestRec) FTest := PROJECT(Anova, TRANSFORM(FTestRec, 
-																										SELF.Model_F := LEFT.Model_F;
-																										dist := ML.Distribution.FDist(LEFT.Model_DF, LEFT.Error_DF, 100000);
-																										SELF.pValue := 1 - dist.cumulative(LEFT.Model_F)));
+	EXPORT DATASET(FTestRec) FTest := PROJECT(Anova, TRANSFORM(FTestRec, SELF.Model_F := LEFT.Model_F;
+									dist := ML.Distribution.FDist(LEFT.Model_DF, LEFT.Error_DF, 100000);
+									SELF.pValue := 1 - dist.cumulative(LEFT.Model_F)));
 	
 END;

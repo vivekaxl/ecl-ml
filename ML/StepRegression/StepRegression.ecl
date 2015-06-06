@@ -17,9 +17,8 @@ EXPORT StepRegression(DATASET(Types.NumericField) X,
 	END;
 	
 	//Numeric Index of all the Parameters in X
-	SHARED DATASET(Parameter) Indices := NORMALIZE(DATASET([{0}], Parameter), 
-																					COUNT(ML.FieldAggregates(X).Cardinality), 
-																					TRANSFORM(Parameter, SELF.number := COUNTER));
+	SHARED DATASET(Parameter) Indices := NORMALIZE(DATASET([{0}], Parameter), COUNT(ML.FieldAggregates(X).Cardinality), 
+							TRANSFORM(Parameter, SELF.number := COUNTER));
 	
 	//Record for Each Parameter tested at each Step
 	SHARED ParamRec := RECORD
