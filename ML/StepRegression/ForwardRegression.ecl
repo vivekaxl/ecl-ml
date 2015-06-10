@@ -20,16 +20,17 @@ EXPORT ForwardRegression(DATASET(Types.NumericField) X,
 		NotChosen := Indices(number NOT IN Selected) + DATASET([{0}], Parameter);
 		ChooseRecs := PROJECT(NotChosen, TRANSFORM(ParamRec, SELF.ParamNum := LEFT.number; SELF.AIC := 0));
 		 
-		ParamRec T_Choose(ParamRec le) := TRANSFORM
-			x_subset := X(number IN (Selected + [le.ParamNum]));
+		DATASET(ParamRec) T_Choose(DATASET(ParamRec) precs, INTEGER c) := FUNCTION
+			chooser := NotChosen[c];
+			x_subset := X(number IN (Selected + [chooser.number]));
 			reg := OLS2Use(x_subset, Y);
-			SELF.RSS := (reg.Anova)[1].Error_SS;
-			SELF.AIC := (reg.AIC)[1].AIC;
-			SELF.Op := '+';
-			SELF := le;
+			RSS := (reg.Anova)[1].Error_SS;
+			AIC := (reg.AIC)[1].AIC;
+			Op := '+';
+			RETURN precs + ROW({Op, chooser.number, RSS, AIC}, ParamRec);
 		END;		
 		
-		ChooseCalculated := SORT(PROJECT(ChooseRecs, T_Choose(LEFT)), AIC);
+		ChooseCalculated := SORT(LOOP(DATASET([], ParamRec),COUNT(NotChosen), T_Choose(ROWS(LEFT), COUNTER)), AIC);
 		bestCR := ChooseCalculated[1];			
 		
 		Initial := le.Final;
