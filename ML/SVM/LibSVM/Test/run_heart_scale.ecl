@@ -1,5 +1,6 @@
 //The test of LibSVM implementation using the heart scale dataset
 //export run_heart_scale := 'todo';
+IMPORT ML;
 IMPORT ML.SVM;
 IMPORT ML.SVM.LibSVM;
 
@@ -36,6 +37,9 @@ OUTPUT(SORT(score_data, id), NAMED('Scores'));
 
 //Now run model
 heart_model := SVM.train(heart_parms, instance_data);
+OUTPUT(heart_model, NAMED('Full_Heart_Model'));
+
+//Decompose model for easier display
 Model_Head := RECORD
   SVM.Types.Model_ID id;
   SVM.LibSVM.Types.LibSVM_Type svmType;
@@ -102,6 +106,7 @@ OUTPUT(heart_labels, NAMED('Heart_Label'));
 heart_nSV := PROJECT(heart_model, extractI4(LEFT, 2));
 OUTPUT(heart_nSV, NAMED('heart_nSV'));
 
+//Predictions
 heart_pred := SVM.Predict(heart_model, instance_data).Prediction;
 OUTPUT(CHOOSEN(heart_pred, 100), NAMED('Detail_pred'));
 Raw_Result := RECORD

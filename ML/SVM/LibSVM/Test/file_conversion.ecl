@@ -41,7 +41,9 @@ Expanded_Prob expand(ECL_LibSVM_Problem p) := TRANSFORM
   SELF := p;
 END;
 xproblem_data := PROJECT(problem_data, expand(LEFT));
+OUTPUT(xproblem_data, NAMED('Problem_Data'));
 
+// Decompose problem data for easier display
 Head_Prob := RECORD
   UNSIGNED4 elements;
   INTEGER4 entries;
