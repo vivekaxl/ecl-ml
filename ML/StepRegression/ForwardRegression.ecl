@@ -18,24 +18,24 @@ EXPORT ForwardRegression(DATASET(Types.NumericField) X,
 		Selected := SET(le.Final, number);
 					
 		NotChosen := Indices(number NOT IN Selected) + DATASET([{0}], Parameter);
-		ChooseRecs := PROJECT(NotChosen, TRANSFORM(ParamRec, SELF.ParamNum := LEFT.number; SELF.AIC := 0));
+		NumChosen := COUNT(NotChosen);
 		 
-		ParamRec T_Choose(ParamRec le) := TRANSFORM
-			x_subset := X(number IN (Selected + [le.ParamNum]));
+		DATASET(ParamRec) T_Choose(DATASET(ParamRec) precs, INTEGER paramNum) := FUNCTION
+			x_subset := X(number IN (Selected + [paramNum]));
 			reg := OLS2Use(x_subset, Y);
-			SELF.RSS := (reg.Anova)[1].Error_SS;
-			SELF.AIC := (reg.AIC)[1].AIC;
-			SELF.Op := '+';
-			SELF := le;
+			RSS := (reg.Anova)[1].Error_SS;
+			AIC := (reg.AIC)[1].AIC;
+			Op := '+';
+			RETURN precs + ROW({Op, paramNum, RSS, AIC}, ParamRec);
 		END;		
 		
-		ChooseCalculated := SORT(PROJECT(ChooseRecs, T_Choose(LEFT)), AIC);
-		bestCR := ChooseCalculated[1];			
+		ChooseCalculated := LOOP(DATASET([], ParamRec), COUNTER <= NumChosen, T_Choose(ROWS(LEFT), NotChosen[COUNTER].number));
+		bestCR := TOPN(ChooseCalculated, 1, AIC);			
 		
 		Initial := le.Final;
 		StepRecs := ChooseCalculated;
-		Final := Indices(number IN Selected OR number IN [bestCR.ParamNum]);
-		AIC := bestCR.AIC;
+		Final := Indices(number IN Selected OR number IN [bestCR[1].ParamNum]);
+		AIC := bestCR[1].AIC;
 			
 		RETURN recs + ROW({Initial, StepRecs, Final, AIC}, Steprec);
 	END;
