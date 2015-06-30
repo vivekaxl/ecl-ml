@@ -1,4 +1,4 @@
-IMPORT * FROM $;
+﻿IMPORT * FROM $;
 IMPORT Std.Str;
 IMPORT std.system.Thorlib;
 IMPORT PBblas;
@@ -9,7 +9,7 @@ IMPORT ML.MAT;
 EXPORT AutoBVMap(dimension_t m_rows, dimension_t m_cols,
                   dimension_t f_b_rows=0, dimension_t f_b_cols=0, UNSIGNED maxrows=5000, UNSIGNED maxcols=2500) 
 		:= MODULE(PBblas.IMatrix_Map)
-	
+	SHARED nodes_available := Thorlib.nodes();
 	SHARED MapMatrix := FUNCTION
 			
 			//This is the function used to reduce the number of
@@ -77,8 +77,13 @@ EXPORT AutoBVMap(dimension_t m_rows, dimension_t m_cols,
 			END;
 			
 			//Check to see if blocks are defined. If not call no defined size.
-			SET OF dimension_t blockrowcolset := FUNCTION
+			multinode := FUNCTION
 			 RETURN IF((f_b_rows > 0 AND f_b_cols > 0), definedsize, nodefinedsize );
+			END;
+			
+			SET OF dimension_t blockrowcolset := FUNCTION
+			 b := OUTPUT(/*[m_rows,m_cols]*/nodes_available, NAMED('NumNodes'));
+			 RETURN WHEN(IF(nodes_available=1, [m_rows,m_cols], multinode ),b);
 			END;
 			
 			RETURN blockrowcolset;
@@ -87,7 +92,7 @@ EXPORT AutoBVMap(dimension_t m_rows, dimension_t m_cols,
 	
 	
 	
-	SHARED nodes_available := Thorlib.nodes();
+	
 	SHARED this_node       := Thorlib.node();
 	//
 	EXPORT row_blocks   := IF(f_b_rows>0, ((m_rows-1) DIV f_b_rows) + 1, 1);
