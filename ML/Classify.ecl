@@ -645,6 +645,16 @@ END;
     RETURN Classes;
   END;
   END;//END NeuralNetworksClassifier
+	EXPORT Logistic_Model := MODULE(DEFAULT), VIRTUAL
+		EXPORT LearnCS(DATASET(Types.NumericField) Indep,DATASET(Types.DiscreteField) Dep) := DATASET([], Types.NumericField);
+		EXPORT LearnC(DATASET(Types.NumericField) Indep,DATASET(Types.DiscreteField) Dep) := LearnCConcat(Indep,Dep,LearnCS);
+		EXPORT Model(DATASET(Types.NumericField) mod) := FUNCTION
+			FromField(mod,l_model,o);
+			RETURN o;
+		END;
+		
+		EXPORT ClassifyC(DATASET(Types.NumericField) Indep,DATASET(Types.NumericField) mod) := DATASET([], l_result);
+	END;
 /*
 /*
 	Logistic Regression implementation base on the iteratively-reweighted least squares (IRLS) algorithm:
@@ -663,7 +673,7 @@ END;
 
 */
 
-	EXPORT Logistic_sparse(REAL8 Ridge=0.00001, REAL8 Epsilon=0.000000001, UNSIGNED2 MaxIter=200) := MODULE(DEFAULT)
+	EXPORT Logistic_sparse(REAL8 Ridge=0.00001, REAL8 Epsilon=0.000000001, UNSIGNED2 MaxIter=200) := MODULE(Logistic_Model)
 		Logis(DATASET(Types.NumericField) X,DATASET(Types.NumericField) Y) := MODULE
 			SHARED mu_comp := ENUM ( Beta = 1,  Y = 2 );
 			SHARED RebaseY := Utils.RebaseNumericField(Y);
@@ -742,6 +752,7 @@ END;
 			
 	END; // Logistic_sparse Module
 	
+
 /*
     Logistic Regression implementation base on the iteratively-reweighted least squares (IRLS) algorithm:
   http://www.cs.cmu.edu/~ggordon/IRLS-example
@@ -763,7 +774,7 @@ END;
 
 */
 	EXPORT Logistic(REAL8 Ridge=0.00001, REAL8 Epsilon=0.000000001, UNSIGNED2 MaxIter=200, 
-		UNSIGNED4 prows=0, UNSIGNED4 pcols=0,UNSIGNED4 Maxrows=0, UNSIGNED4 Maxcols=0) := MODULE(DEFAULT)
+		UNSIGNED4 prows=0, UNSIGNED4 pcols=0,UNSIGNED4 Maxrows=0, UNSIGNED4 Maxcols=0) := MODULE(Logistic_Model)
 
 		Logis(DATASET(Types.NumericField) X, DATASET(Types.NumericField) Y) := MODULE
 			SHARED mu_comp := ENUM ( Beta = 1,  Y = 2, BetaError = 3, BetaMaxError = 4 );
@@ -1067,6 +1078,8 @@ END;
 		END;
 
 	END; // Logistic Module 
+
+/*
 // Implementation of SoftMax classifier using PBblas Library
 //SoftMax classifier generalizes logistic regression classifier for cases when we have more than two target classes
 //The implemenataion is based on Stanford Deep Learning tutorial availabe at http://ufldl.stanford.edu/wiki/index.php/Softmax_Regression
@@ -1075,6 +1088,7 @@ END;
 //LAMBDA : wight decay parameter in calculating SoftMax costfunction
 //ALPHA : learning rate for updating softmax parameters
 //IntTHETA: Initialized parameters that is a matrix of size (number of classes) * (number of features)
+*/
 EXPORT SoftMax(DATASET (MAT.Types.Element) IntTHETA, REAL8 LAMBDA=0.001, REAL8 ALPHA=0.1, UNSIGNED2 MaxIter=100,
   UNSIGNED4 prows=0, UNSIGNED4 pcols=0,UNSIGNED4 Maxrows=0, UNSIGNED4 Maxcols=0) := MODULE(DEFAULT)
   Soft(DATASET(Types.NumericField) X,DATASET(Types.NumericField) Y) := MODULE
@@ -1388,7 +1402,6 @@ Configuration Input
 
 /*
   Area Under the ROC curve
-*/
   // The function calculate the Area Under the ROC curve based on:
   // - classProbDistclass : probability distribution for each instance
   // - positiveClass      : the class of interest
@@ -1397,6 +1410,7 @@ Configuration Input
   // label: threshold, point: (threshold's false negative rate, threshold's true positive rate).
   // The area under the ROC curve is returned in the AUC field of the last record.
   // Note: threshold = 100 means classifying all instances as negative, it is not necessarily part of the curve
+*/
   EXPORT AUC_ROC(DATASET(l_result) classProbDist, Types.t_Discrete positiveClass, DATASET(Types.DiscreteField) Dep) := FUNCTION
     SHARED cntREC:= RECORD
       Types.t_FieldNumber classifier;  // The classifier in question (value of 'number' on outcome data)
