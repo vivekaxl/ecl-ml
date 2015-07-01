@@ -663,11 +663,11 @@ END;
 			RETURN o;
 		END;	
 		
-		SHARED norm_dist := ML.Distribution.Normal(0, 0);
+		SHARED norm_dist := ML.Distribution.Normal(0, 1);
 		ZStat_Model zStat_Transform(Logis_Model mod) := TRANSFORM
 			z := mod.w/mod.SE;
 			SELF.z := z;
-			SELF.pVal := 2 * (1 - norm_dist.Cumulative(-ABS(z)));
+			SELF.pVal := 2 * (1 - norm_dist.Cumulative(ABS(z)));
 			SELF := mod;
 		END;
 		EXPORT ZStat(DATASET(Types.NumericField) mod) := PROJECT(Model(mod), zStat_Transform(LEFT));
