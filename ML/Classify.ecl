@@ -647,10 +647,14 @@ END;
   END;//END NeuralNetworksClassifier
 	
 	EXPORT Logistic_Model := MODULE(DEFAULT), VIRTUAL
+		SHARED Logis_Model := RECORD(l_model)
+			REAL8 SE;
+		END;
+		
 		EXPORT LearnCS(DATASET(Types.NumericField) Indep,DATASET(Types.DiscreteField) Dep) := DATASET([], Types.NumericField);
 		EXPORT LearnC(DATASET(Types.NumericField) Indep,DATASET(Types.DiscreteField) Dep) := LearnCConcat(Indep,Dep,LearnCS);
 		EXPORT Model(DATASET(Types.NumericField) mod) := FUNCTION
-			FromField(mod,l_model,o);
+			FromField(mod,Logis_Model,o);
 			RETURN o;
 		END;
 		
@@ -675,8 +679,9 @@ END;
 */
 
 	EXPORT Logistic_sparse(REAL8 Ridge=0.00001, REAL8 Epsilon=0.000000001, UNSIGNED2 MaxIter=200) := MODULE(Logistic_Model)
+	
 		Logis(DATASET(Types.NumericField) X,DATASET(Types.NumericField) Y) := MODULE
-			SHARED mu_comp := ENUM ( Beta = 1,  Y = 2 );
+			SHARED mu_comp := ENUM ( Beta = 1,  Y = 2, VC = 3 );
 			SHARED RebaseY := Utils.RebaseNumericField(Y);
 			SHARED Y_Map := RebaseY.Mapping(1);
 			Y_0 := RebaseY.ToNew(Y_Map);
@@ -694,6 +699,9 @@ END;
 			mBeta00 := Mat.MU.To(mBeta0, mu_comp.Beta);
 			OldExpY_0 := Mat.Vec.ToCol(Mat.Vec.From(mX_n,-1.0),1); // -ones(size(mY))
 			OldExpY_00 := Mat.MU.To(OldExpY_0, mu_comp.Y);
+			mInv_xTWx0 := Mat.Identity(mX_m);
+			mInv_xTWx00 := Mat.MU.To(mInv_xTWx0, mu_comp.VC);
+			
 
 			Step(DATASET(Mat.Types.MUElement) BetaPlusY) := FUNCTION
 				OldExpY := Mat.MU.From(BetaPlusY, mu_comp.Y);
@@ -711,16 +719,30 @@ END;
 				// mBeta := Inv_xTWx * x' * wadjy
 				mBeta :=  Mat.Mul(Mat.Mul(Inv_xTWx, Mat.Trans(mX)), W_AdjY);
 				err := SUM(Mat.Each.Abs(Mat.Sub(ExpY, OldExpY)),value);	
-				RETURN IF(err < mX_n*Epsilon, BetaPlusY, Mat.MU.To(mBeta, mu_comp.Beta)+Mat.MU.To(ExpY, mu_comp.Y));
+				RETURN IF(err < mX_n*Epsilon, BetaPlusY, 
+						Mat.MU.To(mBeta, mu_comp.Beta)+Mat.MU.To(ExpY, mu_comp.Y)+Mat.MU.To(Inv_xTWx, mu_comp.VC));
 			END;
 
-			SHARED BetaPair := LOOP(mBeta00+OldExpY_00, MaxIter, Step(ROWS(LEFT)));	
+			SHARED BetaPair := LOOP(mBeta00+OldExpY_00+mInv_xTWx00, MaxIter, Step(ROWS(LEFT)));	
 			BetaM := Mat.MU.From(BetaPair, mu_comp.Beta);
 			rebasedBetaNF := RebaseY.ToOld(Types.FromMatrix(BetaM), Y_Map);
 			BetaNF := Types.FromMatrix(Mat.Trans(Types.ToMatrix(rebasedBetaNF)));
 			// convert Beta into NumericField dataset, and shift Number down by one to ensure the intercept Beta0 has id=0
 			EXPORT Beta := PROJECT(BetaNF,TRANSFORM(Types.NumericField,SELF.Number := LEFT.Number-1;SELF:=LEFT;));
-			Res := PROJECT(Beta,TRANSFORM(l_model,SELF.Id := COUNTER+Base,SELF.number := LEFT.number, SELF.class_number := LEFT.id, SELF.w := LEFT.value));
+			
+			varCovar := Mat.MU.From(BetaPair, mu_comp.VC);
+			SEM := Mat.Vec.ToCol(Mat.Vec.FromDiag(varCovar), 1);
+			rebasedSENF := RebaseY.ToOld(Types.FromMatrix(SEM), Y_map);
+			SENF := Types.FromMatrix(Mat.Trans(Types.ToMatrix(rebasedSENF)));
+			EXPORT SE := PROJECT(SENF,TRANSFORM(Types.NumericField,SELF.Number := LEFT.Number-1;SELF:=LEFT;));
+			
+			Res0 := PROJECT(Beta, TRANSFORM(l_model, SELF.Id := COUNTER+Base,SELF.number := LEFT.number, 
+					SELF.class_number := LEFT.id, SELF.w := LEFT.value));
+			Res := JOIN(Res0, SE, LEFT.number = RIGHT.number AND LEFT.class_number = RIGHT.id, 
+				TRANSFORM(Logis_Model,
+					SELF.Id := LEFT.Id,SELF.number := LEFT.number, 
+					SELF.class_number := LEFT.class_number, SELF.w := LEFT.w, SELF.se := SQRT(RIGHT.value)));
+					
 			ToField(Res,o);
 			EXPORT Mod := o;
 			modelY_M := Mat.MU.From(BetaPair, mu_comp.Y);
@@ -729,10 +751,6 @@ END;
 		END;
 		EXPORT LearnCS(DATASET(Types.NumericField) Indep,DATASET(Types.DiscreteField) Dep) := Logis(Indep,PROJECT(Dep,Types.NumericField)).mod;
 		EXPORT LearnC(DATASET(Types.NumericField) Indep,DATASET(Types.DiscreteField) Dep) := LearnCConcat(Indep,Dep,LearnCS);
-		EXPORT Model(DATASET(Types.NumericField) mod) := FUNCTION
-			FromField(mod,l_model,o);
-			RETURN o;
-		END;
 		EXPORT ClassifyC(DATASET(Types.NumericField) Indep,DATASET(Types.NumericField) mod) := FUNCTION
 			mod0 := Model(mod);
 			Beta0 := PROJECT(mod0,TRANSFORM(Types.NumericField,SELF.Number := LEFT.Number+1,SELF.id := LEFT.class_number, SELF.value := LEFT.w;SELF:=LEFT;));
@@ -978,10 +996,6 @@ END;
 
 		EXPORT LearnCS(DATASET(Types.NumericField) Indep,DATASET(Types.DiscreteField) Dep) := Logis(Indep,PROJECT(Dep,Types.NumericField)).mod;
 		EXPORT LearnC(DATASET(Types.NumericField) Indep,DATASET(Types.DiscreteField) Dep) := LearnCConcat(Indep,Dep,LearnCS);
-		EXPORT Model(DATASET(Types.NumericField) mod) := FUNCTION
-			FromField(mod,l_model,o);
-			RETURN o;
-		END;
 		EXPORT ClassifyC(DATASET(Types.NumericField) Indep,DATASET(Types.NumericField) mod) := FUNCTION
 
 			mod0 := Model(mod);
