@@ -656,6 +656,11 @@ END;
 			REAL8 pVal;
 		END;
 		
+		SHARED ConfInt_Model := RECORD(l_model)
+			REAL8 lowerCI;
+			REAL8 UpperCI;
+		END;
+		
 		EXPORT LearnCS(DATASET(Types.NumericField) Indep,DATASET(Types.DiscreteField) Dep) := DATASET([], Types.NumericField);
 		EXPORT LearnC(DATASET(Types.NumericField) Indep,DATASET(Types.DiscreteField) Dep) := LearnCConcat(Indep,Dep,LearnCS);
 		EXPORT Model(DATASET(Types.NumericField) mod) := FUNCTION
@@ -671,6 +676,19 @@ END;
 			SELF := mod;
 		END;
 		EXPORT ZStat(DATASET(Types.NumericField) mod) := PROJECT(Model(mod), zStat_Transform(LEFT));
+		
+		confInt_Model confint_transform(Logis_Model b, REAL Margin) := TRANSFORM
+			SELF.UpperCI := b.w + Margin * b.se;
+			SELF.LowerCI := b.w - Margin * b.se;
+			SELF := b;
+		END;
+		
+		EXPORT ConfInt(Types.t_fieldReal level, DATASET(Types.NumericField) mod) := FUNCTION
+			newlevel := 100 - (100 - level)/2;
+			Margin := norm_dist.NTile(newlevel);
+			RETURN PROJECT(Model(mod),confint_transform(LEFT,Margin));
+		END;
+	
 		EXPORT ClassifyC(DATASET(Types.NumericField) Indep,DATASET(Types.NumericField) mod) := DATASET([], l_result);
 	END;
 /*
