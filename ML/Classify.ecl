@@ -651,13 +651,26 @@ END;
 			REAL8 SE;
 		END;
 		
+		SHARED ZStat_Model := RECORD(Logis_Model)
+			REAL8 z;
+			REAL8 pVal;
+		END;
+		
 		EXPORT LearnCS(DATASET(Types.NumericField) Indep,DATASET(Types.DiscreteField) Dep) := DATASET([], Types.NumericField);
 		EXPORT LearnC(DATASET(Types.NumericField) Indep,DATASET(Types.DiscreteField) Dep) := LearnCConcat(Indep,Dep,LearnCS);
 		EXPORT Model(DATASET(Types.NumericField) mod) := FUNCTION
 			FromField(mod,Logis_Model,o);
 			RETURN o;
-		END;
+		END;	
 		
+		SHARED norm_dist := ML.Distribution.Normal(0, 0);
+		ZStat_Model zStat_Transform(Logis_Model mod) := TRANSFORM
+			z := mod.w/mod.SE;
+			SELF.z := z;
+			SELF.pVal := 2 * (1 - norm_dist.Cumulative(-ABS(z)));
+			SELF := mod;
+		END;
+		EXPORT ZStat(DATASET(Types.NumericField) mod) := PROJECT(Model(mod), zStat_Transform(LEFT));
 		EXPORT ClassifyC(DATASET(Types.NumericField) Indep,DATASET(Types.NumericField) mod) := DATASET([], l_result);
 	END;
 /*
