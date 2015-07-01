@@ -645,6 +645,7 @@ END;
     RETURN Classes;
   END;
   END;//END NeuralNetworksClassifier
+	
 	EXPORT Logistic_Model := MODULE(DEFAULT), VIRTUAL
 		EXPORT LearnCS(DATASET(Types.NumericField) Indep,DATASET(Types.DiscreteField) Dep) := DATASET([], Types.NumericField);
 		EXPORT LearnC(DATASET(Types.NumericField) Indep,DATASET(Types.DiscreteField) Dep) := LearnCConcat(Indep,Dep,LearnCS);
@@ -695,20 +696,22 @@ END;
 			OldExpY_00 := Mat.MU.To(OldExpY_0, mu_comp.Y);
 
 			Step(DATASET(Mat.Types.MUElement) BetaPlusY) := FUNCTION
-			OldExpY := Mat.MU.From(BetaPlusY, mu_comp.Y);
-			AdjY := Mat.Mul(mX, Mat.MU.From(BetaPlusY, mu_comp.Beta));
-			// expy =  1./(1+exp(-adjy))
-			ExpY := Mat.Each.Reciprocal(Mat.Each.Add(Mat.Each.Exp(Mat.Scale(AdjY, -1)),1));
-			// deriv := expy .* (1-expy)
-			Deriv := Mat.Each.Mul(expy,Mat.Each.Add(Mat.Scale(ExpY, -1),1));
-			// wadjy := w .* (deriv .* adjy + (y-expy))
-			W_AdjY := Mat.Each.Mul(mW,Mat.Add(Mat.Each.Mul(Deriv,AdjY),Mat.Sub(mY, ExpY)));
-			// weights := spdiags(deriv .* w, 0, n, n)
-			Weights := Mat.Vec.ToDiag(Mat.Vec.FromCol(Mat.Each.Mul(Deriv, mW),1));
-			// mBeta := Inv(x' * weights * x + mRidge) * x' * wadjy
-			mBeta :=  Mat.Mul(Mat.Mul(Mat.Inv(Mat.Add(Mat.Mul(Mat.Mul(Mat.Trans(mX), weights), mX), mRidge)), Mat.Trans(mX)), W_AdjY);
-			err := SUM(Mat.Each.Abs(Mat.Sub(ExpY, OldExpY)),value);	
-			RETURN IF(err < mX_n*Epsilon, BetaPlusY, Mat.MU.To(mBeta, mu_comp.Beta)+Mat.MU.To(ExpY, mu_comp.Y));
+				OldExpY := Mat.MU.From(BetaPlusY, mu_comp.Y);
+				AdjY := Mat.Mul(mX, Mat.MU.From(BetaPlusY, mu_comp.Beta));
+				// expy =  1./(1+exp(-adjy))
+				ExpY := Mat.Each.Reciprocal(Mat.Each.Add(Mat.Each.Exp(Mat.Scale(AdjY, -1)),1));
+				// deriv := expy .* (1-expy)
+				Deriv := Mat.Each.Mul(expy,Mat.Each.Add(Mat.Scale(ExpY, -1),1));
+				// wadjy := w .* (deriv .* adjy + (y-expy))
+				W_AdjY := Mat.Each.Mul(mW,Mat.Add(Mat.Each.Mul(Deriv,AdjY),Mat.Sub(mY, ExpY)));
+				// weights := spdiags(deriv .* w, 0, n, n)
+				Weights := Mat.Vec.ToDiag(Mat.Vec.FromCol(Mat.Each.Mul(Deriv, mW),1));
+				// Inv_xTWx := Inv(x' * weights * x + mRidge)
+				Inv_xTWx := Mat.Inv(Mat.Add(Mat.Mul(Mat.Mul(Mat.Trans(mX), weights), mX), mRidge));
+				// mBeta := Inv_xTWx * x' * wadjy
+				mBeta :=  Mat.Mul(Mat.Mul(Inv_xTWx, Mat.Trans(mX)), W_AdjY);
+				err := SUM(Mat.Each.Abs(Mat.Sub(ExpY, OldExpY)),value);	
+				RETURN IF(err < mX_n*Epsilon, BetaPlusY, Mat.MU.To(mBeta, mu_comp.Beta)+Mat.MU.To(ExpY, mu_comp.Y));
 			END;
 
 			SHARED BetaPair := LOOP(mBeta00+OldExpY_00, MaxIter, Step(ROWS(LEFT)));	
