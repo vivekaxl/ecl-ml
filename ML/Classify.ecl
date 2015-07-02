@@ -1021,16 +1021,17 @@ END;
 			EXPORT SE := FUNCTION
 				mVC := DMat.Inv(xwxmap, PBblas.MU.From(BetaPair, mu_comp.VC));
 
-				muSE := Types.FromMatrix(Mat.Vec.ToCol(Mat.Vec.FromDiag(
-										DMAT.Converted.FromPart2Elm(DMAT.Trans.Matrix(xwxmap, mVC))), 1));
+				muSE := Types.FromMatrix(Mat.Trans(Mat.Vec.ToCol(Mat.Vec.FromDiag(
+										DMAT.Converted.FromPart2Elm(mVC)), 1)));
 				rebaseSE := RebaseY.ToOldFromElemToPart(muSE, Y_Map);
 				RETURN rebaseSE;
 			END;
 
 			Res := FUNCTION
-				ret0 := PROJECT(Beta,TRANSFORM(l_model,SELF.Id := COUNTER+Base,SELF.number := LEFT.number, SELF.class_number := LEFT.id, SELF.w := LEFT.value));
+				ret0 := PROJECT(Beta,TRANSFORM(Logis_Model,SELF.Id := COUNTER+Base,SELF.number := LEFT.number,
+															SELF.class_number := LEFT.id, SELF.w := LEFT.value, SELF.SE := 0.0));
 				ret := JOIN(ret0, SE, LEFT.number = RIGHT.number AND LEFT.class_number = RIGHT.id, 
-									TRANSFORM(Logis_Model,
+										TRANSFORM(Logis_Model,
 															SELF.Id := LEFT.Id,SELF.number := LEFT.number, 
 															SELF.class_number := LEFT.class_number, SELF.w := LEFT.w, SELF.se := SQRT(RIGHT.value)));
 				RETURN ret;
