@@ -829,7 +829,7 @@ END;
 		UNSIGNED4 prows=0, UNSIGNED4 pcols=0,UNSIGNED4 Maxrows=0, UNSIGNED4 Maxcols=0) := MODULE(Logistic_Model)
 
 		Logis(DATASET(Types.NumericField) X, DATASET(Types.NumericField) Y) := MODULE
-			SHARED mu_comp := ENUM ( Beta = 1,  Y = 2, BetaError = 3, BetaMaxError = 4 );
+			SHARED mu_comp := ENUM ( Beta = 1,  Y = 2, BetaError = 3, BetaMaxError = 4, VC = 5 );
 			SHARED RebaseY := Utils.RebaseNumericField(Y);
 			SHARED Y_Map := RebaseY.Mapping(1);
 			mX_0 := Types.ToMatrix(X);
@@ -994,7 +994,11 @@ END;
 				BME := DATASET([{1,1,sizeTable[1].m_cols*Epsilon}],Mat.Types.Element);
 				BetaMaxError := DMAT.Converted.FromElement(BME,errmap);         
 
-				RETURN PBblas.MU.To(mBeta, mu_comp.Beta)+PBblas.MU.To(ExpY, mu_comp.Y)+PBblas.MU.To(BetaError,mu_comp.BetaError)+PBblas.MU.To(BetaMaxError,mu_comp.BetaMaxError);
+				RETURN PBblas.MU.To(mBeta, mu_comp.Beta)
+									+PBblas.MU.To(ExpY, mu_comp.Y)
+									+PBblas.MU.To(BetaError,mu_comp.BetaError)
+									+PBblas.MU.To(BetaMaxError,mu_comp.BetaMaxError)
+									+PBblas.MU.To(xweightsx, mu_comp.VC);
 
 			END;
 
@@ -1005,16 +1009,30 @@ END;
 						, Step(ROWS(LEFT),COUNTER)
 						); 
 
-			mBeta00map := PBblas.Matrix_Map(sizeTable[1].m_cols, 1, sizeTable[1].f_b_cols, 1);  
-
+			SHARED mBeta00map := PBblas.Matrix_Map(sizeTable[1].m_cols, 1, sizeTable[1].f_b_cols, 1);  
+			SHARED xwxmap := PBblas.Matrix_Map(sizeTable[1].m_cols, sizeTable[1].m_cols, sizeTable[1].f_b_cols, sizeTable[1].f_b_cols);
+		
 			EXPORT Beta := FUNCTION
 				mubeta := DMAT.Converted.FromPart2DS(DMAT.Trans.Matrix(mBeta00map,PBblas.MU.From(BetaPair, mu_comp.Beta)));
 				rebaseBeta := RebaseY.ToOldFromElemToPart(mubeta, Y_Map);
 				RETURN rebaseBeta;
 			END;
+			
+			EXPORT SE := FUNCTION
+				mVC := DMat.Inv(xwxmap, PBblas.MU.From(BetaPair, mu_comp.VC));
+
+				muSE := Types.FromMatrix(Mat.Vec.ToCol(Mat.Vec.FromDiag(
+										DMAT.Converted.FromPart2Elm(DMAT.Trans.Matrix(xwxmap, mVC))), 1));
+				rebaseSE := RebaseY.ToOldFromElemToPart(muSE, Y_Map);
+				RETURN rebaseSE;
+			END;
 
 			Res := FUNCTION
-				ret := PROJECT(Beta,TRANSFORM(l_model,SELF.Id := COUNTER+Base,SELF.number := LEFT.number, SELF.class_number := LEFT.id, SELF.w := LEFT.value));
+				ret0 := PROJECT(Beta,TRANSFORM(l_model,SELF.Id := COUNTER+Base,SELF.number := LEFT.number, SELF.class_number := LEFT.id, SELF.w := LEFT.value));
+				ret := JOIN(ret0, SE, LEFT.number = RIGHT.number AND LEFT.class_number = RIGHT.id, 
+									TRANSFORM(Logis_Model,
+															SELF.Id := LEFT.Id,SELF.number := LEFT.number, 
+															SELF.class_number := LEFT.class_number, SELF.w := LEFT.w, SELF.se := SQRT(RIGHT.value)));
 				RETURN ret;
 			END;
 			ToField(Res,o);
