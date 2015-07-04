@@ -84,10 +84,18 @@ X2            0.0238790  0.25396098
 	 OUTPUT(LogRegDense.ZStat(ModelD), NAMED('DenseZStat'));
 	 OUTPUT(LogRegDense.confInt(95, ModelD), NAMED('DenseConfInt'));
 	 OUTPUT(LogRegDense.ClassifyC(flds1(Number<=2), ModelD), NAMED('DenseClassify'));
+	 DevD := LogRegDense.Deviance(flds1(Number<=2),flds(Number=3), ModelD);
+	 OUTPUT(DevD.ResidDev, NAMED('DenseResidualDev'));
+	 OUTPUT(DevD.NullDev, NAMED('DenseNullDev'));
+	 OUTPUT(DevD.AIC, NAMED('DenseAIC'));
 	 
 	 LogRegSparse := ML.Classify.Logistic_sparse(0.0);
 	 ModelS := LogRegSparse.LearnC(flds1(Number<=2),flds(Number=3));
    OUTPUT(LogRegSparse.Model(ModelS), NAMED('SparseModel'));
 	 OUTPUT(LogRegSparse.ZStat(ModelS), NAMED('SparseZStat'));
 	 OUTPUT(LogRegSparse.confInt(95, ModelS), NAMED('SparseConfInt'));
-	 OUTPUT(LogRegSparse.ClassifyC(flds1(Number<=2), ModelS), NAMED('SparseClassify'))
+	 OUTPUT(LogRegSparse.ClassifyC(flds1(Number<=2), ModelS), NAMED('SparseClassify'));
+	 DevS := LogRegSparse.Deviance(flds1(Number<=2),flds(Number=3), ModelS);
+	 OUTPUT(DevS.ResidDev, NAMED('SparseResidualDev'));
+	 OUTPUT(DevS.NullDev, NAMED('SparseNullDev'));
+	 OUTPUT(DevS.AIC, NAMED('SparseAIC'));

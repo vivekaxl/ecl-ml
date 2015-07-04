@@ -661,6 +661,15 @@ END;
 			REAL8 UpperCI;
 		END;
 		
+		SHARED DevianceRec := RECORD
+			Types.t_RecordID id;
+			Types.t_FieldNumber classifier;  // The classifier in question (value of 'number' on outcome data)
+			Types.t_Discrete  c_actual;      // The value of c provided
+			Types.t_FieldReal  c_modeled;		 // The value produced by the classifier
+			Types.t_FieldReal LL;         // Score allocated by classifier
+			BOOLEAN isGreater;
+		END;
+		
 		EXPORT LearnCS(DATASET(Types.NumericField) Indep,DATASET(Types.DiscreteField) Dep) := DATASET([], Types.NumericField);
 		EXPORT LearnC(DATASET(Types.NumericField) Indep,DATASET(Types.DiscreteField) Dep) := LearnCConcat(Indep,Dep,LearnCS);
 		EXPORT Model(DATASET(Types.NumericField) mod) := FUNCTION
@@ -689,7 +698,50 @@ END;
 			RETURN PROJECT(Model(mod),confint_transform(LEFT,Margin));
 		END;
 	
-		EXPORT ClassifyC(DATASET(Types.NumericField) Indep,DATASET(Types.NumericField) mod) := DATASET([], l_result);
+		
+		EXPORT ClassifyS(DATASET(Types.NumericField) Indep,DATASET(Types.NumericField) mod) := DATASET([], Types.NumericField);		
+		l_result tr(Types.NumericField le) := TRANSFORM
+				SELF.value := IF ( le.value > 0.5,1,0);
+				SELF.conf := ABS(le.value-0.5);
+				SELF := le;
+			END;
+		EXPORT ClassifyC(DATASET(Types.NumericField) Indep,DATASET(Types.NumericField) mod) := FUNCTION
+			sigmoid := ClassifyS(Indep, mod);
+			RETURN PROJECT(sigmoid, tr(LEFT));
+		END;
+		
+		DevianceRec  dev_t(Types.NumericField le, Types.DiscreteField ri) := TRANSFORM
+			SELF.c_actual := ri.value;
+			SELF.c_modeled := le.value;
+			SELF.LL := -2 * (ri.value * LN(le.value) + (1 - ri.Value) * LN(1-le.Value));
+			SELF.classifier := ri.number;
+			SELF.id := ri.id;
+			SELF.isGreater := IF(ri.value >= le.value, TRUE, FALSE);
+		END;
+		
+		DevianceRec  dev_t2(REAL mu, Types.DiscreteField ri) := TRANSFORM
+			SELF.c_actual := ri.value;
+			SELF.c_modeled := mu;
+			SELF.LL := -2 * (ri.value * LN(mu) + (1 - ri.Value) * LN(1-mu));
+			SELF.classifier := ri.number;
+			SELF.id := ri.id;
+			SELF.isGreater := IF(ri.value >= mu, TRUE, FALSE);
+		END;
+		
+		EXPORT Deviance(DATASET(Types.NumericField) Indep,DATASET(Types.DiscreteField) Dep, DATASET(Types.NumericField) mod) := MODULE
+			SHARED Dev := JOIN(ClassifyS(Indep, mod), Dep,LEFT.id = RIGHT.id AND LEFT.number = RIGHT.number,dev_t(LEFT,RIGHT));
+			NullMu := AVE(Dep, value);
+			SHARED NDev := PROJECT(Dep, dev_t2(NullMu, LEFT)); 
+			EXPORT DevRes := PROJECT(Dev, TRANSFORM(DevianceRec, SELF.LL := SQRT(LEFT.LL) * IF(LEFT.isGreater, +1, -1); SELF := LEFT));
+			EXPORT DevNull := PROJECT(NDev, TRANSFORM(DevianceRec, SELF.LL := SQRT(LEFT.LL) * IF(LEFT.isGreater, +1, -1); SELF := LEFT));
+			SHARED p := COUNT(mod(number=3));
+			EXPORT ResidDev := TABLE(Dev, {classifier, Resdev := SUM(GROUP, LL), ResDF := COUNT(GROUP) - p}, classifier);
+			EXPORT NullDev := TABLE(NDev, {classifier, Nulldev := SUM(GROUP, LL), NullDF := COUNT(GROUP) - 1}, classifier);
+			EXPORT AIC := PROJECT(ResidDev, TRANSFORM({Types.t_FieldNumber classifier, REAL8 AIC}, 
+																								SELF.AIC := LEFT.Resdev + 2 * p; SELF := LEFT));
+		END;
+			
+	
 	END;
 /*
 /*
@@ -782,7 +834,7 @@ END;
 		END;
 		EXPORT LearnCS(DATASET(Types.NumericField) Indep,DATASET(Types.DiscreteField) Dep) := Logis(Indep,PROJECT(Dep,Types.NumericField)).mod;
 		EXPORT LearnC(DATASET(Types.NumericField) Indep,DATASET(Types.DiscreteField) Dep) := LearnCConcat(Indep,Dep,LearnCS);
-		EXPORT ClassifyC(DATASET(Types.NumericField) Indep,DATASET(Types.NumericField) mod) := FUNCTION
+		EXPORT ClassifyS(DATASET(Types.NumericField) Indep,DATASET(Types.NumericField) mod) := FUNCTION
 			mod0 := Model(mod);
 			Beta0 := PROJECT(mod0,TRANSFORM(Types.NumericField,SELF.Number := LEFT.Number+1,SELF.id := LEFT.class_number, SELF.value := LEFT.w;SELF:=LEFT;));
 			mBeta := Types.ToMatrix(Beta0);
@@ -793,11 +845,10 @@ END;
 			// expy =  1./(1+exp(-adjy))
 			sigmoid := $.Mat.Each.Reciprocal($.Mat.Each.Add($.Mat.Each.Exp($.Mat.Scale(AdjY, -1)),1));
 			// Now convert to classify return format
-			l_result tr(sigmoid le) := TRANSFORM
-			SELF.value := IF ( le.value > 0.5,1,0);
-			SELF.id := le.x;
-			SELF.number := le.y;
-			SELF.conf := ABS(le.value-0.5);
+			Types.NumericField tr(sigmoid le) := TRANSFORM
+				SELF.value := le.value;
+				SELF.id := le.x;
+				SELF.number := le.y;
 			END;
 			RETURN PROJECT(sigmoid,tr(LEFT));
 		END;
@@ -1046,7 +1097,7 @@ END;
 
 		EXPORT LearnCS(DATASET(Types.NumericField) Indep,DATASET(Types.DiscreteField) Dep) := Logis(Indep,PROJECT(Dep,Types.NumericField)).mod;
 		EXPORT LearnC(DATASET(Types.NumericField) Indep,DATASET(Types.DiscreteField) Dep) := LearnCConcat(Indep,Dep,LearnCS);
-		EXPORT ClassifyC(DATASET(Types.NumericField) Indep,DATASET(Types.NumericField) mod) := FUNCTION
+		EXPORT ClassifyS(DATASET(Types.NumericField) Indep,DATASET(Types.NumericField) mod) := FUNCTION
 
 			mod0 := Model(mod);
 			Beta_0 := PROJECT(mod0,TRANSFORM(Types.NumericField,SELF.Number := LEFT.Number,SELF.id := LEFT.class_number, SELF.value := LEFT.w;SELF:=LEFT;));
@@ -1133,11 +1184,10 @@ END;
 			sigmoid := DMAT.Converted.frompart2elm(sigtranback);
 
 			// Now convert to classify return format
-			l_result tr(sigmoid le) := TRANSFORM
-				SELF.value := IF ( le.value > 0.5,1,0);
+			Types.NumericField tr(sigmoid le) := TRANSFORM
+				SELF.value := le.value;
 				SELF.id := le.x;
 				SELF.number := le.y;
-				SELF.conf := ABS(le.value-0.5);
 			END;
 
 			RETURN PROJECT(sigmoid,tr(LEFT));
