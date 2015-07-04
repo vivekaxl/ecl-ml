@@ -731,8 +731,8 @@ END;
 		
 		EXPORT Deviance(DATASET(Types.NumericField) Indep,DATASET(Types.DiscreteField) Dep, DATASET(Types.NumericField) mod) := MODULE
 			SHARED Dev := JOIN(ClassifyS(Indep, mod), Dep,LEFT.id = RIGHT.id AND LEFT.number = RIGHT.number,dev_t(LEFT,RIGHT));
-			NullMu := AVE(Dep, value);
-			SHARED NDev := PROJECT(Dep, dev_t2(NullMu, LEFT)); 
+			NullMu := TABLE(Dep, {number, Mu := AVE(GROUP, value)}, number);
+			SHARED NDev := JOIN(Dep, NullMu, LEFT.number = RIGHT.number, dev_t2(RIGHT.Mu, LEFT),LOOKUP); 
 			EXPORT DevRes := PROJECT(Dev, TRANSFORM(DevianceRec, SELF.LL := SQRT(LEFT.LL) * IF(LEFT.isGreater, +1, -1); SELF := LEFT));
 			EXPORT DevNull := PROJECT(NDev, TRANSFORM(DevianceRec, SELF.LL := SQRT(LEFT.LL) * IF(LEFT.isGreater, +1, -1); SELF := LEFT));
 			SHARED p := COUNT(ML.FieldAggregates(Indep).Cardinality) + 1;
