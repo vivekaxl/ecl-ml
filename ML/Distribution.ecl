@@ -219,6 +219,20 @@ EXPORT FDist(t_Discrete d1, t_Discrete d2, t_Count NRanges = 10000) := MODULE(De
 													 SELF := LEFT));	
 END;
 
+EXPORT ChiSquare(t_Discrete d1, t_Count NRanges = 10000) := MODULE(Default)
+	SHARED Multiplier := 1 / (POWER(2, d1/2) * Utils.gamma(d1/2));
+	// Hish value calculated using Normal Approximation to Chi Square Distribution (6-sigma)
+	SHARED high := POWER(6 * SQRT(2/(9*d1)) + (1 - (2/9*d1)), 2) * d1;
+  SHARED Low := 0;
+	EXPORT RangeWidth := (high - low)/NRanges;
+  EXPORT t_FieldReal Density(t_FieldReal RH) := Multiplier * POWER(RH, d1/2 - 1) * EXP(-RH/2);
+  EXPORT DensityV() := PROJECT(DVec(NRanges,low,RangeWidth),
+	                       TRANSFORM(Layout,
+													 SELF.P := Density((LEFT.RangeLow+LEFT.RangeHigh)/2),
+													 SELF := LEFT));	
+	EXPORT t_FieldReal Cumulative(t_FieldReal RH) := Utils.lowerGamma(d1/2, RH/2) / Utils.Gamma(d1/2);
+END;
+
 // Generate N records (with record ID 1..N)
 // Fill in the field 'fld'
 // The value will be a random variable from the distribution 'dist'

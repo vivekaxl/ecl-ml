@@ -670,6 +670,12 @@ END;
 			BOOLEAN isGreater;
 		END;
 		
+		SHARED ResidDevRec := RECORD
+			Types.t_FieldNumber classifier;
+			REAL8 Deviance;
+			UNSIGNED4 DF;
+		END;
+		
 		EXPORT LearnCS(DATASET(Types.NumericField) Indep,DATASET(Types.DiscreteField) Dep) := DATASET([], Types.NumericField);
 		EXPORT LearnC(DATASET(Types.NumericField) Indep,DATASET(Types.DiscreteField) Dep) := LearnCConcat(Indep,Dep,LearnCS);
 		EXPORT Model(DATASET(Types.NumericField) mod) := FUNCTION
@@ -690,14 +696,12 @@ END;
 			SELF.UpperCI := b.w + Margin * b.se;
 			SELF.LowerCI := b.w - Margin * b.se;
 			SELF := b;
-		END;
-		
+		END;		
 		EXPORT ConfInt(Types.t_fieldReal level, DATASET(Types.NumericField) mod) := FUNCTION
 			newlevel := 100 - (100 - level)/2;
 			Margin := norm_dist.NTile(newlevel);
 			RETURN PROJECT(Model(mod),confint_transform(LEFT,Margin));
 		END;
-	
 		
 		EXPORT ClassifyS(DATASET(Types.NumericField) Indep,DATASET(Types.NumericField) mod) := DATASET([], Types.NumericField);		
 		l_result tr(Types.NumericField le) := TRANSFORM
@@ -705,10 +709,7 @@ END;
 				SELF.conf := ABS(le.value-0.5);
 				SELF := le;
 			END;
-		EXPORT ClassifyC(DATASET(Types.NumericField) Indep,DATASET(Types.NumericField) mod) := FUNCTION
-			sigmoid := ClassifyS(Indep, mod);
-			RETURN PROJECT(sigmoid, tr(LEFT));
-		END;
+		EXPORT ClassifyC(DATASET(Types.NumericField) Indep,DATASET(Types.NumericField) mod) := PROJECT(ClassifyS(Indep, mod),tr(LEFT));
 		
 		DevianceRec  dev_t(Types.NumericField le, Types.DiscreteField ri) := TRANSFORM
 			SELF.c_actual := ri.value;
@@ -734,11 +735,34 @@ END;
 			SHARED NDev := PROJECT(Dep, dev_t2(NullMu, LEFT)); 
 			EXPORT DevRes := PROJECT(Dev, TRANSFORM(DevianceRec, SELF.LL := SQRT(LEFT.LL) * IF(LEFT.isGreater, +1, -1); SELF := LEFT));
 			EXPORT DevNull := PROJECT(NDev, TRANSFORM(DevianceRec, SELF.LL := SQRT(LEFT.LL) * IF(LEFT.isGreater, +1, -1); SELF := LEFT));
-			SHARED p := COUNT(mod(number=3));
-			EXPORT ResidDev := TABLE(Dev, {classifier, Resdev := SUM(GROUP, LL), ResDF := COUNT(GROUP) - p}, classifier);
-			EXPORT NullDev := TABLE(NDev, {classifier, Nulldev := SUM(GROUP, LL), NullDF := COUNT(GROUP) - 1}, classifier);
+			SHARED p := COUNT(ML.FieldAggregates(Indep).Cardinality) + 1;
+			EXPORT ResidDev := PROJECT(TABLE(Dev, {classifier, Deviance := SUM(GROUP, LL), DF := COUNT(GROUP) - p}, classifier, FEW), ResidDevRec);
+			EXPORT NullDev := PROJECT(TABLE(NDev, {classifier, Deviance := SUM(GROUP, LL), DF := COUNT(GROUP) - 1}, classifier, FEW), ResidDevRec);
 			EXPORT AIC := PROJECT(ResidDev, TRANSFORM({Types.t_FieldNumber classifier, REAL8 AIC}, 
-																								SELF.AIC := LEFT.Resdev + 2 * p; SELF := LEFT));
+																								SELF.AIC := LEFT.Deviance + 2 * p; SELF := LEFT));
+		END;
+		
+		EXPORT AOD(DATASET(ResidDevRec) R1, DATASET(ResidDevRec) R2) := FUNCTION
+			AODRec := RECORD
+				Types.t_FieldNumber classifier;
+				UNSIGNED4 ResidDF;
+				REAL8 ResidDeviance;
+				UNSIGNED4 DF := 0.0;
+				REAL8 Deviance := 0.0;
+				REAL8 pValue := 0.0;
+			END;
+			c1 := PROJECT(R1, TRANSFORM(AODRec, SELF.ResidDF := LEFT.DF; SELF.ResidDeviance := LEFT.Deviance; SELF.classifier := LEFT.classifier));
+			c2 := JOIN(R1, R2, LEFT.classifier = RIGHT.classifier, 
+											TRANSFORM(AODRec, 		df := LEFT.DF - RIGHT.DF;
+																						dev := LEFT.Deviance - RIGHT.Deviance;
+																						dist := ML.Distribution.ChiSquare(df);
+																						SELF.ResidDF := RIGHT.DF; 
+																						SELF.ResidDeviance := RIGHT.Deviance; 
+																						SELF.classifier := RIGHT.classifier;
+																						SELF.DF := df; 
+																						SELF.Deviance := dev;
+																						SELF.pValue := ( 1 - dist.Cumulative(ABS(dev)))));
+			RETURN c1+c2;
 		END;
 			
 	
