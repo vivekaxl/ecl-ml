@@ -731,13 +731,13 @@ END;
 		
 		EXPORT Deviance(DATASET(Types.NumericField) Indep,DATASET(Types.DiscreteField) Dep, DATASET(Types.NumericField) mod) := MODULE
 			SHARED Dev := JOIN(ClassifyS(Indep, mod), Dep,LEFT.id = RIGHT.id AND LEFT.number = RIGHT.number,dev_t(LEFT,RIGHT));
-			NullMu := TABLE(Dep, {number, Mu := AVE(GROUP, value)}, number);
+			NullMu := TABLE(Dep, {number, Mu := AVE(GROUP, value)}, number, FEW, UNSORTED);
 			SHARED NDev := JOIN(Dep, NullMu, LEFT.number = RIGHT.number, dev_t2(RIGHT.Mu, LEFT),LOOKUP); 
 			EXPORT DevRes := PROJECT(Dev, TRANSFORM(DevianceRec, SELF.LL := SQRT(LEFT.LL) * IF(LEFT.isGreater, +1, -1); SELF := LEFT));
 			EXPORT DevNull := PROJECT(NDev, TRANSFORM(DevianceRec, SELF.LL := SQRT(LEFT.LL) * IF(LEFT.isGreater, +1, -1); SELF := LEFT));
 			SHARED p := COUNT(ML.FieldAggregates(Indep).Cardinality) + 1;
-			EXPORT ResidDev := PROJECT(TABLE(Dev, {classifier, Deviance := SUM(GROUP, LL), DF := COUNT(GROUP) - p}, classifier, FEW), ResidDevRec);
-			EXPORT NullDev := PROJECT(TABLE(NDev, {classifier, Deviance := SUM(GROUP, LL), DF := COUNT(GROUP) - 1}, classifier, FEW), ResidDevRec);
+			EXPORT ResidDev := PROJECT(TABLE(Dev, {classifier, Deviance := SUM(GROUP, LL), DF := COUNT(GROUP) - p}, classifier, FEW, UNSORTED), ResidDevRec);
+			EXPORT NullDev := PROJECT(TABLE(NDev, {classifier, Deviance := SUM(GROUP, LL), DF := COUNT(GROUP) - 1}, classifier, FEW, UNSORTED), ResidDevRec);
 			EXPORT AIC := PROJECT(ResidDev, TRANSFORM({Types.t_FieldNumber classifier, REAL8 AIC}, 
 																								SELF.AIC := LEFT.Deviance + 2 * p; SELF := LEFT));
 		END;
@@ -761,7 +761,7 @@ END;
 																						SELF.classifier := RIGHT.classifier;
 																						SELF.DF := df; 
 																						SELF.Deviance := dev;
-																						SELF.pValue := ( 1 - dist.Cumulative(ABS(dev)))));
+																						SELF.pValue := ( 1 - dist.Cumulative(ABS(dev)))), LOOKUP);
 			RETURN c1+c2;
 		END;
 			
