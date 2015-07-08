@@ -109,7 +109,7 @@ Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’
 	 OUTPUT(LogRegDense.ZStat(ModelD), NAMED('DenseZStat'));
 	 OUTPUT(LogRegDense.confInt(95, ModelD), NAMED('DenseConfInt'));
 	 OUTPUT(LogRegDense.ClassifyC(flds1(Number<=2), ModelD), NAMED('DenseClassify'));
-	 DevD := LogRegDense.Deviance(flds1(Number<=2),flds(Number=3), ModelD);
+	 DevD := LogRegDense.DevianceC(flds1(Number<=2),flds(Number=3), ModelD);
 	 OUTPUT(DevD.ResidDev, NAMED('DenseResidualDev'));
 	 OUTPUT(DevD.NullDev, NAMED('DenseNullDev'));
 	 OUTPUT(DevD.AIC, NAMED('DenseAIC'));
@@ -121,7 +121,7 @@ Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’
 	 OUTPUT(LogRegSparse.ZStat(ModelS), NAMED('SparseZStat'));
 	 OUTPUT(LogRegSparse.confInt(95, ModelS), NAMED('SparseConfInt'));
 	 OUTPUT(LogRegSparse.ClassifyC(flds1(Number<=2), ModelS), NAMED('SparseClassify'));
-	 DevS := LogRegSparse.Deviance(flds1(Number<=2),flds(Number=3), ModelS);
+	 DevS := LogRegSparse.DevianceC(flds1(Number<=2),flds(Number=3), ModelS);
 	 OUTPUT(DevS.ResidDev, NAMED('SparseResidualDev'));
 	 OUTPUT(DevS.NullDev, NAMED('SparseNullDev'));
 	 OUTPUT(DevS.AIC, NAMED('SparseAIC'));

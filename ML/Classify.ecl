@@ -729,7 +729,7 @@ END;
 			SELF.isGreater := IF(ri.value >= mu, TRUE, FALSE);
 		END;
 		
-		EXPORT Deviance(DATASET(Types.NumericField) Indep,DATASET(Types.DiscreteField) Dep, DATASET(Types.NumericField) mod) := MODULE
+		EXPORT DevianceC(DATASET(Types.NumericField) Indep,DATASET(Types.DiscreteField) Dep, DATASET(Types.NumericField) mod) := MODULE
 			SHARED Dev := JOIN(ClassifyS(Indep, mod), Dep,LEFT.id = RIGHT.id AND LEFT.number = RIGHT.number,dev_t(LEFT,RIGHT));
 			NullMu := TABLE(Dep, {number, Mu := AVE(GROUP, value)}, number, FEW, UNSORTED);
 			SHARED NDev := JOIN(Dep, NullMu, LEFT.number = RIGHT.number, dev_t2(RIGHT.Mu, LEFT),LOOKUP); 
@@ -766,6 +766,8 @@ END;
 		END;
 			
 	
+		EXPORT DevianceD(DATASET(Types.DiscreteField) Indep, DATASET(Types.DiscreteField) Dep, DATASET(Types.NumericField) mod) :=
+			DevianceC(PROJECT(Indep, Types.NumericField), Dep, mod);
 	END;
 /*
 /*
