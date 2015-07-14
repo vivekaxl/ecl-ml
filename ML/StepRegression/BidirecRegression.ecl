@@ -19,34 +19,35 @@ EXPORT BidirecRegression(DATASET(Types.NumericField) X,
 			
 		SelectList := Indices(number IN Selected);			
 		NotChosen := Indices(number NOT IN Selected) + DATASET([{0}], Parameter);
-		SelectRecs := PROJECT(SelectList, TRANSFORM(ParamRec, SELF.ParamNum := LEFT.number; SELF.AIC := 0));
-		ChooseRecs := PROJECT(NotChosen, TRANSFORM(ParamRec, SELF.ParamNum := LEFT.number; SELF.AIC := 0));
+		
+		NumChosen := COUNT(NotChosen);
+		NumSelect := COUNT(SelectList);
 		 
-		ParamRec T_Select(ParamRec le) := TRANSFORM
-			x_subset := X(number IN Selected AND number NOT IN [le.ParamNum]);
+		DATASET(ParamRec) T_Choose(DATASET(ParamRec) precs, INTEGER paramNum) := FUNCTION
+			x_subset := X(number IN (Selected + [paramNum]));
 			reg := OLS2Use(x_subset, Y);
-			SELF.RSS := (reg.Anova)[1].Error_SS;
-			SELF.AIC := (reg.AIC)[1].AIC;
-			SELF.Op := '-';
-			SELF := le;
+			RSS := (reg.Anova)[1].Error_SS;
+			AIC := (reg.AIC)[1].AIC;
+			Op := '+';
+			RETURN precs + ROW({Op, paramNum, RSS, AIC}, ParamRec);
+		END;		
+		
+		DATASET(ParamRec) T_Select(DATASET(ParamRec) precs, INTEGER paramNum) := FUNCTION
+			x_subset := X(number IN Selected AND number NOT IN [ParamNum]);
+			reg := OLS2Use(x_subset, Y);
+			RSS := (reg.Anova)[1].Error_SS;
+			AIC := (reg.AIC)[1].AIC;
+			Op := '-';
+			RETURN precs + ROW({Op, paramNum, RSS, AIC}, ParamRec);
 		END;			
 		
-		ParamRec T_Choose(ParamRec le) := TRANSFORM
-			x_subset := X(number IN (Selected + [le.ParamNum]));
-			reg := OLS2Use(x_subset, Y);
-			SELF.RSS := (reg.Anova)[1].Error_SS;
-			SELF.AIC := (reg.AIC)[1].AIC;
-			SELF.Op := '+';
-			SELF := le;
-		END;		
-			
-		SelectCalculated := SORT(PROJECT(SelectRecs, T_Select(LEFT)), AIC);
-		ChooseCalculated := SORT(PROJECT(ChooseRecs, T_Choose(LEFT)), AIC);
-		bestSR := SelectCalculated[1];
-		bestCR := ChooseCalculated[1];			
+		ChooseCalculated := LOOP(DATASET([], ParamRec), COUNTER <= NumChosen, T_Choose(ROWS(LEFT), NotChosen[COUNTER].number));
+		bestCR := TOPN(ChooseCalculated, 1, AIC)[1];			
+		SelectCalculated := LOOP(DATASET([], ParamRec), COUNTER <= NumSelect, T_Select(ROWS(LEFT), SelectList[COUNTER].number));
+		bestSR := TOPN(SelectCalculated, 1, AIC)[1];
 		
 		Initial := le.Final;
-		StepRecs := MERGE(SelectCalculated,ChooseCalculated,SORTED(AIC));
+		StepRecs := SelectCalculated + ChooseCalculated;
 		Final := IF(bestSR.AIC < bestCR.AIC, Indices(number IN Selected AND number NOT IN [bestSR.ParamNum]),
 						Indices(number IN Selected OR number IN [bestCR.ParamNum]));
 		AIC := IF(bestSR.AIC < bestCR.AIC, bestSR.AIC, bestCR.AIC);
