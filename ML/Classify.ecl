@@ -838,7 +838,8 @@ END;
 			END;
 
 			MaxErr := mX_n*Epsilon;
-			SHARED BetaPair := LOOP(mBeta00+OldExpY_00+mInv_xTWx00, (COUNTER <= MaxIter) 
+			IErr := Mat.MU.To(DATASET([{1,1,mX_n*Epsilon + 1}], Mat.Types.Element), mu_comp.Err);
+			SHARED BetaPair := LOOP(mBeta00+OldExpY_00+mInv_xTWx00+IErr, (COUNTER <= MaxIter) 
 									AND (Mat.MU.From(ROWS(LEFT), mu_comp.Err)[1].value > MaxErr), Step(ROWS(LEFT)));	
 			BetaM := Mat.MU.From(BetaPair, mu_comp.Beta);
 			rebasedBetaNF := RebaseY.ToOld(Types.FromMatrix(BetaM), Y_Map);
@@ -1087,8 +1088,14 @@ END;
 									+PBblas.MU.To(xweightsx, mu_comp.VC);
 
 			END;
-
-			SHARED BetaPair := LOOP(mBeta00+OldExpY_00
+			
+			errmap := PBblas.Matrix_Map(1, 1, 1, 1);
+			BE := DATASET([{1,1,sizeTable[1].m_cols*Epsilon+1}],Mat.Types.Element);
+			BetaError00 := PBblas.MU.To(DMAT.Converted.FromElement(BE,errmap), mu_comp.BetaError);
+			
+			BME := DATASET([{1,1,sizeTable[1].m_cols*Epsilon}],Mat.Types.Element);
+			BetaMaxError00 := PBblas.MU.To(DMAT.Converted.FromElement(BME,errmap), mu_comp.BetaMaxError); 
+			SHARED BetaPair := LOOP(mBeta00+OldExpY_00+BetaError00+BetaMaxError00
 						, (COUNTER<=MaxIter)
 							AND (DMAT.Converted.FromPart2Elm(PBblas.MU.From(ROWS(LEFT),mu_comp.BetaError))[1].value > 
 							DMAT.Converted.FromPart2Elm(PBblas.MU.From(ROWS(LEFT),mu_comp.BetaMaxError))[1].value)
