@@ -82,7 +82,7 @@ EXPORT AutoBVMap(dimension_t m_rows, dimension_t m_cols,
 			END;
 			
 			SET OF dimension_t blockrowcolset := FUNCTION
-			 b := OUTPUT(/*[m_rows,m_cols]*/nodes_available, NAMED('NumNodes'));
+			 b := OUTPUT(/*[m_rows,m_cols]*/nodes_available, NAMED('NumNodes'), OVERWRITE);
 			 RETURN WHEN(IF(nodes_available=1, [m_rows,m_cols], multinode ),b);
 			END;
 			
