@@ -43,7 +43,7 @@ EXPORT StepLogistic(REAL8 Ridge=0.00001, REAL8 Epsilon=0.000000001, UNSIGNED2 Ma
 				reg := LogReg.LearnC(X_0, Y);
 				AIC := findAIC(IF(EXISTS(X_0), X_0, X), Y, reg);
 				Op := '+';
-				RETURN WHEN(precs + ROW({Op, paramNum, AIC}, ParamRec), OUTPUT(reg));
+				RETURN precs + ROW({Op, paramNum, AIC}, ParamRec);
 			END;		
 			
 			ChooseCalculated := LOOP(DATASET([], ParamRec), COUNTER <= NumChosen, T_Choose(ROWS(LEFT), NotChosen[COUNTER].number));
