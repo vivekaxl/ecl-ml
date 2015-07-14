@@ -735,7 +735,7 @@ END;
 			SHARED NDev := JOIN(Dep, NullMu, LEFT.number = RIGHT.number, dev_t2(RIGHT.Mu, LEFT),LOOKUP); 
 			EXPORT DevRes := PROJECT(Dev, TRANSFORM(DevianceRec, SELF.LL := SQRT(LEFT.LL) * IF(LEFT.isGreater, +1, -1); SELF := LEFT));
 			EXPORT DevNull := PROJECT(NDev, TRANSFORM(DevianceRec, SELF.LL := SQRT(LEFT.LL) * IF(LEFT.isGreater, +1, -1); SELF := LEFT));
-			SHARED p := COUNT(ML.FieldAggregates(Indep).Cardinality) + 1;
+			SHARED p := MAX(Model(mod), number) + 1;
 			EXPORT ResidDev := PROJECT(TABLE(Dev, {classifier, Deviance := SUM(GROUP, LL), DF := COUNT(GROUP) - p}, classifier, FEW, UNSORTED), ResidDevRec);
 			EXPORT NullDev := PROJECT(TABLE(NDev, {classifier, Deviance := SUM(GROUP, LL), DF := COUNT(GROUP) - 1}, classifier, FEW, UNSORTED), ResidDevRec);
 			EXPORT AIC := PROJECT(ResidDev, TRANSFORM({Types.t_FieldNumber classifier, REAL8 AIC}, 
@@ -1109,9 +1109,9 @@ END;
 			END;
 
 			Res := FUNCTION
-				ret0 := PROJECT(Beta,TRANSFORM(Logis_Model,SELF.Id := COUNTER+Base,SELF.number := LEFT.number,
+				ret0 := PROJECT(Beta,TRANSFORM(Logis_Model,SELF.Id := COUNTER+Base,SELF.number := LEFT.number-1,
 															SELF.class_number := LEFT.id, SELF.w := LEFT.value, SELF.SE := 0.0));
-				ret := JOIN(ret0, SE, LEFT.number = RIGHT.number AND LEFT.class_number = RIGHT.id, 
+				ret := JOIN(ret0, SE, LEFT.number+1 = RIGHT.number AND LEFT.class_number = RIGHT.id, 
 										TRANSFORM(Logis_Model,
 															SELF.Id := LEFT.Id,SELF.number := LEFT.number, 
 															SELF.class_number := LEFT.class_number, SELF.w := LEFT.w, SELF.se := SQRT(RIGHT.value)));
@@ -1130,7 +1130,7 @@ END;
 		EXPORT ClassifyS(DATASET(Types.NumericField) Indep,DATASET(Types.NumericField) mod) := FUNCTION
 
 			mod0 := Model(mod);
-			Beta_0 := PROJECT(mod0,TRANSFORM(Types.NumericField,SELF.Number := LEFT.Number,SELF.id := LEFT.class_number, SELF.value := LEFT.w;SELF:=LEFT;));
+			Beta_0 := PROJECT(mod0,TRANSFORM(Types.NumericField,SELF.Number := LEFT.Number+1,SELF.id := LEFT.class_number, SELF.value := LEFT.w;SELF:=LEFT;));
 			RebaseBeta := Utils.RebaseNumericFieldID(Beta_0);
 			Beta0_Map := RebaseBeta.MappingID(1);
 			Beta0 := RebaseBeta.ToNew(Beta0_Map);

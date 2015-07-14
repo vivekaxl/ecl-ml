@@ -8,7 +8,7 @@ IMPORT Std.Str;
 EXPORT StepLogistic(REAL8 Ridge=0.00001, REAL8 Epsilon=0.000000001, UNSIGNED2 MaxIter=200) 
 																				:= MODULE(Classify.Default)
 																				
-	SHARED LogReg := Classify.Logistic(Ridge, Epsilon, MaxIter);
+	SHARED LogReg := Classify.Logistic_sparse(Ridge, Epsilon, MaxIter);
 	SHARED Parameter := TypesSL.Parameter;
 	SHARED ParamRec := TypesSL.ParamRec;
 	SHARED StepRec := TypesSL.StepRec;
@@ -37,10 +37,13 @@ EXPORT StepLogistic(REAL8 Ridge=0.00001, REAL8 Epsilon=0.000000001, UNSIGNED2 Ma
 			 
 			DATASET(ParamRec) T_Choose(DATASET(ParamRec) precs, INTEGER paramNum) := FUNCTION
 				x_subset := X(number IN (Selected + [paramNum]));
-				reg := LogReg.LearnC(x_subset, Y);
-				AIC := findAIC(x_subset, Y, reg);
+				RebaseX := Utils.RebaseNumericField(x_subset);
+				X_Map := RebaseX.Mapping(1);
+				X_0 := RebaseX.ToNew(X_Map);
+				reg := LogReg.LearnC(X_0, Y);
+				AIC := findAIC(IF(EXISTS(X_0), X_0, X), Y, reg);
 				Op := '+';
-				RETURN precs + ROW({Op, paramNum, AIC}, ParamRec);
+				RETURN WHEN(precs + ROW({Op, paramNum, AIC}, ParamRec), OUTPUT(reg));
 			END;		
 			
 			ChooseCalculated := LOOP(DATASET([], ParamRec), COUNTER <= NumChosen, T_Choose(ROWS(LEFT), NotChosen[COUNTER].number));
@@ -61,7 +64,10 @@ EXPORT StepLogistic(REAL8 Ridge=0.00001, REAL8 Epsilon=0.000000001, UNSIGNED2 Ma
 		BestStep := Steps[COUNT(Steps)];
 		var_subset := SET(BestStep.Final, number);
 		x_subset := X(number IN var_subset);
-		EXPORT mod := LogReg.LearnC(x_subset, Y);
+		RebaseX := Utils.RebaseNumericField(x_subset);
+		X_Map := RebaseX.Mapping(1);
+		X_0 := RebaseX.ToNew(X_Map);
+		EXPORT mod := LogReg.LearnC(X_0, Y);
 	END;
 	
 	EXPORT LearnCS(DATASET(Types.NumericField) Indep,DATASET(Types.DiscreteField) Dep) := ForwardReg(Indep,Dep).mod;
