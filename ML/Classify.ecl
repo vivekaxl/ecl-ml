@@ -790,7 +790,7 @@ END;
 	EXPORT Logistic_sparse(REAL8 Ridge=0.00001, REAL8 Epsilon=0.000000001, UNSIGNED2 MaxIter=200) := MODULE(Logistic_Model)
 	
 		Logis(DATASET(Types.NumericField) X,DATASET(Types.NumericField) Y) := MODULE
-			SHARED mu_comp := ENUM ( Beta = 1,  Y = 2, VC = 3 );
+			SHARED mu_comp := ENUM ( Beta = 1,  Y = 2, VC = 3, Err = 4 );
 			SHARED RebaseY := Utils.RebaseNumericField(Y);
 			SHARED Y_Map := RebaseY.Mapping(1);
 			Y_0 := RebaseY.ToNew(Y_Map);
@@ -830,11 +830,16 @@ END;
 				// mBeta := Inv_xTWx * x' * wadjy
 				mBeta :=  Mat.Mul(Mat.Mul(Inv_xTWx, Mat.Trans(mX)), W_AdjY);
 				err := SUM(Mat.Each.Abs(Mat.Sub(ExpY, OldExpY)),value);	
-				RETURN IF(err < mX_n*Epsilon, BetaPlusY, 
-						Mat.MU.To(mBeta, mu_comp.Beta)+Mat.MU.To(ExpY, mu_comp.Y)+Mat.MU.To(Inv_xTWx, mu_comp.VC));
+				mErr := DATASET([{1,1,err}], Mat.Types.Element);
+				RETURN Mat.MU.To(mBeta, mu_comp.Beta)+
+							Mat.MU.To(ExpY, mu_comp.Y)+
+							Mat.MU.To(Inv_xTWx, mu_comp.VC)+
+							Mat.MU.To(mErr, mu_comp.Err);
 			END;
 
-			SHARED BetaPair := LOOP(mBeta00+OldExpY_00+mInv_xTWx00, MaxIter, Step(ROWS(LEFT)));	
+			MaxErr := mX_n*Epsilon;
+			SHARED BetaPair := LOOP(mBeta00+OldExpY_00+mInv_xTWx00, (COUNTER <= MaxIter) 
+									AND (Mat.MU.From(ROWS(LEFT), mu_comp.Err)[1].value > MaxErr), Step(ROWS(LEFT)));	
 			BetaM := Mat.MU.From(BetaPair, mu_comp.Beta);
 			rebasedBetaNF := RebaseY.ToOld(Types.FromMatrix(BetaM), Y_Map);
 			BetaNF := Types.FromMatrix(Mat.Trans(Types.ToMatrix(rebasedBetaNF)));
