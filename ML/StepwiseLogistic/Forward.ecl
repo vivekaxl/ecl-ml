@@ -54,7 +54,7 @@ EXPORT Forward(REAL8 Ridge=0.00001, REAL8 Epsilon=0.000000001, UNSIGNED2 MaxIter
 			var_subset := SET(BestStep.Final, number);
 			x_subset := X(number IN var_subset);
 			X_0 := RebaseX(x_subset);
-			EXPORT mod := LearnCS(X_0, Y);
+			EXPORT model := LearnCS(X_0, Y);
 			EXPORT MapX := BestStep.Final;
 		END;	
 
