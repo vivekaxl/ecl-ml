@@ -6,15 +6,15 @@ IMPORT ML.StepwiseLogistic.TypesSL AS TypesSL;
 IMPORT Std.Str;
 
 EXPORT StepLogistic(REAL8 Ridge=0.00001, REAL8 Epsilon=0.000000001, UNSIGNED2 MaxIter=200) 
-																				:= MODULE(Classify.Default)
+																				:= MODULE(Classify.Logistic_sparse(Ridge,Epsilon,MaxIter))
 																				
-	EXPORT LogReg := Classify.Logistic_sparse(Ridge, Epsilon, MaxIter);
+	//EXPORT LogReg := Classify.Logistic_sparse(Ridge, Epsilon, MaxIter);
 	SHARED Parameter := TypesSL.Parameter;
 	SHARED ParamRec := TypesSL.ParamRec;
 	SHARED StepRec := TypesSL.StepRec;
 	
 	SHARED findAIC(DATASET(Types.NumericField) X,DATASET(Types.DiscreteField) Y, DATASET(Types.NumericField) mod) := FUNCTION
-			dev := LogReg.DevianceC(X, Y, mod);
+			dev := DevianceC(X, Y, mod);
 			RETURN dev.AIC[1].AIC;
 	END;
 	
