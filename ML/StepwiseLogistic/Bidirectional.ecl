@@ -66,11 +66,12 @@ EXPORT Bidirectional(REAL8 Ridge=0.00001, REAL8 Epsilon=0.000000001, UNSIGNED2 M
 							COUNTER = 1 OR ROWS(LEFT)[COUNTER].Initial != ROWS(LEFT)[COUNTER].Final,
 							Step_Bidirec(ROWS(LEFT), COUNTER));
 			
-			BestStep := Steps[COUNT(Steps)];
+			SHARED BestStep := Steps[COUNT(Steps)];
 			var_subset := SET(BestStep.Final, number);
 			x_subset := X(number IN var_subset);
 			X_0 := RebaseX(x_subset);
 			EXPORT mod := LearnCS(X_0, Y);
+			EXPORT MapX := BestStep.Final;
 		END;	
 	
 END;
