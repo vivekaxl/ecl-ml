@@ -7,6 +7,7 @@ IMPORT Std.Str;
 
 EXPORT Forward(REAL8 Ridge=0.00001, REAL8 Epsilon=0.000000001, UNSIGNED2 MaxIter=200) 
 																				:= MODULE(ML.StepwiseLogistic.StepLogistic(Ridge,Epsilon,MaxIter))
+																				
 	EXPORT Regression(DATASET(Types.NumericField) X,DATASET(Types.DiscreteField) Y) := MODULE
 		
 			SHARED DATASET(Parameter) Indices := NORMALIZE(DATASET([{0}], Parameter), COUNT(ML.FieldAggregates(X).Cardinality), 
@@ -26,9 +27,7 @@ EXPORT Forward(REAL8 Ridge=0.00001, REAL8 Epsilon=0.000000001, UNSIGNED2 MaxIter
 				 
 				DATASET(ParamRec) T_Choose(DATASET(ParamRec) precs, INTEGER paramNum) := FUNCTION
 					x_subset := X(number IN (Selected + [paramNum]));
-					RebaseX := Utils.RebaseNumericField(x_subset);
-					X_Map := RebaseX.Mapping(1);
-					X_0 := RebaseX.ToNew(X_Map);
+					X_0 := RebaseX(x_subset);
 					reg := LogReg.LearnC(X_0, Y);
 					AIC := findAIC(IF(EXISTS(X_0), X_0, X), Y, reg);
 					Op := '+';
@@ -53,13 +52,8 @@ EXPORT Forward(REAL8 Ridge=0.00001, REAL8 Epsilon=0.000000001, UNSIGNED2 MaxIter
 			BestStep := Steps[COUNT(Steps)];
 			var_subset := SET(BestStep.Final, number);
 			x_subset := X(number IN var_subset);
-			RebaseX := Utils.RebaseNumericField(x_subset);
-			X_Map := RebaseX.Mapping(1);
-			X_0 := RebaseX.ToNew(X_Map);
+			X_0 := RebaseX(x_subset);
 			EXPORT mod := LogReg.LearnC(X_0, Y);
-		END;
-		
-	
-	EXPORT LearnCS(DATASET(Types.NumericField) Indep,DATASET(Types.DiscreteField) Dep) := Regression(Indep, Dep).mod;
-	
+		END;	
+
 END;
