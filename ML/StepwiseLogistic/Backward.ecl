@@ -12,7 +12,7 @@ EXPORT Backward(REAL8 Ridge=0.00001, REAL8 Epsilon=0.000000001, UNSIGNED2 MaxIte
 			SHARED DATASET(Parameter) Indices := NORMALIZE(DATASET([{0}], Parameter), COUNT(ML.FieldAggregates(X).Cardinality), 
 								TRANSFORM(Parameter, SELF.number := COUNTER));
 			InitMod := LearnCS(X, Y);
-			AIC := findAIC(X, Y, InitMod);
+			AIC := DevianceC(X, Y, InitMod).AIC[1].AIC;
 			
 			SHARED DATASET(StepRec) InitialStep := DATASET([{DATASET([], Parameter), DATASET([], ParamRec), Indices, AIC}], StepRec);
 			
@@ -28,9 +28,11 @@ EXPORT Backward(REAL8 Ridge=0.00001, REAL8 Epsilon=0.000000001, UNSIGNED2 MaxIte
 					x_subset := X(number IN Selected AND number NOT IN [paramNum]);
 					X_0 := RebaseX(x_subset);
 					reg := LearnCS(X_0, Y);
-					AIC := findAIC(IF(EXISTS(X_0), X_0, X), Y, reg);
+					Dev := DevianceC(IF(EXISTS(X_0), X_0, X), Y, reg);
+					AIC := Dev.AIC[1].AIC;
+					Deviance := Dev.ResidDev[1].Deviance;
 					Op := '-';
-					RETURN precs + ROW({Op, paramNum, AIC}, ParamRec);
+					RETURN precs + ROW({Op, paramNum, Deviance, AIC}, ParamRec);
 				END;		
 				
 				SelectCalculated := LOOP(DATASET([], ParamRec), COUNTER <= NumSelect, T_Select(ROWS(LEFT), SelectList[COUNTER].number));

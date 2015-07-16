@@ -8,6 +8,7 @@ END;
 EXPORT ParamRec := RECORD
 	STRING Op := '+';
 	UNSIGNED1 ParamNum;
+	REAL Deviance := 0;
 	REAL AIC := 0;
 END;
 

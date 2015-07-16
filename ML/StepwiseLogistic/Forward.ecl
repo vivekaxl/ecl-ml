@@ -14,7 +14,7 @@ EXPORT Forward(REAL8 Ridge=0.00001, REAL8 Epsilon=0.000000001, UNSIGNED2 MaxIter
 								TRANSFORM(Parameter, SELF.number := COUNTER));
 			X_0 := DATASET([], Types.NumericField);
 			InitMod := LearnCS(X_0, Y);
-			AIC := findAIC(IF(EXISTS(X_0), X_0, X), Y, InitMod);
+			AIC := DevianceC(IF(EXISTS(X_0), X_0, X), Y, InitMod).AIC[1].AIC;
 			
 			SHARED DATASET(StepRec) InitialStep := DATASET([{DATASET([], Parameter), DATASET([], ParamRec), DATASET([], Parameter), AIC}], StepRec);
 			
@@ -30,9 +30,11 @@ EXPORT Forward(REAL8 Ridge=0.00001, REAL8 Epsilon=0.000000001, UNSIGNED2 MaxIter
 					x_subset := X(number IN (Selected + [paramNum]));
 					X_0 := RebaseX(x_subset);
 					reg := LearnCS(X_0, Y);
-					AIC := findAIC(IF(EXISTS(X_0), X_0, X), Y, reg);
+					Dev := DevianceC(IF(EXISTS(X_0), X_0, X), Y, reg);
+					AIC := Dev.AIC[1].AIC;
+					Deviance := Dev.ResidDev[1].Deviance;
 					Op := '+';
-					RETURN precs + ROW({Op, paramNum, AIC}, ParamRec);
+					RETURN precs + ROW({Op, paramNum, Deviance, AIC}, ParamRec);
 				END;		
 				
 				ChooseCalculated := LOOP(DATASET([], ParamRec), COUNTER <= NumChosen, T_Choose(ROWS(LEFT), NotChosen[COUNTER].number));

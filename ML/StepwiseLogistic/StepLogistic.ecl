@@ -13,11 +13,6 @@ EXPORT StepLogistic(REAL8 Ridge=0.00001, REAL8 Epsilon=0.000000001, UNSIGNED2 Ma
 	SHARED ParamRec := TypesSL.ParamRec;
 	SHARED StepRec := TypesSL.StepRec;
 	
-	SHARED findAIC(DATASET(Types.NumericField) X,DATASET(Types.DiscreteField) Y, DATASET(Types.NumericField) mod) := FUNCTION
-			dev := DevianceC(X, Y, mod);
-			RETURN dev.AIC[1].AIC;
-	END;
-	
 	SHARED RebaseX(DATASET(Types.NumericField) X) := FUNCTION
 		RebaseX := Utils.RebaseNumericField(X);
 		X_Map := RebaseX.Mapping(1);

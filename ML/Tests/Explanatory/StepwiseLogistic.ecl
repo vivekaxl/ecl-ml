@@ -48,7 +48,7 @@
 	 regb:= Logb.Regression(X, Y);
 	 OUTPUT(regb.Steps, NAMED('StepsB'));
 	 modelb := regb.model;
-	 OUTPUT(Logb.ZStat(modelf), NAMED('ZStatB'));
+	 OUTPUT(Logb.ZStat(modelb), NAMED('ZStatB'));
 	 Xb := Logb.ExtractX(X, regb.MapX);
 	 OUTPUT(Logb.ClassifyC(Xb, modelb), NAMED('ClassifyB'));
 	 OUTPUT(Logb.confint(95, modelb), NAMED('ConfIntB'));
