@@ -72,4 +72,109 @@
 	 OUTPUT(Devbi.AIC, NAMED('AICBi'));
 	 OUTPUT(Logbi.AOD(Devbi.NullDev, Devbi.ResidDev), NAMED('AODBi'));
 
-	 
+/*R-code
+B <- matrix(c(1,35,149,0,2,11,138,0,3,12,148,1,4,16,156,0,
+                 5,32,152,0,6,16,157,0,7,14,165,0,8,8,152,1,
+                 9,35,177,0,10,33,158,1,11,40,166,0,12,28,165,0,  
+                 13,23,160,0,14,52,178,1,15,46,169,0,16,29,173,1,
+                 17,30,172,0,18,21,163,0,19,21,164,0,20,20,189,1,
+                 21,34,182,1,22,43,184,1,23,35,174,1,24,39,177,1,
+                 25,43,183,1,26,37,175,1,27,32,173,1,28,24,173,1,
+                 29,20,162,0,30,25,180,1,31,22,173,1,32,25,171,1
+),nrow = 32, ncol = 4, byrow=TRUE);
+
+Y <- B[, 4];
+X1 <- B[, 2];
+X2 <- B[, 3];
+
+step(glm(Y~1, family="binomial"),direction="forward",scope=(~X1+X2));
+OUTPUT :
+Start:  AIC=46.24
+Y ~ 1
+
+       Df Deviance    AIC
++ X2    1   34.647 38.647
+<none>      44.236 46.236
++ X1    1   42.931 46.931
+
+Step:  AIC=38.65
+Y ~ X2
+
+       Df Deviance    AIC
+<none>      34.647 38.647
++ X1    1   34.071 40.071
+
+Call:  glm(formula = Y ~ X2, family = "binomial")
+
+Coefficients:
+(Intercept)           X2  
+   -19.0634       0.1146  
+
+Degrees of Freedom: 31 Total (i.e. Null);  30 Residual
+Null Deviance:      44.24 
+Residual Deviance: 34.65        AIC: 38.65
+
+CODE :
+step(glm(Y~X1+X2, family="binomial"),direction="backward",scope=(~X1+X2));
+OUTPUT:
+Start:  AIC=40.07
+Y ~ X1 + X2
+
+       Df Deviance    AIC
+- X1    1   34.647 38.647
+<none>      34.071 40.071
+- X2    1   42.931 46.931
+
+Step:  AIC=38.65
+Y ~ X2
+
+       Df Deviance    AIC
+<none>      34.647 38.647
+- X2    1   44.236 46.236
+
+Call:  glm(formula = Y ~ X2, family = "binomial")
+
+Coefficients:
+(Intercept)           X2  
+   -19.0634       0.1146  
+
+Degrees of Freedom: 31 Total (i.e. Null);  30 Residual
+Null Deviance:      44.24 
+Residual Deviance: 34.65        AIC: 38.65
+
+CODE:
+step(glm(Y~X1, family="binomial"),direction="both",scope=(~X1+X2)); 
+OUTPUT:
+Start:  AIC=46.93
+Y ~ X1
+
+       Df Deviance    AIC
++ X2    1   34.071 40.071
+- X1    1   44.236 46.236
+<none>      42.931 46.931
+
+Step:  AIC=40.07
+Y ~ X1 + X2
+
+       Df Deviance    AIC
+- X1    1   34.647 38.647
+<none>      34.071 40.071
+- X2    1   42.931 46.931
+
+Step:  AIC=38.65
+Y ~ X2
+
+       Df Deviance    AIC
+<none>      34.647 38.647
++ X1    1   34.071 40.071
+- X2    1   44.236 46.236
+
+Call:  glm(formula = Y ~ X2, family = "binomial")
+
+Coefficients:
+(Intercept)           X2  
+   -19.0634       0.1146  
+
+Degrees of Freedom: 31 Total (i.e. Null);  30 Residual
+Null Deviance:      44.24 
+Residual Deviance: 34.65        AIC: 38.65
