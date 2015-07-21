@@ -33,7 +33,7 @@
 	 Logf := ML.StepwiseLogistic.Forward(0.0);
 	 regf:= Logf.Regression(X, Y);
 	 OUTPUT(regf.Steps, NAMED('StepsF'));
-	 modelf := regf.model;
+	 modelf := regf.BestModel;
 	 OUTPUT(Logf.ZStat(modelf), NAMED('ZStatF'));
 	 Xf := Logf.ExtractX(X, regf.MapX);
 	 OUTPUT(Logf.ClassifyC(Xf, modelf), NAMED('ClassifyF'));
@@ -47,7 +47,7 @@
 	 Logb := ML.StepwiseLogistic.Backward(0.0);
 	 regb:= Logb.Regression(X, Y);
 	 OUTPUT(regb.Steps, NAMED('StepsB'));
-	 modelb := regb.model;
+	 modelb := regb.BestModel;
 	 OUTPUT(Logb.ZStat(modelb), NAMED('ZStatB'));
 	 Xb := Logb.ExtractX(X, regb.MapX);
 	 OUTPUT(Logb.ClassifyC(Xb, modelb), NAMED('ClassifyB'));
@@ -61,7 +61,7 @@
 	 Logbi := ML.StepwiseLogistic.Bidirectional(0.0);
 	 regbi:= Logbi.Regression(X, Y, Vars);
 	 OUTPUT(regbi.Steps, NAMED('StepsBi'));
-	 modelbi := regbi.model;
+	 modelbi := regbi.BestModel;
 	 OUTPUT(Logbi.ZStat(modelbi), NAMED('ZStatBi'));
 	 Xbi := Logbi.ExtractX(X, regbi.MapX);
 	 OUTPUT(Logbi.ClassifyC(Xbi, modelbi), NAMED('ClassifyBi'));
@@ -178,3 +178,4 @@ Coefficients:
 Degrees of Freedom: 31 Total (i.e. Null);  30 Residual
 Null Deviance:      44.24 
 Residual Deviance: 34.65        AIC: 38.65
+*/
