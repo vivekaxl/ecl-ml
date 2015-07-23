@@ -34,6 +34,7 @@
 	 regf:= Logf.Regression(X, Y);
 	 OUTPUT(regf.Steps, NAMED('StepsF'));
 	 modelf := regf.BestModel;
+	 OUTPUT(Logf.Model(modelf), NAMED('BetasF'));
 	 OUTPUT(Logf.ZStat(modelf), NAMED('ZStatF'));
 	 Xf := Logf.ExtractX(X, regf.MapX);
 	 OUTPUT(Logf.ClassifyC(Xf, modelf), NAMED('ClassifyF'));
@@ -48,6 +49,7 @@
 	 regb:= Logb.Regression(X, Y);
 	 OUTPUT(regb.Steps, NAMED('StepsB'));
 	 modelb := regb.BestModel;
+	 OUTPUT(Logb.Model(modelb), NAMED('BetasB'));
 	 OUTPUT(Logb.ZStat(modelb), NAMED('ZStatB'));
 	 Xb := Logb.ExtractX(X, regb.MapX);
 	 OUTPUT(Logb.ClassifyC(Xb, modelb), NAMED('ClassifyB'));
@@ -62,6 +64,7 @@
 	 regbi:= Logbi.Regression(X, Y, Vars);
 	 OUTPUT(regbi.Steps, NAMED('StepsBi'));
 	 modelbi := regbi.BestModel;
+	 OUTPUT(Logbi.Model(modelbi), NAMED('BetasBi'));
 	 OUTPUT(Logbi.ZStat(modelbi), NAMED('ZStatBi'));
 	 Xbi := Logbi.ExtractX(X, regbi.MapX);
 	 OUTPUT(Logbi.ClassifyC(Xbi, modelbi), NAMED('ClassifyBi'));
