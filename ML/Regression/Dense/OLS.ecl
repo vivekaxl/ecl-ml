@@ -92,13 +92,13 @@ EXPORT OLS(DATASET(NumericField) X,DATASET(NumericField) Y)
     SELF.RSquared := cov_cor.pearson * cov_cor.pearson;
   END;
   EXPORT DATASET(CoRec)  RSquared := PROJECT(y_yhat, makeRSQ(LEFT));
-	
-	xT_map := DMat.Trans.TranMap(x_map);
-	xTx_map := Matrix_Map(xT_map.matrix_rows, x_map.matrix_cols, xT_map.part_rows(1), x_map.part_cols(1));
-	
-	xTx_part := PBBlas.PB_dgemm(TRUE, FALSE, 1.0, x_map, x_part, x_map, x_part, xTx_map);
-	inv_xTx_part := DMat.Inv(xTx_map, xTx_part);
-	var_covar_part := DMat.Scale(xTx_map, Anova[1].Error_MS, inv_xTx_part);
-	
-	EXPORT DATASET(NumericField) var_covar := DMat.Converted.FromPart2DS(var_covar_part);
+  
+  xT_map := DMat.Trans.TranMap(x_map);
+  xTx_map := Matrix_Map(xT_map.matrix_rows, x_map.matrix_cols, xT_map.part_rows(1), x_map.part_cols(1));
+  
+  xTx_part := PBBlas.PB_dgemm(TRUE, FALSE, 1.0, x_map, x_part, x_map, x_part, xTx_map);
+  inv_xTx_part := DMat.Inv(xTx_map, xTx_part);
+  var_covar_part := DMat.Scale(xTx_map, Anova[1].Error_MS, inv_xTx_part);
+  
+  EXPORT DATASET(NumericField) var_covar := DMat.Converted.FromPart2DS(var_covar_part);
 END;

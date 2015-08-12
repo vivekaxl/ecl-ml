@@ -72,75 +72,75 @@ EXPORT IRegression := MODULE,VIRTUAL
   END;
 
   //http://www.stat.yale.edu/Courses/1997-98/101/anovareg.htm
-  //Tested using the "Healthy Breakfast" dataset	
-	EXPORT Anova := PROJECT(Singles1, getResult(LEFT));
-	
-	EXPORT DATASET(NumericField) var_covar;	
-	
-	NumericField sErr(NumericField v, NumericField b) := TRANSFORM
-		SELF.value := SQRT(v.value);
-		SELF.id := b.id;
-		SELF.number := b.number;
-	END;
-	
-	EXPORT SE := JOIN(var_covar, betas, LEFT.id = RIGHT.number + 1 AND LEFT.number = RIGHT.number + 1,sErr(LEFT, RIGHT));
-	
-	NumericField tStat_transform(NumericField b, NumericField s) := TRANSFORM
-		SELF.value := b.value / s.value;
-		SELF := b;
-	END;
-	
-	EXPORT tStat := JOIN(betas, SE, LEFT.id = RIGHT.id AND LEFT.number = RIGHT.number, tStat_transform(LEFT, RIGHT));
-	
-	EXPORT dist := ML.Distribution.StudentT(Anova[1].Error_DF, 100000);
-	
-	NumericField pVal_transform(NumericField b) := TRANSFORM 
-		SELF.value := 2 * ( 1 - dist.Cumulative(ABS(b.value))); 
-		SELF := b;
-	END;
-	
-	EXPORT pVal := PROJECT(tStat, pVal_transform(LEFT));
-	EXPORT DATASET(CoRec) AdjRSquared := PROJECT(RSquared, TRANSFORM(CoRec, 
-								SELF.RSquared := 1 - ( 1 - LEFT.RSquared ) * ( Anova[1].Total_DF/Anova[1].Error_DF); 
-								SELF := LEFT));
-		
-	confintRec := RECORD
-		Types.t_RecordID id;
-		Types.t_FieldNumber number;
-		Types.t_Fieldreal LowerInt;
-		Types.t_Fieldreal UpperInt;
-	END;
-	
-	confintRec confint_transform(NumericField b, NumericField s, REAL Margin) := TRANSFORM
-		SELF.UpperInt := b.value + Margin * s.value;
-		SELF.LowerInt := b.value - Margin * s.value;
-		SELF := b;
-	END;
-																
-	EXPORT ConfInt(Types.t_fieldReal level) := FUNCTION
-		newlevel := 100 - (100 - level)/2;
-		Margin := dist.NTile(newlevel);
-		RETURN JOIN(betas, SE, LEFT.id = RIGHT.id AND LEFT.number = RIGHT.number, confint_transform(LEFT,RIGHT,Margin));
-	END;
-	
-	AICRec := RECORD
-		Types.t_FieldNumber number;
-		Types.t_FieldReal AIC;
-	END;
+  //Tested using the "Healthy Breakfast" dataset  
+  EXPORT Anova := PROJECT(Singles1, getResult(LEFT));
+  
+  EXPORT DATASET(NumericField) var_covar; 
+  
+  NumericField sErr(NumericField v, NumericField b) := TRANSFORM
+    SELF.value := SQRT(v.value);
+    SELF.id := b.id;
+    SELF.number := b.number;
+  END;
+  
+  EXPORT SE := JOIN(var_covar, betas, LEFT.id = RIGHT.number + 1 AND LEFT.number = RIGHT.number + 1,sErr(LEFT, RIGHT));
+  
+  NumericField tStat_transform(NumericField b, NumericField s) := TRANSFORM
+    SELF.value := b.value / s.value;
+    SELF := b;
+  END;
+  
+  EXPORT tStat := JOIN(betas, SE, LEFT.id = RIGHT.id AND LEFT.number = RIGHT.number, tStat_transform(LEFT, RIGHT));
+  
+  EXPORT dist := ML.Distribution.StudentT(Anova[1].Error_DF, 100000);
+  
+  NumericField pVal_transform(NumericField b) := TRANSFORM 
+    SELF.value := 2 * ( 1 - dist.Cumulative(ABS(b.value))); 
+    SELF := b;
+  END;
+  
+  EXPORT pVal := PROJECT(tStat, pVal_transform(LEFT));
+  EXPORT DATASET(CoRec) AdjRSquared := PROJECT(RSquared, TRANSFORM(CoRec, 
+                SELF.RSquared := 1 - ( 1 - LEFT.RSquared ) * ( Anova[1].Total_DF/Anova[1].Error_DF); 
+                SELF := LEFT));
+    
+  confintRec := RECORD
+    Types.t_RecordID id;
+    Types.t_FieldNumber number;
+    Types.t_Fieldreal LowerInt;
+    Types.t_Fieldreal UpperInt;
+  END;
+  
+  confintRec confint_transform(NumericField b, NumericField s, REAL Margin) := TRANSFORM
+    SELF.UpperInt := b.value + Margin * s.value;
+    SELF.LowerInt := b.value - Margin * s.value;
+    SELF := b;
+  END;
+                                
+  EXPORT ConfInt(Types.t_fieldReal level) := FUNCTION
+    newlevel := 100 - (100 - level)/2;
+    Margin := dist.NTile(newlevel);
+    RETURN JOIN(betas, SE, LEFT.id = RIGHT.id AND LEFT.number = RIGHT.number, confint_transform(LEFT,RIGHT,Margin));
+  END;
+  
+  AICRec := RECORD
+    Types.t_FieldNumber number;
+    Types.t_FieldReal AIC;
+  END;
 
-	EXPORT DATASET(AICRec) AIC := PROJECT(Anova, TRANSFORM(AICRec, 
-						n := LEFT.Total_DF + 1;
-						p := LEFT.Model_DF + 1;
-						SELF.AIC := n * LN(LEFT.Error_SS / n) + 2 * p; 
-						SELF := LEFT));
-																
-	FTestRec := RECORD
-		Types.t_FieldReal Model_F;
-		Types.t_FIeldReal pValue;
-	END;
-	
-	EXPORT DATASET(FTestRec) FTest := PROJECT(Anova, TRANSFORM(FTestRec, SELF.Model_F := LEFT.Model_F;
-									dist := ML.Distribution.FDist(LEFT.Model_DF, LEFT.Error_DF, 100000);
-									SELF.pValue := 1 - dist.cumulative(LEFT.Model_F)));
-	
+  EXPORT DATASET(AICRec) AIC := PROJECT(Anova, TRANSFORM(AICRec, 
+            n := LEFT.Total_DF + 1;
+            p := LEFT.Model_DF + 1;
+            SELF.AIC := n * LN(LEFT.Error_SS / n) + 2 * p; 
+            SELF := LEFT));
+                                
+  FTestRec := RECORD
+    Types.t_FieldReal Model_F;
+    Types.t_FIeldReal pValue;
+  END;
+  
+  EXPORT DATASET(FTestRec) FTest := PROJECT(Anova, TRANSFORM(FTestRec, SELF.Model_F := LEFT.Model_F;
+                  dist := ML.Distribution.FDist(LEFT.Model_DF, LEFT.Error_DF, 100000);
+                  SELF.pValue := 1 - dist.cumulative(LEFT.Model_F)));
+  
 END;

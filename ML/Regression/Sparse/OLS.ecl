@@ -19,11 +19,11 @@ EXPORT OLS(DATASET(NumericField) X,DATASET(NumericField) Y)
 := MODULE(ML.IRegression)
   SHARED DATASET(NumericField) Independents := X;
   SHARED DATASET(NumericField) Dependents := Y;
-	SHARED mY := Types.ToMatrix(Y);
+  SHARED mY := Types.ToMatrix(Y);
   mX_0 := Types.ToMatrix(X);
   SHARED mX := IF(COUNT(mX_0) = 0, 
-										Mat.Vec.ToCol(Mat.Vec.From(Mat.Has(mY).Stats.xmax, 1.0), 1), 
-										Mat.InsertColumn(mX_0, 1, 1.0)); // Insert X1=1 column
+                    Mat.Vec.ToCol(Mat.Vec.From(Mat.Has(mY).Stats.xmax, 1.0), 1), 
+                    Mat.InsertColumn(mX_0, 1, 1.0)); // Insert X1=1 column
   SHARED mXt := Mat.Trans(mX);
   
   // Calculate Betas for model
@@ -64,6 +64,6 @@ EXPORT OLS(DATASET(NumericField) X,DATASET(NumericField) Y)
   // It estimates the fraction of the variance in Y that is explained by X
   rslt := PROJECT(corr_ds(left_number&1=0,left_number+1=right_number), getResult(LEFT));
   EXPORT DATASET(CoRec) RSquared := rslt;
-	
-	EXPORT DATASET(NumericField) var_covar := Types.FromMatrix(Mat.Scale(Mat.Inv(Mat.Mul(mXt, mX)), Anova[1].Error_MS));
+  
+  EXPORT DATASET(NumericField) var_covar := Types.FromMatrix(Mat.Scale(Mat.Inv(Mat.Mul(mXt, mX)), Anova[1].Error_MS));
 END;
