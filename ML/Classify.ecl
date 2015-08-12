@@ -735,7 +735,7 @@ END;
       SHARED NDev := JOIN(Dep, NullMu, LEFT.number = RIGHT.number, dev_t2(RIGHT.Mu, LEFT),LOOKUP); 
       EXPORT DevRes := PROJECT(Dev, TRANSFORM(DevianceRec, SELF.LL := SQRT(LEFT.LL) * IF(LEFT.isGreater, +1, -1); SELF := LEFT));
       EXPORT DevNull := PROJECT(NDev, TRANSFORM(DevianceRec, SELF.LL := SQRT(LEFT.LL) * IF(LEFT.isGreater, +1, -1); SELF := LEFT));
-      SHARED p := COUNT(ML.FieldAggregates(Indep).Cardinality) + 1;
+      SHARED p := MAX(Model(mod), number) + 1;
       EXPORT ResidDev := PROJECT(TABLE(Dev, {classifier, Deviance := SUM(GROUP, LL), DF := COUNT(GROUP) - p}, classifier, FEW, UNSORTED), ResidDevRec);
       EXPORT NullDev := PROJECT(TABLE(NDev, {classifier, Deviance := SUM(GROUP, LL), DF := COUNT(GROUP) - 1}, classifier, FEW, UNSORTED), ResidDevRec);
       EXPORT AIC := PROJECT(ResidDev, TRANSFORM({Types.t_FieldNumber classifier, REAL8 AIC}, 
@@ -790,13 +790,15 @@ END;
   EXPORT Logistic_sparse(REAL8 Ridge=0.00001, REAL8 Epsilon=0.000000001, UNSIGNED2 MaxIter=200) := MODULE(Logistic_Model)
   
     Logis(DATASET(Types.NumericField) X,DATASET(Types.NumericField) Y) := MODULE
-      SHARED mu_comp := ENUM ( Beta = 1,  Y = 2, VC = 3 );
+      SHARED mu_comp := ENUM ( Beta = 1,  Y = 2, VC = 3, Err = 4 );
       SHARED RebaseY := Utils.RebaseNumericField(Y);
       SHARED Y_Map := RebaseY.Mapping(1);
       Y_0 := RebaseY.ToNew(Y_Map);
       mY := Types.ToMatrix(Y_0);
       mX_0 := Types.ToMatrix(X);
-      mX := Mat.InsertColumn(mX_0, 1, 1.0); // Insert X1=1 column 
+      mX := IF(NOT EXISTS(mX_0), 
+                    Mat.Vec.ToCol(Mat.Vec.From(Mat.Has(mY).Stats.xmax, 1.0), 1), 
+                    Mat.InsertColumn(mX_0, 1, 1.0)); // Insert X1=1 column
 
       mXstats := Mat.Has(mX).Stats;
       mX_n := mXstats.XMax;
@@ -828,11 +830,17 @@ END;
         // mBeta := Inv_xTWx * x' * wadjy
         mBeta :=  Mat.Mul(Mat.Mul(Inv_xTWx, Mat.Trans(mX)), W_AdjY);
         err := SUM(Mat.Each.Abs(Mat.Sub(ExpY, OldExpY)),value); 
-        RETURN IF(err < mX_n*Epsilon, BetaPlusY, 
-            Mat.MU.To(mBeta, mu_comp.Beta)+Mat.MU.To(ExpY, mu_comp.Y)+Mat.MU.To(Inv_xTWx, mu_comp.VC));
+        mErr := DATASET([{1,1,err}], Mat.Types.Element);
+        RETURN Mat.MU.To(mBeta, mu_comp.Beta)+
+              Mat.MU.To(ExpY, mu_comp.Y)+
+              Mat.MU.To(Inv_xTWx, mu_comp.VC)+
+              Mat.MU.To(mErr, mu_comp.Err);
       END;
 
-      SHARED BetaPair := LOOP(mBeta00+OldExpY_00+mInv_xTWx00, MaxIter, Step(ROWS(LEFT))); 
+      MaxErr := mX_n*Epsilon;
+      IErr := Mat.MU.To(DATASET([{1,1,mX_n*Epsilon + 1}], Mat.Types.Element), mu_comp.Err);
+      SHARED BetaPair := LOOP(mBeta00+OldExpY_00+mInv_xTWx00+IErr, (COUNTER <= MaxIter) 
+                  AND (Mat.MU.From(ROWS(LEFT), mu_comp.Err)[1].value > MaxErr), Step(ROWS(LEFT)));  
       BetaM := Mat.MU.From(BetaPair, mu_comp.Beta);
       rebasedBetaNF := RebaseY.ToOld(Types.FromMatrix(BetaM), Y_Map);
       BetaNF := Types.FromMatrix(Mat.Trans(Types.ToMatrix(rebasedBetaNF)));
@@ -909,8 +917,12 @@ END;
       SHARED mu_comp := ENUM ( Beta = 1,  Y = 2, BetaError = 3, BetaMaxError = 4, VC = 5 );
       SHARED RebaseY := Utils.RebaseNumericField(Y);
       SHARED Y_Map := RebaseY.Mapping(1);
+      Y_0 := RebaseY.ToNew(Y_Map);
+      SHARED mY := Types.ToMatrix(Y_0);
       mX_0 := Types.ToMatrix(X);
-      SHARED mX := Mat.InsertColumn(mX_0, 1, 1.0); // Insert X1=1 column (Xcols = Xcols+1)
+      SHARED mX := IF(NOT EXISTS(mX_0), 
+                    Mat.Vec.ToCol(Mat.Vec.From(Mat.Has(mY).Stats.xmax, 1.0), 1), 
+                    Mat.InsertColumn(mX_0, 1, 1.0)); // Insert X1=1 column
       mXstats := Mat.Has(mX).Stats;
       mX_n := mXstats.XMax;
       mX_m := mXstats.YMax;
@@ -941,8 +953,6 @@ END;
 
 
       //Create block matrix Y
-      Y_0 := RebaseY.ToNew(Y_Map);
-      mY := Types.ToMatrix(Y_0);
       mYmap := PBblas.Matrix_Map(sizeTable[1].m_rows, 1, sizeTable[1].f_b_rows, 1);
       mYdist := DMAT.Converted.FromElement(mY, mYmap);
 
@@ -1078,8 +1088,14 @@ END;
                   +PBblas.MU.To(xweightsx, mu_comp.VC);
 
       END;
-
-      SHARED BetaPair := LOOP(mBeta00+OldExpY_00
+      
+      errmap := PBblas.Matrix_Map(1, 1, 1, 1);
+      BE := DATASET([{1,1,sizeTable[1].m_cols*Epsilon+1}],Mat.Types.Element);
+      BetaError00 := PBblas.MU.To(DMAT.Converted.FromElement(BE,errmap), mu_comp.BetaError);
+      
+      BME := DATASET([{1,1,sizeTable[1].m_cols*Epsilon}],Mat.Types.Element);
+      BetaMaxError00 := PBblas.MU.To(DMAT.Converted.FromElement(BME,errmap), mu_comp.BetaMaxError); 
+      SHARED BetaPair := LOOP(mBeta00+OldExpY_00+BetaError00+BetaMaxError00
             , (COUNTER<=MaxIter)
               AND (DMAT.Converted.FromPart2Elm(PBblas.MU.From(ROWS(LEFT),mu_comp.BetaError))[1].value > 
               DMAT.Converted.FromPart2Elm(PBblas.MU.From(ROWS(LEFT),mu_comp.BetaMaxError))[1].value)
@@ -1105,9 +1121,9 @@ END;
       END;
 
       Res := FUNCTION
-        ret0 := PROJECT(Beta,TRANSFORM(Logis_Model,SELF.Id := COUNTER+Base,SELF.number := LEFT.number,
+        ret0 := PROJECT(Beta,TRANSFORM(Logis_Model,SELF.Id := COUNTER+Base,SELF.number := LEFT.number-1,
                               SELF.class_number := LEFT.id, SELF.w := LEFT.value, SELF.SE := 0.0));
-        ret := JOIN(ret0, SE, LEFT.number = RIGHT.number AND LEFT.class_number = RIGHT.id, 
+        ret := JOIN(ret0, SE, LEFT.number+1 = RIGHT.number AND LEFT.class_number = RIGHT.id, 
                     TRANSFORM(Logis_Model,
                               SELF.Id := LEFT.Id,SELF.number := LEFT.number, 
                               SELF.class_number := LEFT.class_number, SELF.w := LEFT.w, SELF.se := SQRT(RIGHT.value)));
@@ -1126,7 +1142,7 @@ END;
     EXPORT ClassifyS(DATASET(Types.NumericField) Indep,DATASET(Types.NumericField) mod) := FUNCTION
 
       mod0 := Model(mod);
-      Beta_0 := PROJECT(mod0,TRANSFORM(Types.NumericField,SELF.Number := LEFT.Number,SELF.id := LEFT.class_number, SELF.value := LEFT.w;SELF:=LEFT;));
+      Beta_0 := PROJECT(mod0,TRANSFORM(Types.NumericField,SELF.Number := LEFT.Number+1,SELF.id := LEFT.class_number, SELF.value := LEFT.w;SELF:=LEFT;));
       RebaseBeta := Utils.RebaseNumericFieldID(Beta_0);
       Beta0_Map := RebaseBeta.MappingID(1);
       Beta0 := RebaseBeta.ToNew(Beta0_Map);
