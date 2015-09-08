@@ -1,4 +1,4 @@
-//    Ordinary least squares regression using dense matrix structures.
+﻿//    Ordinary least squares regression using dense matrix structures.
 
 //The object of the regression module is to generate a regression model.
 //A regression model relates the dependent variable Y to a function of
@@ -56,7 +56,7 @@ EXPORT OLS(DATASET(NumericField) X,DATASET(NumericField) Y)
   // the model Y values.
   y_est := PBblas.PB_dgemm(FALSE, FALSE, 1.0, x_map, x_part, b_map, BetasAsPartition, y_map);
   EXPORT DATASET(Part) modelY_part := y_est;
-  Y_numbers := SET(dedup(sort(Y,number),number),number);
+  Y_numbers := SET(DEDUP(SORT(Y,number),number),number);
   y_est_nf := DMat.Converted.FromPart2DS(modelY_part)(number IN Y_numbers);
   EXPORT DATASET(NumericField) modelY := y_est_nf;
 
@@ -71,7 +71,7 @@ EXPORT OLS(DATASET(NumericField) X,DATASET(NumericField) Y)
     RETURN ny_ex;
   END;
   EXPORT DATASET(NumericField) Extrapolated(DATASET(NumericField) newX) := FUNCTION
-    newX_numbers := SET(dedup(sort(newX,number),number),number);
+    newX_numbers := SET(DEDUP(SORT(newX,number),number),number);
     yex_p := Extrapolated_part(newX);
     rslt := DMat.Converted.FromPart2DS(yex_p)(number NOT IN newX_numbers);
     RETURN rslt;
@@ -92,4 +92,13 @@ EXPORT OLS(DATASET(NumericField) X,DATASET(NumericField) Y)
     SELF.RSquared := cov_cor.pearson * cov_cor.pearson;
   END;
   EXPORT DATASET(CoRec)  RSquared := PROJECT(y_yhat, makeRSQ(LEFT));
+  
+  xT_map := DMat.Trans.TranMap(x_map);
+  xTx_map := Matrix_Map(xT_map.matrix_rows, x_map.matrix_cols, xT_map.part_rows(1), x_map.part_cols(1));
+  
+  xTx_part := PBBlas.PB_dgemm(TRUE, FALSE, 1.0, x_map, x_part, x_map, x_part, xTx_map);
+  inv_xTx_part := DMat.Inv(xTx_map, xTx_part);
+  var_covar_part := DMat.Scale(xTx_map, Anova[1].Error_MS, inv_xTx_part);
+  
+  EXPORT DATASET(NumericField) var_covar := DMat.Converted.FromPart2DS(var_covar_part);
 END;
