@@ -1493,7 +1493,7 @@ The model  is used to predict the class from new examples.
       minNumObj   minimum number of instances in a leaf node, used in splitting process
       maxLevel    stop learning criteria, either tree's level reachs maxLevel depth or no more split can be done.
 */
-    EXPORT C45Binary(t_Count minNumObj=2, ML.Trees.t_level maxLevel=32) := MODULE(DEFAULT)
+    EXPORT C45Binary(t_Count minNumObj=2, t_level maxLevel=32) := MODULE(DEFAULT)
       EXPORT LearnC(DATASET(Types.NumericField) Indep, DATASET(Types.DiscreteField) Dep) := FUNCTION
         nodes := Trees.SplitBinaryCBased(Indep, Dep, minNumObj, maxLevel);
         RETURN ML.Trees.ToNumericTree(nodes);

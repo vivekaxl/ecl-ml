@@ -9,19 +9,11 @@ EXPORT Ensemble := MODULE
 
   // Splitting Results Data Structures
   EXPORT gSplitD := RECORD
-    NodeID;
-    t_FieldNumber number;       // The attribute used to split
-    t_Discrete    value;        // The discrete value for the attribute in question
-    t_node        new_node_id;  // The new node identifier this branch links to
-    t_Count       support:=0;   // Support during learning
+    Trees.SplitD;
     t_Count       group_id;     // Tree Number Identifier
   END;
   EXPORT gSplitC := RECORD
-    NodeID;
-    t_FieldNumber number;       // The attribute used to split
-    t_FieldReal   value;        // The cutpoint value for the attribute in question
-    INTEGER1      high_fork:=0; // Fork Flag - 0: lower or equal than value, 1: greater than value
-    t_node        new_node_id;  // The new node identifier this branch links to
+    Trees.SplitC;
     t_Count       group_id;     // Tree Number Identifier
   END;
   
@@ -48,8 +40,8 @@ EXPORT Ensemble := MODULE
   // Learning TRANSFORMs and FUNCTIONs - Internal
   SHARED DepGroupedRec GroupDepRecords (DiscreteField l, Sampling.idListGroupRec r) := TRANSFORM
     SELF.group_id := r.gNum;
-    SELF.new_id		:= r.id;
-    SELF					:= l;
+    SELF.new_id   := r.id;
+    SELF          := l;
   END;
   SHARED NxKoutofM(t_Count N, t_FieldNumber K, t_FieldNumber M) := FUNCTION
     rndFeatRec:= RECORD
