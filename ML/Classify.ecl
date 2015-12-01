@@ -1600,8 +1600,8 @@ Configuration Input
       t_Discrete  c_modeled;
     END;
     classOfInterest := classProbDist(value = positiveClass);
-    dCPD  := DISTRIBUTE(classOfInterest, HASH(id));
-    dDep  := DISTRIBUTE(allDep, HASH(id));
+    dCPD  := DISTRIBUTE(classOfInterest, HASH32(id));
+    dDep  := DISTRIBUTE(allDep, HASH32(id));
     compared:= JOIN(dCPD, dDep, LEFT.id=RIGHT.id AND LEFT.number=RIGHT.number,
                             TRANSFORM(compREC, SELF.classifier:= RIGHT.number, SELF.c_actual:=RIGHT.value,
                             SELF.c_modeled:= positiveClass, SELF.score:=ROUND(LEFT.conf, 14)), RIGHT OUTER, LOCAL);

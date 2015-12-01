@@ -83,16 +83,16 @@ EXPORT Ensemble := MODULE
     depth   := MIN(255, maxLevel);  // Max number of iterations when building trees (max 256 levels)
     // Sampling with replacement the original dataset to generate treeNum Datasets
     grList0   := Sampling.GenerateNSampleList(treeNum, N); // the number of records will be N * treeNum
-    dgrLstOld := DISTRIBUTE(grList0  , HASH(oldId));
-    dDep      := DISTRIBUTE(Dep      , HASH(id));
-    dIndep    := DISTRIBUTE(Indep    , HASH(id));
+    dgrLstOld := DISTRIBUTE(grList0  , HASH32(oldId));
+    dDep      := DISTRIBUTE(Dep      , HASH32(id));
+    dIndep    := DISTRIBUTE(Indep    , HASH32(id));
     // Generating initial node-instance recordset, all instances go to their respective tree's root
     roots     := JOIN(dDep, dgrLstOld, LEFT.id = RIGHT.oldId, init(LEFT, RIGHT), LOCAL);
-    distRoots := DISTRIBUTE(roots, HASH(group_id, node_id));
+    distRoots := DISTRIBUTE(roots, HASH32(group_id, node_id));
     // Calculated only once, used at each iteration inside loopbody
     all_Data0 := JOIN(dIndep, dgrLstOld, LEFT.id = RIGHT.oldId, GetDRecords(LEFT, RIGHT), LOCAL);
-    all_Data  := DISTRIBUTE(all_Data0, HASH(id));
-    dgrLstNew := DISTRIBUTE(grList0  , HASH(id));
+    all_Data  := DISTRIBUTE(all_Data0, HASH32(id));
+    dgrLstNew := DISTRIBUTE(grList0  , HASH32(id));
     // loopbody function
     gNodeInstDisc RndFeatSelPartitionGIBased(DATASET(gNodeInstDisc) nodes, t_Count nTrees, t_Count kFeatSel, t_Count mTotFeats, t_Count p_level, REAL Purity=1.0):= FUNCTION
       // Compute 1-gini coefficient for each node for each field for each value
@@ -111,14 +111,14 @@ EXPORT Ensemble := MODULE
       pass_thru     := PROJECT(pureNodes(pure = TRUE), gNodeInstDisc, LOCAL);
       nodes_toSplit := PROJECT(pureNodes(pure = FALSE), gNodeInstDisc, LOCAL);        
       // Gather only the data needed for each LOOP iteration,
-      // featSetInst preserves dgrLstNew distribution, then it can be JOINed LOCALly with all_Data (HASH(id) distribution also)
+      // featSetInst preserves dgrLstNew distribution, then it can be JOINed LOCALly with all_Data (HASH32(id) distribution also)
       featSet       := NxKoutofM(nTrees, kFeatSel, mTotFeats);  // generating list of features selected for each tree
       featSetInst   := JOIN(dgrLstNew, featSet, LEFT.gNum = RIGHT.gNum, MANY LOOKUP);
       loop_Data     := JOIN(all_Data, featSetInst, LEFT.id = RIGHT.id AND LEFT.number = RIGHT.number, TRANSFORM(LEFT), LOCAL);
       // splitting the instances that did not reach a leaf node
-      distNod_Split := DISTRIBUTE(nodes_toSplit, HASH(id));
+      distNod_Split := DISTRIBUTE(nodes_toSplit, HASH32(id));
       toSplit       := JOIN(loop_Data, distNod_Split, LEFT.id = RIGHT.id, TRANSFORM(gNodeInstDisc, SELF.number:= LEFT.number; SELF.value:= LEFT.value; SELF:= RIGHT;), LOCAL);
-      this_set      := DISTRIBUTE(toSplit, HASH(group_id, node_id));
+      this_set      := DISTRIBUTE(toSplit, HASH32(group_id, node_id));
       agg           := TABLE(this_set, {group_id, node_id, number, value, depend,Cnt := COUNT(GROUP)}, group_id, node_id, number, value, depend, LOCAL);
       aggc          := TABLE(agg, {group_id, node_id, number, value, TCnt := SUM(GROUP, Cnt)}, group_id, node_id, number, value, LOCAL);
       r := RECORD
@@ -136,7 +136,7 @@ EXPORT Ensemble := MODULE
       node_base := MAX(nodes, node_id);
       new_split := PROJECT(new_spl0, TRANSFORM(gNodeInstDisc, SELF.value:= node_base + COUNTER; SELF.depend:= LEFT.value;
                                                SELF.level:= p_level; SELF.support:= LEFT.TCnt; SELF := LEFT; SELF := [];));
-//      dnew_spl  := DISTRIBUTE(new_split, HASH(group_id, node_id));
+//      dnew_spl  := DISTRIBUTE(new_split, HASH32(group_id, node_id));
       dnew_spl  := new_split;   // PROJECT did not change recordset distribution
       // reasigning instances to new nodes
       node_inst := JOIN(this_set, dnew_spl, LEFT.group_id = RIGHT.group_id AND LEFT.node_id=RIGHT.node_id AND LEFT.number=RIGHT.number AND LEFT.value=RIGHT.depend,
@@ -181,17 +181,17 @@ EXPORT Ensemble := MODULE
       SELF.depend   := Dep.value;
     END;
     grList0   := Sampling.GenerateNSampleList(treeNum, N); // the number of records will be N * treeNum
-    dgrLstOld := DISTRIBUTE(grList0  , HASH(oldId));
-    dDep      := DISTRIBUTE(Dep      , HASH(Id));
+    dgrLstOld := DISTRIBUTE(grList0  , HASH32(oldId));
+    dDep      := DISTRIBUTE(Dep      , HASH32(Id));
     depG      := JOIN(dDep, dgrLstOld, LEFT.id = RIGHT.oldId, init(LEFT, RIGHT), LOCAL);
-    dIndep    := DISTRIBUTE(Indep     , HASH(id));
+    dIndep    := DISTRIBUTE(Indep     , HASH32(id));
     all_Data0 := JOIN(dIndep, dgrLstOld, LEFT.id = RIGHT.oldId, GetDRecords(LEFT, RIGHT), LOCAL);
     // Calculated only once, used at each iteration inside loopbody
-    all_Data  := DISTRIBUTE(all_Data0, HASH(id));
-    dgrLstNew := DISTRIBUTE(grList0  , HASH(id));
+    all_Data  := DISTRIBUTE(all_Data0, HASH32(id));
+    dgrLstNew := DISTRIBUTE(grList0  , HASH32(id));
     // loopbody function
     gNodeInstDisc RndFeatSelPartitionGRBased(DATASET(gNodeInstDisc) nodes, t_Count p_level):= FUNCTION
-      dNodes := DISTRIBUTE(nodes, HASH(group_id, node_id));
+      dNodes := DISTRIBUTE(nodes, HASH32(group_id, node_id));
       // Calculating Information Entropy of Nodes
       top_dep     := TABLE(dNodes , {group_id, node_id, depend, cnt:= COUNT(GROUP)}, group_id, node_id, depend, LOCAL);
       top_dep_tot := TABLE(top_dep, {group_id, node_id, tot:= SUM(GROUP, cnt)}     , group_id, node_id, LOCAL);
@@ -210,15 +210,15 @@ EXPORT Ensemble := MODULE
       pass_thru := JOIN(top_dep, PureNodes, LEFT.group_id = RIGHT.group_id AND LEFT.node_id=RIGHT.node_id, TRANSFORM(gNodeInstDisc,
                        SELF.level:= p_level, SELF.depend:=LEFT.depend, SELF.support:=LEFT.cnt, SELF.id:=0, SELF.number:=0, SELF.value:=0, SELF:=LEFT), LOCAL);
       // New working set after removing pass through node-instances
-      nodes_toSplit := DISTRIBUTE(JOIN(dnodes, PureNodes, LEFT.node_id=RIGHT.node_id, TRANSFORM(LEFT), LEFT ONLY, LOCAL), HASH(id));
+      nodes_toSplit := DISTRIBUTE(JOIN(dnodes, PureNodes, LEFT.node_id=RIGHT.node_id, TRANSFORM(LEFT), LEFT ONLY, LOCAL), HASH32(id));
       // Gather only the data needed for each LOOP iteration,
-      // featSetInst preserves dgrLstNew distribution, then it can be JOINed LOCALly with all_Data (HASH(id) distribution also)
+      // featSetInst preserves dgrLstNew distribution, then it can be JOINed LOCALly with all_Data (HASH32(id) distribution also)
       featSet   := NxKoutofM(treeNum, fsNum, totFeat);  // generating list of features selected for each tree
       ftSetInst := JOIN(dgrLstNew, featSet, LEFT.gNum = RIGHT.gNum, MANY LOOKUP);
       loop_Data := JOIN(all_Data, ftSetInst, LEFT.id = RIGHT.id AND LEFT.number = RIGHT.number, TRANSFORM(LEFT), LOCAL);
       // Populating nodes' attributes to split
       toSplit   := JOIN(loop_Data, nodes_toSplit, LEFT.id = RIGHT.id, TRANSFORM(gNodeInstDisc, SELF.number:= LEFT.number; SELF.value:= LEFT.value; SELF:= RIGHT;), LOCAL);
-      this_set  := DISTRIBUTE(toSplit, HASH(group_id, node_id));
+      this_set  := DISTRIBUTE(toSplit, HASH32(group_id, node_id));
       // Calculating Information Gain of possible splits
       child       := TABLE(this_set, {group_id, node_id, number, value, depend, cnt := COUNT(GROUP)}, group_id, node_id, number, value, depend, LOCAL);
       child_tot := TABLE(child,    {group_id, node_id, number, value, tot := SUM(GROUP, cnt)},      group_id, node_id, number, value, LOCAL);
@@ -319,7 +319,7 @@ EXPORT Ensemble := MODULE
       t_Count group_id;
     END;
     depth:=MAX(mod, level);
-    dMod := DISTRIBUTE(mod, HASH(node_id, number));
+    dMod := DISTRIBUTE(mod, HASH32(node_id, number));
     aCCmod := TABLE(dMod, {node_id, number, tot:= SUM(GROUP, support)}, node_id, number, LOCAL);
     wNodes := JOIN(dMod, aCCmod, LEFT.node_id=RIGHT.node_id AND LEFT.number=RIGHT.number, TRANSFORM(wNode,
                     SELF.weight:= LEFT.support/RIGHT.tot, SELF:=LEFT), LOCAL);
@@ -349,7 +349,7 @@ EXPORT Ensemble := MODULE
   EXPORT ClassProbDistribForestD(DATASET(DiscreteField) Indep, DATASET(NumericField) mod) := FUNCTION
     nodes  := FromDiscreteForest(mod);
     dataSplitted:= gSplitInstancesD(nodes, Indep);
-    dDS    := DISTRIBUTE(dataSplitted, HASH(id));
+    dDS    := DISTRIBUTE(dataSplitted, HASH32(id));
     accDS  := TABLE(dDS, {id, group_id, value, sumWeight:= SUM(GROUP, weight)}, id, group_id, value, LOCAL);
     sortDS := SORT(accDS, id, group_id, value, -sumWeight, LOCAL);
     ddupDS := DEDUP(sortDS, id, group_id, LOCAL);
