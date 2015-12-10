@@ -47,43 +47,43 @@ X2           5.1895742 38.03243
 
 */
 
-	IMPORT ML;
+  IMPORT ML;
    value_record := RECORD
    UNSIGNED rid;
    UNSIGNED X_1;
    REAL X_2;
    REAL Y;
    END;
-   d := DATASET([{1,1,0.13197,25.114},	{2,3,0.94205,72.009},	{3,5,0.95613,71.9}, {4,7,0.57521,97.906},
-		{5,9,0.05978,102.2},	{6,11,0.23478,118.48},	{7,13,0.35316,145.83},	{8,15,0.82119,181.51},
-		{9,17,0.015403,197.38},	{10,19,0.043024,214.03},{11,21,0.16899,216.61},	{12,23,0.64912,270.63},
-		{13,25,0.73172,281.17},	{14,27,0.64775,295.11},	{15,29,0.45092,314.04},{16,31,0.54701,331.86},
-		{17,33,0.29632,345.95},{18,35,0.74469,385.31},{19,37,0.18896,390.91},{20,39,0.68678,423.49}],value_record);
+   d := DATASET([{1,1,0.13197,25.114},  {2,3,0.94205,72.009}, {3,5,0.95613,71.9}, {4,7,0.57521,97.906},
+    {5,9,0.05978,102.2},  {6,11,0.23478,118.48},  {7,13,0.35316,145.83},  {8,15,0.82119,181.51},
+    {9,17,0.015403,197.38}, {10,19,0.043024,214.03},{11,21,0.16899,216.61}, {12,23,0.64912,270.63},
+    {13,25,0.73172,281.17}, {14,27,0.64775,295.11}, {15,29,0.45092,314.04},{16,31,0.54701,331.86},
+    {17,33,0.29632,345.95},{18,35,0.74469,385.31},{19,37,0.18896,390.91},{20,39,0.68678,423.49}],value_record);
    ML.ToField(d,o);
    X := O(Number = 1 OR Number = 2); // Pull out the X
    Y := O(Number = 3); // Pull out the Y
    model := ML.Regression.sparse.OLS_LU(X,Y);
-	 model.Betas;
-	 model.var_covar;
-	 model.SE;
-	 model.tStat;
-	 model.pVal;
-	 model.Anova;
-	 model.FTest;
-	 model.RSquared;
-	 model.AdjRSquared;
-	 model.confInt(95);
-	 model.confInt(99);
-	 
-	 model_dense := ML.Regression.Dense.OLS_LU(X, Y);
-	 model_dense.Betas;
-	 model_dense.var_covar;
-	 model_dense.SE;
-	 model_dense.tStat;
-	 model_dense.pVal;
-	 model_dense.Anova;
-	 model.FTest;
-	 model_dense.RSquared;
-	 model_dense.AdjRSquared;
-	 model.confInt(95);
-	 model.confInt(99);
+   model.Betas;
+   model.var_covar;
+   model.SE;
+   model.tStat;
+   model.pVal;
+   model.Anova;
+   model.FTest;
+   model.RSquared;
+   model.AdjRSquared;
+   model.confInt(95);
+   model.confInt(99);
+   
+   model_dense := ML.Regression.Dense.OLS_LU(X, Y);
+   model_dense.Betas;
+   model_dense.var_covar;
+   model_dense.SE;
+   model_dense.tStat;
+   model_dense.pVal;
+   model_dense.Anova;
+   model.FTest;
+   model_dense.RSquared;
+   model_dense.AdjRSquared;
+   model.confInt(95);
+   model.confInt(99);
