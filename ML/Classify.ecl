@@ -138,7 +138,7 @@ END;
     END;
   END;
 
-  EXPORT NaiveBayes := MODULE(DEFAULT)
+  EXPORT NaiveBayes(BOOLEAN IgnoreMissing = FALSE) := MODULE(DEFAULT)
     SHARED SampleCorrection := 1;
     SHARED LogScale(REAL P) := -LOG(P)/LOG(2);
 
@@ -221,6 +221,7 @@ END;
       // Generating feature domain per feature (class_number only used when multiple classifiers being produced at once)
       AttValues := TABLE(Cnts, AttribValue_Rec, class_number, number, f, FEW);
       AttCnts   := TABLE(AttValues, {class_number, number, ocurrence:= COUNT(GROUP)},class_number, number, FEW); // Summarize 
+      AttValIgnoreMissing := JOIN(AttValues, AttCnts(ocurrence=1), LEFT.class_number = RIGHT.class_number AND LEFT.number = RIGHT.number,TRANSFORM(LEFT), LEFT ONLY, LOOKUP);
       AttrValue_per_Class_Rec := RECORD
         Types.t_Discrete c;
         AttValues.f;
@@ -233,7 +234,7 @@ END;
         SELF.c:= ri.value;
         SELF:= le;
       END;
-      ATots:= JOIN(AttValues, CTots, LEFT.class_number = RIGHT.number, form_cl_attr(LEFT, RIGHT), MANY LOOKUP, FEW);
+      ATots:= JOIN(IF(IgnoreMissing, AttValIgnoreMissing, AttValues), CTots, LEFT.class_number = RIGHT.number, form_cl_attr(LEFT, RIGHT), MANY LOOKUP, FEW);
       // Counting feature value ocurrence per class x feature, remains 0 if combination not present in dataset
       ATots form_ACnts(ATots le, Cnts ri) := TRANSFORM
         SELF.support  := ri.support;
@@ -317,10 +318,14 @@ END;
       END;
       MissingNoted := JOIN(Tsum,FTots,LEFT.id=RIGHT.id,NoteMissing(LEFT,RIGHT),LOOKUP);
       InterCounted NoteC(MissingNoted le,mo ri) := TRANSFORM
-        SELF.P := le.P+ri.PC+le.Missing*LogScale(SampleCorrection/ri.f);
+        SELF.P := le.P + ri.PC + IF(IgnoreMissing, 0, le.Missing*LogScale(SampleCorrection/ri.f));
         SELF := le;
       END;
-      CNoted := JOIN(MissingNoted,mo(number=0),LEFT.c=RIGHT.c,NoteC(LEFT,RIGHT),LOOKUP);
+      CNoted0 := JOIN(MissingNoted,mo(number=0),LEFT.c=RIGHT.c,NoteC(LEFT,RIGHT),LOOKUP);
+      // dealing with floating precision
+      minP    := TABLE(CNoted0, {class_number, id, pmin:= MIN(GROUP, p)}, class_number, id, LOCAL); // find minimum p per id
+      CNoted  := JOIN(CNoted0, minP, LEFT.class_number = RIGHT.class_number AND LEFT.id = RIGHT.id, 
+                        TRANSFORM(InterCounted, SELF.p:= LEFT.p - RIGHT.pmin, SELF:=LEFT), LOCAL);  // rebasing p before normalizing
       l_result toResult(CNoted le) := TRANSFORM
         SELF.id := le.id;               // Instance ID
         SELF.number := le.class_number; // Classifier ID
