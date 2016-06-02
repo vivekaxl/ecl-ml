@@ -29,12 +29,12 @@ EXPORT SET OF REAL8 makeR8Set(dimension_t r, dimension_t s,
     for (i=0; i<r*s; i++) {
       result[i] =  i/r < insert_columns  ? insert_value   : 0.0;
     }
-    uint32_t x, y;
+    int x, y;
     for (i=0; i<cells; i++) {
       x = cell[i].x - first_row;                   // input co-ordinates are one based,
       y = cell[i].y + insert_columns - first_col;  //x and y are zero based.
-      if(x < 0 || x >= r) continue;   // cell does not belong
-      if(y < 0 || y >= s) continue;
+      if(x < 0 || (uint32_t) x >= r) continue;   // cell does not belong
+      if(y < 0 || (uint32_t) y >= s) continue;
       pos = (y*r) + x;
       result[pos] = cell[i].v;
     }
