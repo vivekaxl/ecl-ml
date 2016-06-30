@@ -1533,12 +1533,18 @@ Configuration Input
 */
   EXPORT RandomForest(t_Count treeNum, t_Count fsNum, REAL Purity=1.0, t_level Depth=32, BOOLEAN GiniSplit = TRUE):= MODULE
     EXPORT LearnD(DATASET(Types.DiscreteField) Indep, DATASET(Types.DiscreteField) Dep) := FUNCTION
-      nodes := IF(GiniSplit, Ensemble.SplitFeatureSampleGI(Indep, Dep, treeNum, fsNum, Purity, Depth), 
-                             Ensemble.SplitFeatureSampleIGR(Indep, Dep, treeNum, fsNum, Depth));
+       firstId := Dep[1].id;
+       noofIndependent := COUNT(Indep(id = firstId));      
+       Indepok := ASSERT(Indep, fsNum<noofIndependent, 'The number of features to consider when looking for the best split cannot be greater than total number of features', FAIL);
+      nodes := IF(GiniSplit, Ensemble.SplitFeatureSampleGI(Indepok, Dep, treeNum, fsNum, Purity, Depth), 
+                             Ensemble.SplitFeatureSampleIGR(Indepok, Dep, treeNum, fsNum, Depth));
       RETURN ML.Ensemble.ToDiscreteForest(nodes);
     END;
     EXPORT LearnC(DATASET(Types.NumericField) Indep, DATASET(Types.DiscreteField) Dep) := FUNCTION
-      nodes := Ensemble.SplitFeatureSampleGIBin(Indep, Dep, treeNum, fsNum, Purity, Depth);
+      firstId := Dep[1].id;
+      noofIndependent := COUNT(Indep(id = firstId));  
+      Indepok := ASSERT(Indep, fsNum<noofIndependent, 'The number of features to consider when looking for the best split cannot be greater than total number of features', FAIL);
+      nodes := Ensemble.SplitFeatureSampleGIBin(Indepok, Dep, treeNum, fsNum, Purity, Depth);
       RETURN ML.Ensemble.ToContinuosForest(nodes);
     END;
     // Transform NumericFiled "mod" to Ensemble.gSplitF "discrete tree nodes" model format using field map model_Map
