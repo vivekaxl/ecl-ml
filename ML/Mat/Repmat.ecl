@@ -1,17 +1,17 @@
-﻿IMPORT * FROM ML.Mat;
+﻿IMPORT ML.Mat AS ML_Mat;
 // replicates/tiles a matrix - creates a large matrix consisiting of
 // an M-by-N tiling of copies of A
-EXPORT Repmat(DATASET(Types.Element) A, UNSIGNED M, UNSIGNED N) := FUNCTION
+EXPORT Repmat(DATASET(ML_Mat.Types.Element) A, UNSIGNED M, UNSIGNED N) := FUNCTION
 
-	Stats := Has(A).Stats;
-	Mat.Types.Element ReplicateM(Types.Element le,UNSIGNED C) := TRANSFORM
+	Stats := ML_Mat.Has(A).Stats;
+	ML_Mat.Types.Element ReplicateM(ML_Mat.Types.Element le,UNSIGNED C) := TRANSFORM
 		SELF.x := le.x+Stats.XMax*(C-1);
 		SELF := le;
 	END;
 	
   AM := NORMALIZE(A,M,ReplicateM(LEFT,COUNTER)); 
 	
-	Types.Element ReplicateN(Types.Element le,UNSIGNED C) := TRANSFORM
+	ML_Mat.Types.Element ReplicateN(ML_Mat.Types.Element le,UNSIGNED C) := TRANSFORM
 		SELF.y := le.y+ Stats.YMax*(C-1);
 		SELF := le;
 	END;

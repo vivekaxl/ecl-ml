@@ -1,9 +1,10 @@
 ﻿IMPORT ML;
-IMPORT * FROM $;
-IMPORT $.Mat;
-IMPORT * FROM ML.Types;
+IMPORT ML.Mat;
+IMPORT ML.Types;
 IMPORT PBblas;
 IMPORT ML.SVM;
+IMPORT ML.Utils AS Utils;
+IMPORT ML.DMAT as DMAT;
 Layout_Cell := PBblas.Types.Layout_Cell;
 
 /*
@@ -18,7 +19,7 @@ SHARED l_result := Types.l_result;
 
 SHARED l_model := RECORD
   Types.t_RecordId    id := 0;      // A record-id - allows a model to have an ordered sequence of results
-  Types.t_FieldNumber number;       // A reference to a feature (or field) in the independants
+  ML.Types.t_FieldNumber number;       // A reference to a feature (or field) in the independants
   Types.t_Discrete    class_number; // The field number of the dependant variable
   REAL8 w;
 END;
@@ -28,9 +29,9 @@ END;
 // Expects the dependents (classification tags deemed to be true)
 // Computeds - classification tags created by the classifier
 */
-EXPORT Compare(DATASET(Types.DiscreteField) Dep,DATASET(l_result) Computed) := MODULE
+EXPORT Compare(DATASET(ML.Types.DiscreteField) Dep,DATASET(l_result) Computed) := MODULE
   DiffRec := RECORD
-    Types.t_FieldNumber classifier;  // The classifier in question (value of 'number' on outcome data)
+    ML.Types.t_FieldNumber classifier;  // The classifier in question (value of 'number' on outcome data)
     Types.t_Discrete  c_actual;      // The value of c provided
     Types.t_Discrete  c_modeled;     // The value produced by the classifier
     Types.t_FieldReal score;         // Score allocated by classifier
@@ -44,10 +45,10 @@ EXPORT Compare(DATASET(Types.DiscreteField) Dep,DATASET(l_result) Computed) := M
   SHARED J := JOIN(Computed,Dep,LEFT.id=RIGHT.id AND LEFT.number=RIGHT.number,notediff(LEFT,RIGHT));
   // Building the Confusion Matrix
   SHARED ConfMatrix_Rec := RECORD
-    Types.t_FieldNumber classifier; // The classifier in question (value of 'number' on outcome data)
+    ML.Types.t_FieldNumber classifier; // The classifier in question (value of 'number' on outcome data)
     Types.t_Discrete c_actual;      // The value of c provided
     Types.t_Discrete c_modeled;     // The value produced by the classifier
-    Types.t_FieldNumber Cnt:=0;     // Number of occurences
+    ML.Types.t_FieldNumber Cnt:=0;     // Number of occurences
   END;
   SHARED class_cnt := TABLE(Dep,{classifier:= number, c_actual:= value, Cnt:= COUNT(GROUP)},number, value, FEW); // Looking for class values
   ConfMatrix_Rec form_cfmx(class_cnt le, class_cnt ri) := TRANSFORM
@@ -74,7 +75,7 @@ EXPORT Compare(DATASET(Types.DiscreteField) Dep,DATASET(l_result) Computed) := M
 //FP_Rate_ByClass, it returns the proportion of instances not belonging to a class that were incorrectly classified as this class,
 //                 also known as False Positive rate FP / (FP + TN).
   FalseRate_rec := RECORD
-    Types.t_FieldNumber classifier; // The classifier in question (value of 'number' on outcome data)
+    ML.Types.t_FieldNumber classifier; // The classifier in question (value of 'number' on outcome data)
     Types.t_Discrete c_modeled;     // The value produced by the classifier
     Types.t_FieldReal fp_rate;      // False Positive Rate
   END;
@@ -101,24 +102,24 @@ END;
       RETURN sofar+UB+UO;
     END;
     // Learn from continuous data
-    EXPORT LearnC(DATASET(Types.NumericField) Indep,DATASET(Types.DiscreteField) Dep) := DATASET([],Types.NumericField); // All classifiers serialized to numeric field format
+    EXPORT LearnC(DATASET(Types.NumericField) Indep,DATASET(ML.Types.DiscreteField) Dep) := DATASET([],Types.NumericField); // All classifiers serialized to numeric field format
     // Learn from discrete data - worst case - convert to continuous
-    EXPORT LearnD(DATASET(Types.DiscreteField) Indep,DATASET(Types.DiscreteField) Dep) := LearnC(PROJECT(Indep,Types.NumericField),Dep);
+    EXPORT LearnD(DATASET(ML.Types.DiscreteField) Indep,DATASET(ML.Types.DiscreteField) Dep) := LearnC(PROJECT(Indep,Types.NumericField),Dep);
     // Learn from continuous data - using a prebuilt model
     EXPORT ClassifyC(DATASET(Types.NumericField) Indep,DATASET(Types.NumericField) mod) := DATASET([],l_result);
     // Classify discrete data - using a prebuilt model
-    EXPORT ClassifyD(DATASET(Types.DiscreteField) Indep,DATASET(Types.NumericField) mod) := ClassifyC(PROJECT(Indep,Types.NumericField),mod);
-    EXPORT TestD(DATASET(Types.DiscreteField) Indep,DATASET(Types.DiscreteField) Dep) := FUNCTION
+    EXPORT ClassifyD(DATASET(ML.Types.DiscreteField) Indep,DATASET(Types.NumericField) mod) := ClassifyC(PROJECT(Indep,Types.NumericField),mod);
+    EXPORT TestD(DATASET(ML.Types.DiscreteField) Indep,DATASET(ML.Types.DiscreteField) Dep) := FUNCTION
       a := LearnD(Indep,Dep);
       res := ClassifyD(Indep,a);
       RETURN Compare(Dep,res);
     END;
-    EXPORT TestC(DATASET(Types.NumericField) Indep,DATASET(Types.DiscreteField) Dep) := FUNCTION
+    EXPORT TestC(DATASET(Types.NumericField) Indep,DATASET(ML.Types.DiscreteField) Dep) := FUNCTION
       a := LearnC(Indep,Dep);
       res := ClassifyC(Indep,a);
       RETURN Compare(Dep,res);
     END;
-    EXPORT LearnDConcat(DATASET(Types.DiscreteField) Indep,DATASET(Types.DiscreteField) Dep, LearnD fnc) := FUNCTION
+    EXPORT LearnDConcat(DATASET(ML.Types.DiscreteField) Indep,DATASET(ML.Types.DiscreteField) Dep, LearnD fnc) := FUNCTION
       // Call fnc once for each dependency; concatenate the results
       // First get all the dependant numbers
       dn := DEDUP(Dep,number,ALL);
@@ -127,7 +128,7 @@ END;
       END;
       RETURN LOOP(DATASET([],Types.NumericField),COUNT(dn),loopBody(ROWS(LEFT),COUNTER));
     END;
-    EXPORT LearnCConcat(DATASET(Types.NumericField) Indep,DATASET(Types.DiscreteField) Dep, LearnC fnc) := FUNCTION
+    EXPORT LearnCConcat(DATASET(Types.NumericField) Indep,DATASET(ML.Types.DiscreteField) Dep, LearnC fnc) := FUNCTION
       // Call fnc once for each dependency; concatenate the results
       // First get all the dependant numbers
       dn := DEDUP(Dep,number,ALL);
@@ -150,7 +151,7 @@ END;
       Types.t_RecordId    id := 0;        // A record-id - allows a model to have an ordered sequence of results
       Types.t_Discrete    class_number;   // Dependent "number" value - Classifier ID
       Types.t_discrete    c;              // Dependent "value" value - Class value
-      Types.t_FieldNumber number;         // A reference to a feature (or field) in the independants
+      ML.Types.t_FieldNumber number;         // A reference to a feature (or field) in the independants
       Types.t_Count       Support;        // Number of cases
     END;
     SHARED BayesResultD := RECORD (BayesResult)
@@ -167,14 +168,14 @@ END;
   b) A dataset of class results (these must match in ID the discretized independant variables).
      Some routines can produce multiple classifiers at once; if so these are distinguished using the NUMBER field of cl
 */
-    EXPORT LearnD(DATASET(Types.DiscreteField) Indep,DATASET(Types.DiscreteField) Dep) := FUNCTION
+    EXPORT LearnD(DATASET(ML.Types.DiscreteField) Indep,DATASET(ML.Types.DiscreteField) Dep) := FUNCTION
       dd := Indep;
       cl := Dep;
       Triple := RECORD
-        Types.t_Discrete c;
-        Types.t_Discrete f;
-        Types.t_FieldNumber number;
-        Types.t_FieldNumber class_number;
+        ML.Types.t_Discrete c;
+        ML.Types.t_Discrete f;
+        ML.Types.t_FieldNumber number;
+        ML.Types.t_FieldNumber class_number;
       END;
       Triple form(dd le,cl ri) := TRANSFORM
         SELF.c := ri.value;
@@ -269,7 +270,7 @@ END;
       PC := JOIN(PC_0, TotalFs, LEFT.C = RIGHT.C AND LEFT.class_number=RIGHT.class_number,form_TotalFs(LEFT,RIGHT),LOOKUP);   
       Pret := PROJECT(FC,TRANSFORM(BayesResultD, SELF.PC:=LEFT.w, SELF := LEFT))+PROJECT(PC,TRANSFORM(BayesResultD, SELF.PC:=LEFT.w, SELF.number:= 0,SELF:=LEFT));
       Pret1 := PROJECT(Pret,TRANSFORM(BayesResultD, SELF.PC := LogScale(LEFT.PC),SELF.id := Base+COUNTER,SELF := LEFT));
-      ToField(Pret1,o);
+      ML.ToField(Pret1,o);
       RETURN o;
     END;
     // Transform NumericFiled "mod" to discrete Naive Bayes format model "BayesResultD"
@@ -279,7 +280,7 @@ END;
     END;
     // This function will take a pre-existing NaiveBayes model (mo) and score every row of a discretized dataset
     // The output will have a row for every row of dd and a column for every class in the original training set
-    EXPORT ClassProbDistribD(DATASET(Types.DiscreteField) Indep,DATASET(Types.NumericField) mod) := FUNCTION
+    EXPORT ClassProbDistribD(DATASET(ML.Types.DiscreteField) Indep,DATASET(Types.NumericField) mod) := FUNCTION
       d := Indep;
       mo := Model(mod);
       // Firstly we can just compute the support for each class from the bayes result
@@ -304,7 +305,7 @@ END;
         J.class_number;
         J.id;
         REAL8 P := SUM(GROUP,J.W);
-        Types.t_FieldNumber Missing := COUNT(GROUP); // not really missing just yet :)
+        ML.Types.t_FieldNumber Missing := COUNT(GROUP); // not really missing just yet :)
       END;
       TSum := TABLE(J,InterCounted,c,class_number,id,LOCAL);
   // Now we have the sums for all the F present for each class we need to
@@ -339,7 +340,7 @@ END;
       RETURN clDist;
     END;
     // Classification function for discrete independent values and model
-    EXPORT ClassifyD(DATASET(Types.DiscreteField) Indep,DATASET(Types.NumericField) mod) := FUNCTION
+    EXPORT ClassifyD(DATASET(ML.Types.DiscreteField) Indep,DATASET(Types.NumericField) mod) := FUNCTION
       // get class probabilities for each instance
       dClass:= ClassProbDistribD(Indep, mod);
       // select the class with greatest probability for each instance
@@ -353,10 +354,10 @@ END;
     Let mu_c be the mean of the values in x associated with class c, and let sigma^2_c be the variance of the values in x associated with class c.
     Then, the probability density of some value given a class, P(x=v|c), can be computed by plugging v into the equation for a Normal distribution parameterized by mu_c and sigma^2_c..."
     */
-    EXPORT LearnC(DATASET(NumericField) Indep, DATASET(DiscreteField) Dep) := FUNCTION
+    EXPORT LearnC(DATASET(ML.Types.NumericField) Indep, DATASET(ML.Types.DiscreteField) Dep) := FUNCTION
       Triple := RECORD
-        Types.t_FieldNumber class_number;
-        Types.t_FieldNumber number;
+        ML.Types.t_FieldNumber class_number;
+        ML.Types.t_FieldNumber number;
         Types.t_FieldReal value;
         Types.t_Discrete c;
       END;
@@ -397,20 +398,20 @@ END;
       AC:= TABLE(Vals, AggregatedTriple, class_number, c, number);
       Pret := PROJECT(PC, TRANSFORM(BayesResultC, SELF.id := Base + COUNTER, SELF.number := 0, SELF:=LEFT)) +
               PROJECT(AC, TRANSFORM(BayesResultC, SELF.id := Base + COUNTER + PC_cnt, SELF.var:= LEFT.var*LEFT.support/(LEFT.support -1), SELF := LEFT));
-      ToField(Pret,o);
+      ML.ToField(Pret,o);
       RETURN o;
     END;
     // Transform NumericFiled "mod" to continuos Naive Bayes format model "BayesResultC"
-    EXPORT ModelC(DATASET(Types.NumericField) mod) := FUNCTION
+    EXPORT ModelC(DATASET(ML.Types.NumericField) mod) := FUNCTION
       ML.FromField(mod,BayesResultC,o);
       RETURN o;
     END;
-    EXPORT ClassProbDistribC(DATASET(Types.NumericField) Indep, DATASET(Types.NumericField) mod) := FUNCTION
+    EXPORT ClassProbDistribC(DATASET(ML.Types.NumericField) Indep, DATASET(ML.Types.NumericField) mod) := FUNCTION
       dd := DISTRIBUTE(Indep, HASH(id));
       mo := ModelC(mod);
       Inter := RECORD
-        Types.t_FieldNumber class_number;
-        Types.t_FieldNumber number;
+        ML.Types.t_FieldNumber class_number;
+        ML.Types.t_FieldNumber number;
         Types.t_FieldReal value;
         Types.t_Discrete c;
         Types.t_RecordId Id;
@@ -456,7 +457,7 @@ END;
       RETURN clDist;
     END;
     // Classification function for continuous independent values and model
-    EXPORT ClassifyC(DATASET(Types.NumericField) Indep,DATASET(Types.NumericField) mod) := FUNCTION
+    EXPORT ClassifyC(DATASET(ML.Types.NumericField) Indep,DATASET(ML.Types.NumericField) mod) := FUNCTION
       // get class probabilities for each instance
       dClass:= ClassProbDistribC(Indep, mod);
       // select the class with greatest probability for each instance
@@ -482,7 +483,7 @@ END;
   EXPORT Perceptron(UNSIGNED Passes,REAL8 Alpha = 0.1) := MODULE(DEFAULT)
     SHARED Thresh := 0.5; // The threshold to apply for the cut-off function
 
-    EXPORT LearnD(DATASET(Types.DiscreteField) Indep,DATASET(Types.DiscreteField) Dep) := FUNCTION
+    EXPORT LearnD(DATASET(ML.Types.DiscreteField) Indep,DATASET(ML.Types.DiscreteField) Dep) := FUNCTION
       dd := Indep;
       cl := Dep;
       MaxFieldNumber := MAX(dd,number);
@@ -496,11 +497,11 @@ END;
   // A weight record for our perceptron
       WR := RECORD
         REAL8 W := 0;
-        Types.t_FieldNumber number; // The field this weight applies to - note field 0 will be the bias, class_number will be used for cumulative error
+        ML.Types.t_FieldNumber number; // The field this weight applies to - note field 0 will be the bias, class_number will be used for cumulative error
         Types.t_Discrete class_number;
       END;
       VR := RECORD
-        Types.t_FieldNumber number;
+        ML.Types.t_FieldNumber number;
         Types.t_Discrete    value;
       END;
   // This function exists to initialize the weights for the perceptron
@@ -519,7 +520,7 @@ END;
         Types.t_RecordId Processed;
       END;
   // The learn step for a perceptrom
-      Learn(DATASET(WR) le,DATASET(VR) ri,Types.t_FieldNumber fn,Types.t_Discrete va) := FUNCTION
+      Learn(DATASET(WR) le,DATASET(VR) ri,ML.Types.t_FieldNumber fn,Types.t_Discrete va) := FUNCTION
         let := le(class_number=fn);
         letn := let(number<>fn);     // all of the regular weights
         lep := le(class_number<>fn); // Pass-thru
@@ -591,11 +592,11 @@ END;
       ML.ToField(L1,o);
       RETURN o;
     END;
-    EXPORT Model(DATASET(Types.NumericField) mod) := FUNCTION
+    EXPORT Model(DATASET(ML.Types.NumericField) mod) := FUNCTION
       ML.FromField(mod,l_model,o);
       RETURN o;
     END;
-    EXPORT ClassifyD(DATASET(Types.DiscreteField) Indep,DATASET(Types.NumericField) mod) := FUNCTION
+    EXPORT ClassifyD(DATASET(ML.Types.DiscreteField) Indep,DATASET(ML.Types.NumericField) mod) := FUNCTION
       mo := Model(mod);
       Ind := DISTRIBUTE(Indep,HASH(id));
       l_result note(Ind le,mo ri) := TRANSFORM
@@ -626,11 +627,11 @@ END;
   /*
   Apply classification with Neural Network by using NeuralNetworks.ecl
   */
-  EXPORT NeuralNetworksClassifier (DATASET(Types.DiscreteField) net, DATASET(Mat.Types.MUElement) IntW, DATASET(Mat.Types.MUElement) Intb, REAL8 LAMBDA=0.001, REAL8 ALPHA=0.1, UNSIGNED2 MaxIter=100, 
+  EXPORT NeuralNetworksClassifier (DATASET(ML.Types.DiscreteField) net, DATASET(Mat.Types.MUElement) IntW, DATASET(Mat.Types.MUElement) Intb, REAL8 LAMBDA=0.001, REAL8 ALPHA=0.1, UNSIGNED2 MaxIter=100, 
   UNSIGNED4 prows=0, UNSIGNED4 pcols=0, UNSIGNED4 Maxrows=0, UNSIGNED4 Maxcols=0) := MODULE(DEFAULT)
-  SHARED NN := NeuralNetworks(net, prows,  pcols, Maxrows,  Maxcols);
-  EXPORT LearnC(DATASET(Types.NumericField) Indep, DATASET(Types.DiscreteField) Dep) := FUNCTION
-    Y := PROJECT(Dep,Types.NumericField);
+  SHARED NN := ML.NeuralNetworks(net, prows,  pcols, Maxrows,  Maxcols);
+  EXPORT LearnC(DATASET(ML.Types.NumericField) Indep, DATASET(ML.Types.DiscreteField) Dep) := FUNCTION
+    Y := PROJECT(Dep,ML.Types.NumericField);
     groundTruth:= Utils.ToGroundTruth (Y);//groundTruth is a matrix that each column correspond to one sample
     //to convert the groundTruth matrix to NumericFiled format firt I have to trasnpose it to make each sample to correspond to
     //each row, in that case when we convert it to NumericFiled format the id filed is built up correctly
@@ -639,14 +640,14 @@ END;
     Learntmodel := NN.NNLearn(Indep, groundTruth_NumericField,IntW, Intb,  LAMBDA, ALPHA, MaxIter);
     RETURN Learntmodel;
   END;
-  EXPORT Model(DATASET(Types.NumericField) Lmod) := FUNCTION
+  EXPORT Model(DATASET(ML.Types.NumericField) Lmod) := FUNCTION
     RETURN NN.Model(Lmod);
   END;
-  EXPORT ClassProbDistribC(DATASET(Types.NumericField) Indep,DATASET(Types.NumericField) mod) :=FUNCTION
+  EXPORT ClassProbDistribC(DATASET(ML.Types.NumericField) Indep,DATASET(ML.Types.NumericField) mod) :=FUNCTION
     AEnd := NN.NNOutput(Indep,mod);
     RETURN AEnd;
   END;
-  EXPORT ClassifyC(DATASET(Types.NumericField) Indep,DATASET(Types.NumericField) mod) := FUNCTION
+  EXPORT ClassifyC(DATASET(ML.Types.NumericField) Indep,DATASET(ML.Types.NumericField) mod) := FUNCTION
     Classes := NN.NNClassify(Indep,mod);
     RETURN Classes;
   END;
@@ -669,7 +670,7 @@ END;
     
     SHARED DevianceRec := RECORD
       Types.t_RecordID id;
-      Types.t_FieldNumber classifier;  // The classifier in question (value of 'number' on outcome data)
+      ML.Types.t_FieldNumber classifier;  // The classifier in question (value of 'number' on outcome data)
       Types.t_Discrete  c_actual;      // The value of c provided
       Types.t_FieldReal  c_modeled;    // The value produced by the classifier
       Types.t_FieldReal LL;         // Score allocated by classifier
@@ -677,15 +678,15 @@ END;
     END;
     
     SHARED ResidDevRec := RECORD
-      Types.t_FieldNumber classifier;
+      ML.Types.t_FieldNumber classifier;
       REAL8 Deviance;
       UNSIGNED4 DF;
     END;
     
-    EXPORT LearnCS(DATASET(Types.NumericField) Indep,DATASET(Types.DiscreteField) Dep) := DATASET([], Types.NumericField);
-    EXPORT LearnC(DATASET(Types.NumericField) Indep,DATASET(Types.DiscreteField) Dep) := LearnCConcat(Indep,Dep,LearnCS);
-    EXPORT Model(DATASET(Types.NumericField) mod) := FUNCTION
-      FromField(mod,Logis_Model,o);
+    EXPORT LearnCS(DATASET(ML.Types.NumericField) Indep,DATASET(ML.Types.DiscreteField) Dep) := DATASET([], ML.Types.NumericField);
+    EXPORT LearnC(DATASET(ML.Types.NumericField) Indep,DATASET(ML.Types.DiscreteField) Dep) := LearnCConcat(Indep,Dep,LearnCS);
+    EXPORT Model(DATASET(ML.Types.NumericField) mod) := FUNCTION
+      ML.FromField(mod,Logis_Model,o);
       RETURN o;
     END;  
     
@@ -696,28 +697,28 @@ END;
       SELF.pVal := 2 * (1 - norm_dist.Cumulative(ABS(z)));
       SELF := mod;
     END;
-    EXPORT ZStat(DATASET(Types.NumericField) mod) := PROJECT(Model(mod), zStat_Transform(LEFT));
+    EXPORT ZStat(DATASET(ML.Types.NumericField) mod) := PROJECT(Model(mod), zStat_Transform(LEFT));
     
     confInt_Model confint_transform(Logis_Model b, REAL Margin) := TRANSFORM
       SELF.UpperCI := b.w + Margin * b.se;
       SELF.LowerCI := b.w - Margin * b.se;
       SELF := b;
     END;    
-    EXPORT ConfInt(Types.t_fieldReal level, DATASET(Types.NumericField) mod) := FUNCTION
+    EXPORT ConfInt(Types.t_fieldReal level, DATASET(ML.Types.NumericField) mod) := FUNCTION
       newlevel := 100 - (100 - level)/2;
       Margin := norm_dist.NTile(newlevel);
       RETURN PROJECT(Model(mod),confint_transform(LEFT,Margin));
     END;
     
-    EXPORT ClassifyS(DATASET(Types.NumericField) Indep,DATASET(Types.NumericField) mod) := DATASET([], Types.NumericField);   
-    l_result tr(Types.NumericField le) := TRANSFORM
+    EXPORT ClassifyS(DATASET(ML.Types.NumericField) Indep,DATASET(ML.Types.NumericField) mod) := DATASET([], ML.Types.NumericField);   
+    l_result tr(ML.Types.NumericField le) := TRANSFORM
         SELF.value := IF ( le.value > 0.5,1,0);
         SELF.conf := ABS(le.value-0.5);
         SELF := le;
       END;
-    EXPORT ClassifyC(DATASET(Types.NumericField) Indep,DATASET(Types.NumericField) mod) := PROJECT(ClassifyS(Indep, mod),tr(LEFT));
+    EXPORT ClassifyC(DATASET(ML.Types.NumericField) Indep,DATASET(ML.Types.NumericField) mod) := PROJECT(ClassifyS(Indep, mod),tr(LEFT));
     
-    DevianceRec  dev_t(Types.NumericField le, Types.DiscreteField ri) := TRANSFORM
+    DevianceRec  dev_t(ML.Types.NumericField le, ML.Types.DiscreteField ri) := TRANSFORM
       SELF.c_actual := ri.value;
       SELF.c_modeled := le.value;
       SELF.LL := -2 * (ri.value * LN(le.value) + (1 - ri.Value) * LN(1-le.Value));
@@ -726,7 +727,7 @@ END;
       SELF.isGreater := IF(ri.value >= le.value, TRUE, FALSE);
     END;
     
-    DevianceRec  dev_t2(REAL mu, Types.DiscreteField ri) := TRANSFORM
+    DevianceRec  dev_t2(REAL mu, ML.Types.DiscreteField ri) := TRANSFORM
       SELF.c_actual := ri.value;
       SELF.c_modeled := mu;
       SELF.LL := -2 * (ri.value * LN(mu) + (1 - ri.Value) * LN(1-mu));
@@ -735,7 +736,7 @@ END;
       SELF.isGreater := IF(ri.value >= mu, TRUE, FALSE);
     END;
     
-    EXPORT DevianceC(DATASET(Types.NumericField) Indep,DATASET(Types.DiscreteField) Dep, DATASET(Types.NumericField) mod) := MODULE
+    EXPORT DevianceC(DATASET(ML.Types.NumericField) Indep,DATASET(ML.Types.DiscreteField) Dep, DATASET(ML.Types.NumericField) mod) := MODULE
       SHARED Dev := JOIN(ClassifyS(Indep, mod), Dep,LEFT.id = RIGHT.id AND LEFT.number = RIGHT.number,dev_t(LEFT,RIGHT));
       NullMu := TABLE(Dep, {number, Mu := AVE(GROUP, value)}, number, FEW, UNSORTED);
       SHARED NDev := JOIN(Dep, NullMu, LEFT.number = RIGHT.number, dev_t2(RIGHT.Mu, LEFT),LOOKUP); 
@@ -744,13 +745,13 @@ END;
       SHARED p := MAX(Model(mod), number) + 1;
       EXPORT ResidDev := PROJECT(TABLE(Dev, {classifier, Deviance := SUM(GROUP, LL), DF := COUNT(GROUP) - p}, classifier, FEW, UNSORTED), ResidDevRec);
       EXPORT NullDev := PROJECT(TABLE(NDev, {classifier, Deviance := SUM(GROUP, LL), DF := COUNT(GROUP) - 1}, classifier, FEW, UNSORTED), ResidDevRec);
-      EXPORT AIC := PROJECT(ResidDev, TRANSFORM({Types.t_FieldNumber classifier, REAL8 AIC}, 
+      EXPORT AIC := PROJECT(ResidDev, TRANSFORM({ML.Types.t_FieldNumber classifier, REAL8 AIC}, 
                                                 SELF.AIC := LEFT.Deviance + 2 * p; SELF := LEFT));
     END;
     
     EXPORT AOD(DATASET(ResidDevRec) R1, DATASET(ResidDevRec) R2) := FUNCTION
       AODRec := RECORD
-        Types.t_FieldNumber classifier;
+        ML.Types.t_FieldNumber classifier;
         UNSIGNED4 ResidDF;
         REAL8 ResidDeviance;
         UNSIGNED4 DF := 0.0;
@@ -772,8 +773,8 @@ END;
     END;
       
   
-    EXPORT DevianceD(DATASET(Types.DiscreteField) Indep, DATASET(Types.DiscreteField) Dep, DATASET(Types.NumericField) mod) :=
-      DevianceC(PROJECT(Indep, Types.NumericField), Dep, mod);
+    EXPORT DevianceD(DATASET(ML.Types.DiscreteField) Indep, DATASET(ML.Types.DiscreteField) Dep, DATASET(ML.Types.NumericField) mod) :=
+      DevianceC(PROJECT(Indep, ML.Types.NumericField), Dep, mod);
   END;
 /*
 /*
@@ -795,7 +796,7 @@ END;
 
   EXPORT Logistic_sparse(REAL8 Ridge=0.00001, REAL8 Epsilon=0.000000001, UNSIGNED2 MaxIter=200) := MODULE(Logistic_Model)
   
-    Logis(DATASET(Types.NumericField) X,DATASET(Types.NumericField) Y) := MODULE
+    Logis(DATASET(ML.Types.NumericField) X,DATASET(ML.Types.NumericField) Y) := MODULE
       SHARED mu_comp := ENUM ( Beta = 1,  Y = 2, VC = 3, Err = 4 );
       SHARED RebaseY := Utils.RebaseNumericField(Y);
       SHARED Y_Map := RebaseY.Mapping(1);
@@ -824,18 +825,18 @@ END;
         OldExpY := Mat.MU.From(BetaPlusY, mu_comp.Y);
         AdjY := Mat.Mul(mX, Mat.MU.From(BetaPlusY, mu_comp.Beta));
         // expy =  1./(1+exp(-adjy))
-        ExpY := Mat.Each.Reciprocal(Mat.Each.Add(Mat.Each.Exp(Mat.Scale(AdjY, -1)),1));
+        ExpY := Mat.Each.Each_Reciprocal(Mat.Each.Each_Add(Mat.Each.Each_Exp(Mat.Scale(AdjY, -1)),1));
         // deriv := expy .* (1-expy)
-        Deriv := Mat.Each.Mul(expy,Mat.Each.Add(Mat.Scale(ExpY, -1),1));
+        Deriv := Mat.Each.Each_Mul(expy,Mat.Each.Each_Add(Mat.Scale(ExpY, -1),1));
         // wadjy := w .* (deriv .* adjy + (y-expy))
-        W_AdjY := Mat.Each.Mul(mW,Mat.Add(Mat.Each.Mul(Deriv,AdjY),Mat.Sub(mY, ExpY)));
+        W_AdjY := Mat.Each.Each_Mul(mW,Mat.Add(Mat.Each.Each_Mul(Deriv,AdjY),Mat.Sub(mY, ExpY)));
         // weights := spdiags(deriv .* w, 0, n, n)
-        Weights := Mat.Vec.ToDiag(Mat.Vec.FromCol(Mat.Each.Mul(Deriv, mW),1));
+        Weights := Mat.Vec.ToDiag(Mat.Vec.FromCol(Mat.Each.Each_Mul(Deriv, mW),1));
         // Inv_xTWx := Inv(x' * weights * x + mRidge)
         Inv_xTWx := Mat.Inv(Mat.Add(Mat.Mul(Mat.Mul(Mat.Trans(mX), weights), mX), mRidge));
         // mBeta := Inv_xTWx * x' * wadjy
         mBeta :=  Mat.Mul(Mat.Mul(Inv_xTWx, Mat.Trans(mX)), W_AdjY);
-        err := SUM(Mat.Each.Abs(Mat.Sub(ExpY, OldExpY)),value); 
+        err := SUM(Mat.Each.Each_Abs(Mat.Sub(ExpY, OldExpY)),value); 
         mErr := DATASET([{1,1,err}], Mat.Types.Element);
         RETURN Mat.MU.To(mBeta, mu_comp.Beta)+
               Mat.MU.To(ExpY, mu_comp.Y)+
@@ -851,13 +852,13 @@ END;
       rebasedBetaNF := RebaseY.ToOld(Types.FromMatrix(BetaM), Y_Map);
       BetaNF := Types.FromMatrix(Mat.Trans(Types.ToMatrix(rebasedBetaNF)));
       // convert Beta into NumericField dataset, and shift Number down by one to ensure the intercept Beta0 has id=0
-      EXPORT Beta := PROJECT(BetaNF,TRANSFORM(Types.NumericField,SELF.Number := LEFT.Number-1;SELF:=LEFT;));
+      EXPORT Beta := PROJECT(BetaNF,TRANSFORM(ML.Types.NumericField,SELF.Number := LEFT.Number-1;SELF:=LEFT;));
       
       varCovar := Mat.MU.From(BetaPair, mu_comp.VC);
       SEM := Mat.Vec.ToCol(Mat.Vec.FromDiag(varCovar), 1);
       rebasedSENF := RebaseY.ToOld(Types.FromMatrix(SEM), Y_map);
       SENF := Types.FromMatrix(Mat.Trans(Types.ToMatrix(rebasedSENF)));
-      EXPORT SE := PROJECT(SENF,TRANSFORM(Types.NumericField,SELF.Number := LEFT.Number-1;SELF:=LEFT;));
+      EXPORT SE := PROJECT(SENF,TRANSFORM(ML.Types.NumericField,SELF.Number := LEFT.Number-1;SELF:=LEFT;));
       
       Res0 := PROJECT(Beta, TRANSFORM(l_model, SELF.Id := COUNTER+Base,SELF.number := LEFT.number, 
           SELF.class_number := LEFT.id, SELF.w := LEFT.value));
@@ -866,26 +867,26 @@ END;
           SELF.Id := LEFT.Id,SELF.number := LEFT.number, 
           SELF.class_number := LEFT.class_number, SELF.w := LEFT.w, SELF.se := SQRT(RIGHT.value)));
           
-      ToField(Res,o);
+      ML.ToField(Res,o);
       EXPORT Mod := o;
       modelY_M := Mat.MU.From(BetaPair, mu_comp.Y);
       modelY_NF := Types.FromMatrix(modelY_M);
       EXPORT modelY := RebaseY.ToOld(modelY_NF, Y_Map);
     END;
-    EXPORT LearnCS(DATASET(Types.NumericField) Indep,DATASET(Types.DiscreteField) Dep) := Logis(Indep,PROJECT(Dep,Types.NumericField)).mod;
-    EXPORT LearnC(DATASET(Types.NumericField) Indep,DATASET(Types.DiscreteField) Dep) := LearnCConcat(Indep,Dep,LearnCS);
-    EXPORT ClassifyS(DATASET(Types.NumericField) Indep,DATASET(Types.NumericField) mod) := FUNCTION
+    EXPORT LearnCS(DATASET(ML.Types.NumericField) Indep,DATASET(ML.Types.DiscreteField) Dep) := Logis(Indep,PROJECT(Dep,ML.Types.NumericField)).mod;
+    EXPORT LearnC(DATASET(ML.Types.NumericField) Indep,DATASET(ML.Types.DiscreteField) Dep) := LearnCConcat(Indep,Dep,LearnCS);
+    EXPORT ClassifyS(DATASET(ML.Types.NumericField) Indep,DATASET(ML.Types.NumericField) mod) := FUNCTION
       mod0 := Model(mod);
-      Beta0 := PROJECT(mod0,TRANSFORM(Types.NumericField,SELF.Number := LEFT.Number+1,SELF.id := LEFT.class_number, SELF.value := LEFT.w;SELF:=LEFT;));
+      Beta0 := PROJECT(mod0,TRANSFORM(ML.Types.NumericField,SELF.Number := LEFT.Number+1,SELF.id := LEFT.class_number, SELF.value := LEFT.w;SELF:=LEFT;));
       mBeta := Types.ToMatrix(Beta0);
       mX_0 := Types.ToMatrix(Indep);
       mXloc := Mat.InsertColumn(mX_0, 1, 1.0); // Insert X1=1 column 
 
       AdjY := $.Mat.Mul(mXloc, $.Mat.Trans(mBeta)) ;
       // expy =  1./(1+exp(-adjy))
-      sigmoid := $.Mat.Each.Reciprocal($.Mat.Each.Add($.Mat.Each.Exp($.Mat.Scale(AdjY, -1)),1));
+      sigmoid := $.Mat.Each.Each_Reciprocal($.Mat.Each.Each_Add($.Mat.Each.Each_Exp($.Mat.Scale(AdjY, -1)),1));
       // Now convert to classify return format
-      Types.NumericField tr(sigmoid le) := TRANSFORM
+      ML.Types.NumericField tr(sigmoid le) := TRANSFORM
         SELF.value := le.value;
         SELF.id := le.x;
         SELF.number := le.y;
@@ -919,7 +920,7 @@ END;
   EXPORT Logistic(REAL8 Ridge=0.00001, REAL8 Epsilon=0.000000001, UNSIGNED2 MaxIter=200, 
     UNSIGNED4 prows=0, UNSIGNED4 pcols=0,UNSIGNED4 Maxrows=0, UNSIGNED4 Maxcols=0) := MODULE(Logistic_Model)
 
-    Logis(DATASET(Types.NumericField) X, DATASET(Types.NumericField) Y) := MODULE
+    Logis(DATASET(ML.Types.NumericField) X, DATASET(ML.Types.NumericField) Y) := MODULE
       SHARED mu_comp := ENUM ( Beta = 1,  Y = 2, BetaError = 3, BetaMaxError = 4, VC = 5 );
       SHARED RebaseY := Utils.RebaseNumericField(Y);
       SHARED Y_Map := RebaseY.Mapping(1);
@@ -1135,7 +1136,7 @@ END;
                               SELF.class_number := LEFT.class_number, SELF.w := LEFT.w, SELF.se := SQRT(RIGHT.value)));
         RETURN ret;
       END;
-      ToField(Res,o);
+      ML.ToField(Res,o);
 
       EXPORT Mod := o;
       modelY_M := DMAT.Converted.FromPart2Elm(PBblas.MU.From(BetaPair, mu_comp.Y));
@@ -1143,12 +1144,12 @@ END;
       EXPORT modelY := modelY_NF;
     END;//End Logis
 
-    EXPORT LearnCS(DATASET(Types.NumericField) Indep,DATASET(Types.DiscreteField) Dep) := Logis(Indep,PROJECT(Dep,Types.NumericField)).mod;
-    EXPORT LearnC(DATASET(Types.NumericField) Indep,DATASET(Types.DiscreteField) Dep) := LearnCConcat(Indep,Dep,LearnCS);
-    EXPORT ClassifyS(DATASET(Types.NumericField) Indep,DATASET(Types.NumericField) mod) := FUNCTION
+    EXPORT LearnCS(DATASET(ML.Types.NumericField) Indep,DATASET(ML.Types.DiscreteField) Dep) := Logis(Indep,PROJECT(Dep,ML.Types.NumericField)).mod;
+    EXPORT LearnC(DATASET(ML.Types.NumericField) Indep,DATASET(ML.Types.DiscreteField) Dep) := LearnCConcat(Indep,Dep,LearnCS);
+    EXPORT ClassifyS(DATASET(ML.Types.NumericField) Indep,DATASET(ML.Types.NumericField) mod) := FUNCTION
 
       mod0 := Model(mod);
-      Beta_0 := PROJECT(mod0,TRANSFORM(Types.NumericField,SELF.Number := LEFT.Number+1,SELF.id := LEFT.class_number, SELF.value := LEFT.w;SELF:=LEFT;));
+      Beta_0 := PROJECT(mod0,TRANSFORM(ML.Types.NumericField,SELF.Number := LEFT.Number+1,SELF.id := LEFT.class_number, SELF.value := LEFT.w;SELF:=LEFT;));
       RebaseBeta := Utils.RebaseNumericFieldID(Beta_0);
       Beta0_Map := RebaseBeta.MappingID(1);
       Beta0 := RebaseBeta.ToNew(Beta0_Map);
@@ -1232,7 +1233,7 @@ END;
       sigmoid := DMAT.Converted.frompart2elm(sigtranback);
 
       // Now convert to classify return format
-      Types.NumericField tr(sigmoid le) := TRANSFORM
+      ML.Types.NumericField tr(sigmoid le) := TRANSFORM
         SELF.value := le.value;
         SELF.id := le.x;
         SELF.number := le.y;
@@ -1256,7 +1257,7 @@ END;
 */
 EXPORT SoftMax(DATASET (MAT.Types.Element) IntTHETA, REAL8 LAMBDA=0.001, REAL8 ALPHA=0.1, UNSIGNED2 MaxIter=100,
   UNSIGNED4 prows=0, UNSIGNED4 pcols=0,UNSIGNED4 Maxrows=0, UNSIGNED4 Maxcols=0) := MODULE(DEFAULT)
-  Soft(DATASET(Types.NumericField) X,DATASET(Types.NumericField) Y) := MODULE
+  Soft(DATASET(ML.Types.NumericField) X,DATASET(ML.Types.NumericField) Y) := MODULE
   //Convert the input data to matrix
   //the reason matrix transform is done after ocnverting the input data to the matrix is that
   //in this implementation it is assumed that the  input matrix shows the samples in column-wise format
@@ -1349,12 +1350,12 @@ EXPORT SoftMax(DATASET (MAT.Types.Element) IntTHETA, REAL8 LAMBDA=0.001, REAL8 A
     //param := LOOP(IntTHETAdist, MaxIter, Step(ROWS(LEFT))); // does not work
     EXPORT Mod := ML.DMat.Converted.FromPart2DS (param);
   END; //END Soft
-  EXPORT LearnC(DATASET(Types.NumericField) Indep, DATASET(Types.DiscreteField) Dep) := Soft(Indep,PROJECT(Dep,Types.NumericField)).mod;
-  EXPORT Model(DATASET(Types.NumericField) mod) := FUNCTION
+  EXPORT LearnC(DATASET(ML.Types.NumericField) Indep, DATASET(ML.Types.DiscreteField) Dep) := Soft(Indep,PROJECT(Dep,ML.Types.NumericField)).mod;
+  EXPORT Model(DATASET(ML.Types.NumericField) mod) := FUNCTION
     o:= Types.ToMatrix (Mod);
     RETURN o;
   END; // END Model
-  EXPORT ClassProbDistribC(DATASET(Types.NumericField) Indep,DATASET(Types.NumericField) mod) :=FUNCTION
+  EXPORT ClassProbDistribC(DATASET(ML.Types.NumericField) Indep,DATASET(ML.Types.NumericField) mod) :=FUNCTION
     // take the same steps take in step function to calculate prob
     X := Indep;
     dt := Types.ToMatrix (X);
@@ -1422,7 +1423,7 @@ EXPORT SoftMax(DATASET (MAT.Types.Element) IntTHETA, REAL8 LAMBDA=0.001, REAL8 A
     END;
     RETURN PROJECT (Prob_mat, tr(LEFT));
   END; // END ClassProbDistribC Function
-  EXPORT ClassifyC(DATASET(Types.NumericField) Indep,DATASET(Types.NumericField) mod) := FUNCTION
+  EXPORT ClassifyC(DATASET(ML.Types.NumericField) Indep,DATASET(ML.Types.NumericField) mod) := FUNCTION
     Dist := ClassProbDistribC(Indep, mod);
     numrow := MAX (Dist,Dist.value);
     S:= SORT(Dist,id,conf);
@@ -1459,17 +1460,17 @@ The model  is used to predict the class from new examples.
     Decision Tree Learning using Gini Impurity-Based criterion
 */
     EXPORT GiniImpurityBased(INTEGER1 Depth=10, REAL Purity=1.0):= MODULE(DEFAULT)
-      EXPORT LearnD(DATASET(Types.DiscreteField) Indep, DATASET(Types.DiscreteField) Dep) := FUNCTION
+      EXPORT LearnD(DATASET(ML.Types.DiscreteField) Indep, DATASET(ML.Types.DiscreteField) Dep) := FUNCTION
         nodes := ML.Trees.SplitsGiniImpurBased(Indep, Dep, Depth, Purity);
         RETURN ML.Trees.ToDiscreteTree(nodes);
       END;
-      EXPORT ClassProbDistribD(DATASET(Types.DiscreteField) Indep,DATASET(Types.NumericField) mod) :=FUNCTION
+      EXPORT ClassProbDistribD(DATASET(ML.Types.DiscreteField) Indep,DATASET(ML.Types.NumericField) mod) :=FUNCTION
         RETURN ML.Trees.ClassProbDistribD(Indep, mod);
       END;
-      EXPORT ClassifyD(DATASET(Types.DiscreteField) Indep,DATASET(Types.NumericField) mod) := FUNCTION
+      EXPORT ClassifyD(DATASET(ML.Types.DiscreteField) Indep,DATASET(ML.Types.NumericField) mod) := FUNCTION
         RETURN ML.Trees.ClassifyD(Indep,mod);
       END;
-      EXPORT Model(DATASET(Types.NumericField) mod) := FUNCTION
+      EXPORT Model(DATASET(ML.Types.NumericField) mod) := FUNCTION
         RETURN ML.Trees.ModelD(mod);
       END;
     END;  // Gini Impurity DT Module
@@ -1477,17 +1478,17 @@ The model  is used to predict the class from new examples.
     Decision Tree using C4.5 Algorithm (Quinlan, 1987)
 */
     EXPORT C45(BOOLEAN Pruned= TRUE, INTEGER1 numFolds = 3, REAL z = 0.67449) := MODULE(DEFAULT)
-      EXPORT LearnD(DATASET(Types.DiscreteField) Indep, DATASET(Types.DiscreteField) Dep) := FUNCTION
-        nodes := IF(Pruned, Trees.SplitsIGR_Pruned(Indep, Dep, numFolds, z), Trees.SplitsInfoGainRatioBased(Indep, Dep));
+      EXPORT LearnD(DATASET(ML.Types.DiscreteField) Indep, DATASET(ML.Types.DiscreteField) Dep) := FUNCTION
+        nodes := IF(Pruned, ML.Trees.SplitsIGR_Pruned(Indep, Dep, numFolds, z), ML.Trees.SplitsInfoGainRatioBased(Indep, Dep));
         RETURN ML.Trees.ToDiscreteTree(nodes);
       END;
-      EXPORT ClassProbDistribD(DATASET(Types.DiscreteField) Indep,DATASET(Types.NumericField) mod) :=FUNCTION
+      EXPORT ClassProbDistribD(DATASET(ML.Types.DiscreteField) Indep,DATASET(ML.Types.NumericField) mod) :=FUNCTION
         RETURN ML.Trees.ClassProbDistribD(Indep, mod);
       END;
-      EXPORT ClassifyD(DATASET(Types.DiscreteField) Indep,DATASET(Types.NumericField) mod) := FUNCTION
+      EXPORT ClassifyD(DATASET(ML.Types.DiscreteField) Indep,DATASET(ML.Types.NumericField) mod) := FUNCTION
         RETURN ML.Trees.ClassifyD(Indep,mod);
       END;
-      EXPORT Model(DATASET(Types.NumericField) mod) := FUNCTION
+      EXPORT Model(DATASET(ML.Types.NumericField) mod) := FUNCTION
         RETURN ML.Trees.ModelD(mod);
       END;
     END;  // C45 DT Module
@@ -1498,15 +1499,15 @@ The model  is used to predict the class from new examples.
       minNumObj   minimum number of instances in a leaf node, used in splitting process
       maxLevel    stop learning criteria, either tree's level reachs maxLevel depth or no more split can be done.
 */
-    EXPORT C45Binary(t_Count minNumObj=2, t_level maxLevel=32) := MODULE(DEFAULT)
-      EXPORT LearnC(DATASET(Types.NumericField) Indep, DATASET(Types.DiscreteField) Dep) := FUNCTION
-        nodes := Trees.SplitBinaryCBased(Indep, Dep, minNumObj, maxLevel);
+    EXPORT C45Binary(ML.Types.t_Count minNumObj=2, ML.Types.t_level maxLevel=32) := MODULE(DEFAULT)
+      EXPORT LearnC(DATASET(ML.Types.NumericField) Indep, DATASET(ML.Types.DiscreteField) Dep) := FUNCTION
+        nodes := ML.Trees.SplitBinaryCBased(Indep, Dep, minNumObj, maxLevel);
         RETURN ML.Trees.ToNumericTree(nodes);
       END;
-      EXPORT ClassifyC(DATASET(Types.NumericField) Indep,DATASET(Types.NumericField) mod) := FUNCTION
+      EXPORT ClassifyC(DATASET(ML.Types.NumericField) Indep,DATASET(ML.Types.NumericField) mod) := FUNCTION
         RETURN ML.Trees.ClassifyC(Indep,mod);
       END;
-      EXPORT Model(DATASET(Types.NumericField) mod) := FUNCTION
+      EXPORT Model(DATASET(ML.Types.NumericField) mod) := FUNCTION
         RETURN ML.Trees.ModelC(mod);
       END;
     END; // C45Binary DT Module
@@ -1531,41 +1532,41 @@ Configuration Input
    Purity     p <= 1.0
    Depth      max tree level
 */
-  EXPORT RandomForest(t_Count treeNum, t_Count fsNum, REAL Purity=1.0, t_level Depth=32, BOOLEAN GiniSplit = TRUE):= MODULE
-    EXPORT LearnD(DATASET(Types.DiscreteField) Indep, DATASET(Types.DiscreteField) Dep) := FUNCTION
+  EXPORT RandomForest(ML.Types.t_Count treeNum, ML.Types.t_Count fsNum, REAL Purity=1.0, ML.Types.t_level Depth=32, BOOLEAN GiniSplit = TRUE):= MODULE
+    EXPORT LearnD(DATASET(ML.Types.DiscreteField) Indep, DATASET(ML.Types.DiscreteField) Dep) := FUNCTION
        noofIndependent := MAX(Indep, number);      
        Indepok := ASSERT(Indep, fsNum<noofIndependent, 'The number of features to consider when looking for the best split cannot be greater than total number of features', FAIL);
-      nodes := IF(GiniSplit, Ensemble.SplitFeatureSampleGI(Indepok, Dep, treeNum, fsNum, Purity, Depth), 
-                             Ensemble.SplitFeatureSampleIGR(Indepok, Dep, treeNum, fsNum, Depth));
+      nodes := IF(GiniSplit, ML.Ensemble.SplitFeatureSampleGI(Indepok, Dep, treeNum, fsNum, Purity, Depth), 
+                             ML.Ensemble.SplitFeatureSampleIGR(Indepok, Dep, treeNum, fsNum, Depth));
       RETURN ML.Ensemble.ToDiscreteForest(nodes);
     END;
-    EXPORT LearnC(DATASET(Types.NumericField) Indep, DATASET(Types.DiscreteField) Dep) := FUNCTION
+    EXPORT LearnC(DATASET(ML.Types.NumericField) Indep, DATASET(ML.Types.DiscreteField) Dep) := FUNCTION
       noofIndependent := MAX(Indep, number); 
       Indepok := ASSERT(Indep, fsNum<noofIndependent, 'The number of features to consider when looking for the best split cannot be greater than total number of features', FAIL);
-      nodes := Ensemble.SplitFeatureSampleGIBin(Indepok, Dep, treeNum, fsNum, Purity, Depth);
+      nodes := ML.Ensemble.SplitFeatureSampleGIBin(Indepok, Dep, treeNum, fsNum, Purity, Depth);
       RETURN ML.Ensemble.ToContinuosForest(nodes);
     END;
     // Transform NumericFiled "mod" to Ensemble.gSplitF "discrete tree nodes" model format using field map model_Map
-    EXPORT Model(DATASET(Types.NumericField) mod) := FUNCTION
+    EXPORT Model(DATASET(ML.Types.NumericField) mod) := FUNCTION
       RETURN ML.Ensemble.FromDiscreteForest(mod);
     END;
     // Transform NumericFiled "mod" to Ensemble.gSplitC "binary tree nodes" model format using field map modelC_Map
-    EXPORT ModelC(DATASET(Types.NumericField) mod) := FUNCTION
+    EXPORT ModelC(DATASET(ML.Types.NumericField) mod) := FUNCTION
       RETURN ML.Ensemble.FromContinuosForest(mod);
     END;
     // The functions return instances' class probability distribution for each class value
     // based upon independent values (Indep) and the ensemble model (mod).
-    EXPORT ClassProbDistribD(DATASET(Types.DiscreteField) Indep, DATASET(Types.NumericField) mod) :=FUNCTION
+    EXPORT ClassProbDistribD(DATASET(ML.Types.DiscreteField) Indep, DATASET(ML.Types.NumericField) mod) :=FUNCTION
       RETURN ML.Ensemble.ClassProbDistribForestD(Indep, mod);
     END;
-    EXPORT ClassProbDistribC(DATASET(Types.NumericField) Indep,DATASET(Types.NumericField) mod) :=FUNCTION
+    EXPORT ClassProbDistribC(DATASET(ML.Types.NumericField) Indep,DATASET(ML.Types.NumericField) mod) :=FUNCTION
       RETURN ML.Ensemble.ClassProbDistribForestC(Indep, mod);
     END;
     // Classification functions based upon independent values (Indep) and the ensemble model (mod).
-    EXPORT ClassifyD(DATASET(Types.DiscreteField) Indep,DATASET(Types.NumericField) mod) := FUNCTION
+    EXPORT ClassifyD(DATASET(ML.Types.DiscreteField) Indep,DATASET(ML.Types.NumericField) mod) := FUNCTION
       RETURN ML.Ensemble.ClassifyDForest(Indep, mod);
     END;
-    EXPORT ClassifyC(DATASET(Types.NumericField) Indep,DATASET(Types.NumericField) mod) := FUNCTION
+    EXPORT ClassifyC(DATASET(ML.Types.NumericField) Indep,DATASET(ML.Types.NumericField) mod) := FUNCTION
       RETURN ML.Ensemble.ClassifyCForest(Indep,mod);
     END;
   END; // RandomTree module
@@ -1582,31 +1583,31 @@ Configuration Input
   // Note: threshold = 100 means classifying all instances as negative, it is not necessarily part of the curve
 */
   EXPORT AUCcurvePoint:= RECORD
-    t_Count       id;
-    t_Discrete    posClass;  
-    t_FieldNumber classifier;
-    t_FieldReal   thresho;
-    t_FieldReal   fpr;
-    t_FieldReal   tpr;
-    t_FieldReal   deltaPos:=0;
-    t_FieldReal   deltaNeg:=0;
-    t_FieldReal   cumNeg:=0;
-    t_FieldReal   AUC:=0;
+    ML.Types.t_Count       id;
+    ML.Types.t_Discrete    posClass;  
+    ML.Types.t_FieldNumber classifier;
+    ML.Types.t_FieldReal   thresho;
+    ML.Types.t_FieldReal   fpr;
+    ML.Types.t_FieldReal   tpr;
+    ML.Types.t_FieldReal   deltaPos:=0;
+    ML.Types.t_FieldReal   deltaNeg:=0;
+    ML.Types.t_FieldReal   cumNeg:=0;
+    ML.Types.t_FieldReal   AUC:=0;
   END;
-  EXPORT AUC_ROC(DATASET(l_result) classProbDist, Types.t_Discrete positiveClass, DATASET(Types.DiscreteField) allDep) := FUNCTION
+  EXPORT AUC_ROC(DATASET(l_result) classProbDist, ML.Types.t_Discrete positiveClass, DATASET(ML.Types.DiscreteField) allDep) := FUNCTION
     SHARED cntREC:= RECORD
-      t_FieldNumber classifier;  // The classifier in question (value of &amp;apos;number&amp;apos; on outcome data)
-      t_Discrete  c_actual;      // The value of c provided
-      t_FieldReal score :=-1;
-      t_count     tp_cnt:= 0;
-      t_count     fn_cnt:= 0;
-      t_count     fp_cnt:= 0;
-      t_count     tn_cnt:= 0;
-      t_count     totPos:= 0;
-      t_count     totNeg:= 0;      
+      ML.Types.t_FieldNumber classifier;  // The classifier in question (value of &amp;apos;number&amp;apos; on outcome data)
+      ML.Types.t_Discrete  c_actual;      // The value of c provided
+      ML.Types.t_FieldReal score :=-1;
+      ML.Types.t_Count     tp_cnt:= 0;
+      ML.Types.t_Count     fn_cnt:= 0;
+      ML.Types.t_Count     fp_cnt:= 0;
+      ML.Types.t_Count     tn_cnt:= 0;
+      ML.Types.t_Count     totPos:= 0;
+      ML.Types.t_Count     totNeg:= 0;      
     END;
     SHARED compREC:= RECORD(cntREC)
-      t_Discrete  c_modeled;
+      ML.Types.t_Discrete  c_modeled;
     END;
     classOfInterest := classProbDist(value = positiveClass);
     dCPD  := DISTRIBUTE(classOfInterest, HASH32(id));
@@ -1710,9 +1711,9 @@ Configuration Input
                                           gamma, coef0, cost, eps, nu,
                                           p, shrinking));
     // Learn from continuous data
-    EXPORT LearnC(DATASET(Types.NumericField) Indep,
-                  DATASET(Types.DiscreteField) Dep) := FUNCTION
-      depc := PROJECT(Dep, Types.NumericField);
+    EXPORT LearnC(DATASET(ML.Types.NumericField) Indep,
+                  DATASET(ML.Types.DiscreteField) Dep) := FUNCTION
+      depc := PROJECT(Dep, ML.Types.NumericField);
       inst_data := SVM.Converted.ToInstance(Indep, Depc);
       dep_field := dep[1].number;
       tp := DATASET(Training_Param(dep_field));
@@ -1722,8 +1723,8 @@ Configuration Input
     END;
     // Learn from discrete data uses DEFAULT implementation
     // Classify continuous data - using a prebuilt model
-    EXPORT ClassifyC(DATASET(Types.NumericField) Indep,
-                     DATASET(Types.NumericField) mod) := FUNCTION
+    EXPORT ClassifyC(DATASET(ML.Types.NumericField) Indep,
+                     DATASET(ML.Types.NumericField) mod) := FUNCTION
       inst_data := SVM.Converted.ToInstance(Indep);
       mdl := SVM.Converted.ToModel(mod);
       pred := SVM.predict(mdl, inst_data).Prediction;

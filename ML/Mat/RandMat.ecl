@@ -1,4 +1,4 @@
-﻿IMPORT * FROM ML.Mat;
+﻿IMPORT ML.Mat AS ML_Mat;
 
 
 
@@ -18,9 +18,9 @@ END;
 EXPORT RandMat (UNSIGNED Nrows, UNSIGNED NCols) := FUNCTION
 
 
-ONE := DATASET ([{1,1,0}],Types.Element);
+ONE := DATASET ([{1,1,0}],ML_Mat.Types.Element);
 
-Types.Element RandomizeMat(Types.Element l, UNSIGNED4 C) := TRANSFORM
+ML_Mat.Types.Element RandomizeMat(ML_Mat.Types.Element l, UNSIGNED4 C) := TRANSFORM
   r1 := Produce_Random();
   SELF.x := ((C-1) DIV NCols) + 1;
   SELF.y := ((C-1) % NCols) + 1;

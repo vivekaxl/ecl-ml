@@ -1,4 +1,4 @@
-﻿IMPORT * FROM $;
+﻿IMPORT ML.Mat AS ML_MAT;
 
 /*
 	http://en.wikipedia.org/wiki/Principal_component_analysis
@@ -30,14 +30,14 @@
 	To turn this PCA implementation into a scalable solution, look into 
 	modifying SVD to deal with the mean-subtruction for PCA implicitely!
 */
-EXPORT Pca(DATASET(Types.Element) A, UNSIGNED comp_cnt=0) := MODULE
+EXPORT Pca(DATASET(ML_Mat.Types.Element) A, UNSIGNED comp_cnt=0) := MODULE
 
 	CovA := Cov(A);
 	U := Svd(CovA).UComp;
 	// Ureduce - orthogonal vectors representing new space
 	EXPORT Ureduce := IF(comp_cnt=0, U, U(y<=comp_cnt));
-	ZeroMeanA := Sub(A, Repmat(Has(A).MeanCol, Has(A).Stats.XMax, 1));
+	ZeroMeanA := ML_Mat.Sub(A, ML_Mat.Repmat(ML_Mat.Has(A).MeanCol, ML_Mat.Has(A).Stats.XMax, 1));
 	// ZComp - original features projected to the Ureduce space
-	EXPORT ZComp := Trans(Mul(Trans(Ureduce),Trans(ZeroMeanA)));
+	EXPORT ZComp := ML_Mat.Trans(Mul(Trans(Ureduce),ML_Mat.Trans(ZeroMeanA)));
 
 END;

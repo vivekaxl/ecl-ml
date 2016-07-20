@@ -1,12 +1,12 @@
-﻿IMPORT * FROM ML;
-IMPORT * FROM ML.Types;
+﻿IMPORT ML;
+IMPORT ML.Types;
 
 dsRecord := RECORD
-  Types.t_FieldReal a1 ;
-  Types.t_FieldReal a2 ;
-  Types.t_FieldReal a3 ;
-  Types.t_FieldReal a4 ;
-  Types.t_FieldReal class;
+  ML.Types.t_FieldReal a1 ;
+  ML.Types.t_FieldReal a2 ;
+  ML.Types.t_FieldReal a3 ;
+  ML.Types.t_FieldReal a4 ;
+  ML.Types.t_FieldReal class;
 END;
 irisDS := DATASET([
 {5.1,3.5,1.4,0.2,0},
@@ -161,7 +161,7 @@ irisDS := DATASET([
 {5.9,3.0,5.1,1.8,2}], dsRecord);
 
 OUTPUT(irisDS, NAMED('irisDS'), ALL);
-AppendID(irisDS, id, iris_data);
+ML.AppendID(irisDS, id, iris_data);
 ML.ToField(iris_Data, full_ds);
 OUTPUT(full_ds, NAMED('full_ds'), ALL);
 indepData:= full_ds(number<5);
@@ -176,7 +176,7 @@ OUTPUT(SORT(tmodel, -node_id, -new_node_id), ALL, NAMED('TreeModel'));
 //Classification Phase
 results1:= trainer1.ClassifyC(indepData, tmod);
 OUTPUT(results1, NAMED('ClassificationResults'), ALL);
-results11:= Classify.Compare(PROJECT(depData, TRANSFORM(Types.DiscreteField,SELF.number:=1, SELF:=LEFT)), results1);
+results11:= ML.Classify.Compare(PROJECT(depData, TRANSFORM(ML.Types.DiscreteField,SELF.number:=1, SELF:=LEFT)), results1);
 OUTPUT(SORT(results11.CrossAssignments, c_actual, c_modeled), NAMED('CrossAssig1'), ALL);
 OUTPUT(results11.RecallByClass, NAMED('RecallByClass1'));
 OUTPUT(results11.PrecisionByClass, NAMED('PrecisionByClass1'));

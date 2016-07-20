@@ -1,4 +1,4 @@
-﻿IMPORT * FROM ML;
+﻿IMPORT ML;
 /*
 Dataset from UCI Machine Learning Repository: MONK's Problems Data Set
 http://archive.ics.uci.edu/ml/datasets/MONK's+Problems
@@ -8,14 +8,14 @@ for more details about the dataset;
 */
 EXPORT MonkDS := MODULE
 	SHARED monkRecord := RECORD
-		Types.t_FieldNumber class;
-		Types.t_FieldNumber a1;
-		Types.t_FieldNumber a2;
-		Types.t_FieldNumber a3;
-		Types.t_FieldNumber a4;
-		Types.t_FieldNumber a5;
-		Types.t_FieldNumber a6;
-		Types.t_RecordID id;
+		ML.Types.t_FieldNumber class;
+		ML.Types.t_FieldNumber a1;
+		ML.Types.t_FieldNumber a2;
+		ML.Types.t_FieldNumber a3;
+		ML.Types.t_FieldNumber a4;
+		ML.Types.t_FieldNumber a5;
+		ML.Types.t_FieldNumber a6;
+		ML.Types.t_RecordID id;
 	END;
 	EXPORT Train_Data := DATASET([
 		{1,1,1,1,1,3,1,5},

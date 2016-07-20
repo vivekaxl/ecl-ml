@@ -4,19 +4,20 @@
 // algorithms, determining centroid allegiance based on those distances, and
 // performing K-Means calculations.
 //-----------------------------------------------------------------------------
-IMPORT * FROM $;
+IMPORT ML;
+IMPORT ML.Utils AS Utils;
 IMPORT Std.Str AS Str;
 IMPORT ML.Mat;
 
 EXPORT Cluster := MODULE
 // Working structure for cluster distance logic
   SHARED ClusterPair:=RECORD
-		Types.t_RecordID    id;
-		Types.t_RecordID    clusterid;
-		Types.t_FieldNumber number;
-		Types.t_FieldReal   value01 := 0;
-		Types.t_FieldReal   value02 := 0;
-		Types.t_FieldReal   value03 := 0;
+		ML.Types.t_RecordID    id;
+		ML.Types.t_RecordID    clusterid;
+		ML.Types.t_FieldNumber number;
+		ML.Types.t_FieldReal   value01 := 0;
+		ML.Types.t_FieldReal   value02 := 0;
+		ML.Types.t_FieldReal   value03 := 0;
   END;
   
 	// Compute the 'N^2' distance metric
@@ -36,25 +37,25 @@ EXPORT Cluster := MODULE
 		//         No leading letter implies our 'best shot' at the 'correct' result
     EXPORT Default := MODULE,VIRTUAL
 		  EXPORT UNSIGNED1 PModel := c_model.dense; // The process model for this distance metric
-			EXPORT REAL8 EV1(DATASET(Types.NumericField) d) := 0; // An 'exotic' value which will be passed in at Comb time
-			EXPORT REAL8 EV2(DATASET(Types.NumericField) d) := 0; // An 'exotic' value which will be passed in at Comb time
-			EXPORT BOOLEAN JoinFilter(Types.t_FieldReal x,Types.t_FieldReal y,REAL8 ex1) := x<>0 OR y<>0; // If false - join value will not be computed
-			EXPORT IV1(Types.t_FieldReal x,Types.t_FieldReal y) := x;
-			EXPORT IV2(Types.t_FieldReal x,Types.t_FieldReal y) := y;
-			EXPORT Types.t_FieldReal Comb1(DATASET(ClusterPair) d,REAL8 ev1,REAL8 ev2) := 0; // The value1 - eventual result
-			EXPORT Types.t_FieldReal Comb2(DATASET(ClusterPair) d,REAL8 ev1,REAL8 ev2) := 0; // Scratchpad
-			EXPORT Types.t_FieldReal Comb3(DATASET(ClusterPair) d,REAL8 ev1,REAL8 ev2) := 0; // Scratchpad
+			EXPORT REAL8 EV1(DATASET(ML.Types.NumericField) d) := 0; // An 'exotic' value which will be passed in at Comb time
+			EXPORT REAL8 EV2(DATASET(ML.Types.NumericField) d) := 0; // An 'exotic' value which will be passed in at Comb time
+			EXPORT BOOLEAN JoinFilter(ML.Types.t_FieldReal x,ML.Types.t_FieldReal y,REAL8 ex1) := x<>0 OR y<>0; // If false - join value will not be computed
+			EXPORT IV1(ML.Types.t_FieldReal x,ML.Types.t_FieldReal y) := x;
+			EXPORT IV2(ML.Types.t_FieldReal x,ML.Types.t_FieldReal y) := y;
+			EXPORT ML.Types.t_FieldReal Comb1(DATASET(ClusterPair) d,REAL8 ev1,REAL8 ev2) := 0; // The value1 - eventual result
+			EXPORT ML.Types.t_FieldReal Comb2(DATASET(ClusterPair) d,REAL8 ev1,REAL8 ev2) := 0; // Scratchpad
+			EXPORT ML.Types.t_FieldReal Comb3(DATASET(ClusterPair) d,REAL8 ev1,REAL8 ev2) := 0; // Scratchpad
 // These can be though of as a 'turbo' or summary-join interface
 // They will usually be used to prevent the need for dense computation
-			EXPORT SummaryID1(DATASET(Types.NumericField) d) := d; // Used to create some form of summary by ID for dataset 1
-			EXPORT SummaryID2(DATASET(Types.NumericField) d) := SummaryID1(d); // Used to create some form of summary by ID for dataset 2
-			EXPORT Types.t_FieldReal Join11(ClusterPair im,Types.NumericField ri) := 0; // join 1 result 1
-			EXPORT Types.t_FieldReal Join12(ClusterPair im,Types.NumericField ri) := 0;
-			EXPORT Types.t_FieldReal Join13(ClusterPair im,Types.NumericField ri) := 0;
-			EXPORT Types.t_FieldReal Join21(ClusterPair im,Types.NumericField ri) := 0;  // join 2 result 1
+			EXPORT SummaryID1(DATASET(ML.Types.NumericField) d) := d; // Used to create some form of summary by ID for dataset 1
+			EXPORT SummaryID2(DATASET(ML.Types.NumericField) d) := SummaryID1(d); // Used to create some form of summary by ID for dataset 2
+			EXPORT ML.Types.t_FieldReal Join11(ClusterPair im,ML.Types.NumericField ri) := 0; // join 1 result 1
+			EXPORT ML.Types.t_FieldReal Join12(ClusterPair im,ML.Types.NumericField ri) := 0;
+			EXPORT ML.Types.t_FieldReal Join13(ClusterPair im,ML.Types.NumericField ri) := 0;
+			EXPORT ML.Types.t_FieldReal Join21(ClusterPair im,ML.Types.NumericField ri) := 0;  // join 2 result 1
 // This is the 'background' interface			
-      EXPORT Types.t_FieldReal Background(Types.NumericField va1,Types.NumericField va2) := 0;// Compute background value from SI1/SI2 value
-      EXPORT Types.t_FieldReal BackFront(Mat.Types.Element Back,ClusterPair Fro) := IF ( Fro.id>0, Fro.value01, Back.value );// Compute value given a background and a clusterpair <by default take front if possible>
+      EXPORT ML.Types.t_FieldReal Background(ML.Types.NumericField va1,ML.Types.NumericField va2) := 0;// Compute background value from SI1/SI2 value
+      EXPORT ML.Types.t_FieldReal BackFront(Mat.Types.Element Back,ClusterPair Fro) := IF ( Fro.id>0, Fro.value01, Back.value );// Compute value given a background and a clusterpair <by default take front if possible>
 	  END;
 
 // These models compute a 'proper' Euclidean result but only for those vectors that have at least one dimension along
@@ -62,59 +63,59 @@ EXPORT Cluster := MODULE
 // N^2 (and is correspondingly faster)		
     EXPORT QEuclideanSquared := MODULE(Default),VIRTUAL
 		  EXPORT UNSIGNED1 PModel := c_model.SJoins;
-			EXPORT SummaryID1(DATASET(Types.NumericField) d) := PROJECT(TABLE( d, { id, val := SUM(GROUP,value*value); }, id ),TRANSFORM(Types.NumericField,SELF.value:=LEFT.val,SELF.number:=0,SELF.id:=LEFT.id));
+			EXPORT SummaryID1(DATASET(ML.Types.NumericField) d) := PROJECT(TABLE( d, { id, val := SUM(GROUP,value*value); }, id ),TRANSFORM(ML.Types.NumericField,SELF.value:=LEFT.val,SELF.number:=0,SELF.id:=LEFT.id));
 			EXPORT Comb1(DATASET(ClusterPair) d,REAL8 ev1,REAL8 ev2) := SUM(D,(Value01-Value02)*(Value01-Value02));
 			EXPORT Comb2(DATASET(ClusterPair) d,REAL8 ev1,REAL8 ev2) := SUM(D,Value01*Value01);
 			EXPORT Comb3(DATASET(ClusterPair) d,REAL8 ev1,REAL8 ev2) := SUM(D,Value02*Value02); // sum of all the contributing rhs
-			EXPORT Join11(ClusterPair im,Types.NumericField ri) := im.value01 + ( ri.value-im.value02 ); // add in all of the lhs^2 that did not match
-			EXPORT Join13(ClusterPair im,Types.NumericField ri) := im.value03; // keep the rhs^2
-			EXPORT Join21(ClusterPair im,Types.NumericField ri) := im.value01 + ( ri.value-im.value03 ); // add in all of the rhs^2 that did not match
+			EXPORT Join11(ClusterPair im,ML.Types.NumericField ri) := im.value01 + ( ri.value-im.value02 ); // add in all of the lhs^2 that did not match
+			EXPORT Join13(ClusterPair im,ML.Types.NumericField ri) := im.value03; // keep the rhs^2
+			EXPORT Join21(ClusterPair im,ML.Types.NumericField ri) := im.value01 + ( ri.value-im.value03 ); // add in all of the rhs^2 that did not match
     END;
     EXPORT QEuclidean := MODULE(QEuclideanSquared)
-			EXPORT Join21(ClusterPair im,Types.NumericField ri) := SQRT(im.value01 + ( ri.value-im.value03 )); // add in all of the rhs^2 that did not match
+			EXPORT Join21(ClusterPair im,ML.Types.NumericField ri) := SQRT(im.value01 + ( ri.value-im.value03 )); // add in all of the rhs^2 that did not match
     END;
 
 // These models compute a proper Euclidean result (the full N^2) - they do require that D02 be able to fit in memory
 // However given this is N^2 - if N does not fit in memory - you are probably dead anyway
     EXPORT EuclideanSquared := MODULE(QEuclideanSquared),VIRTUAL // QEuclidean with a background added
 		  EXPORT UNSIGNED1 PModel := c_model.Background; // We avoid the SJoins through cleverness in BackFront
-      EXPORT Types.t_FieldReal Background(Types.NumericField va1,Types.NumericField va2) := va1.value+va2.value;
-      EXPORT Types.t_FieldReal BackFront(Mat.Types.Element Back,ClusterPair Fro) := IF ( Fro.id>0, Back.value+Fro.value01-Fro.value02-Fro.value03, Back.value );
+      EXPORT ML.Types.t_FieldReal Background(ML.Types.NumericField va1,ML.Types.NumericField va2) := va1.value+va2.value;
+      EXPORT ML.Types.t_FieldReal BackFront(Mat.Types.Element Back,ClusterPair Fro) := IF ( Fro.id>0, Back.value+Fro.value01-Fro.value02-Fro.value03, Back.value );
     END;
     EXPORT Euclidean := MODULE(EuclideanSquared)
-      EXPORT Types.t_FieldReal BackFront(Mat.Types.Element Back,ClusterPair Fro) := SQRT(IF ( Fro.id>0, Back.value+Fro.value01-Fro.value02-Fro.value03, Back.value ));
+      EXPORT ML.Types.t_FieldReal BackFront(Mat.Types.Element Back,ClusterPair Fro) := SQRT(IF ( Fro.id>0, Back.value+Fro.value01-Fro.value02-Fro.value03, Back.value ));
     END;
     EXPORT Manhattan:=MODULE(Default),VIRTUAL
       EXPORT UNSIGNED1 PModel := c_model.Background;
-      EXPORT SummaryID1(DATASET(Types.NumericField) d) := PROJECT(TABLE(d,{id,val:=SUM(GROUP,value);},id),TRANSFORM(Types.NumericField,SELF.value:=LEFT.val,SELF.number:=0,SELF.id:=LEFT.id));
+      EXPORT SummaryID1(DATASET(ML.Types.NumericField) d) := PROJECT(TABLE(d,{id,val:=SUM(GROUP,value);},id),TRANSFORM(ML.Types.NumericField,SELF.value:=LEFT.val,SELF.number:=0,SELF.id:=LEFT.id));
       EXPORT Comb1(DATASET(ClusterPair) d,REAL8 ev1,REAL8 ev2):=SUM(d,ABS(Value01-Value02));
       EXPORT Comb2(DATASET(ClusterPair) d,REAL8 ev1,REAL8 ev2):=SUM(D,Value01);
       EXPORT Comb3(DATASET(ClusterPair) d,REAL8 ev1,REAL8 ev2):=SUM(D,Value02);
-      EXPORT Types.t_FieldReal Background(Types.NumericField va1,Types.NumericField va2):=va1.value+va2.value;
-      EXPORT Types.t_FieldReal BackFront(Mat.Types.Element Back,ClusterPair Fro):=IF(Fro.id>0,Back.value+Fro.value01-Fro.value02-Fro.value03,Back.value);
+      EXPORT ML.Types.t_FieldReal Background(ML.Types.NumericField va1,ML.Types.NumericField va2):=va1.value+va2.value;
+      EXPORT ML.Types.t_FieldReal BackFront(Mat.Types.Element Back,ClusterPair Fro):=IF(Fro.id>0,Back.value+Fro.value01-Fro.value02-Fro.value03,Back.value);
     END;
     EXPORT Cosine := MODULE(Default),VIRTUAL
       EXPORT UNSIGNED1 PModel := c_model.Background;
-      EXPORT SummaryID1(DATASET(Types.NumericField) d) := PROJECT(TABLE(d,{id,val:=SQRT(SUM(GROUP,(value*value)));},id),TRANSFORM(Types.NumericField,SELF.value:=LEFT.val,SELF.number:=0,SELF.id:=LEFT.id));
+      EXPORT SummaryID1(DATASET(ML.Types.NumericField) d) := PROJECT(TABLE(d,{id,val:=SQRT(SUM(GROUP,(value*value)));},id),TRANSFORM(ML.Types.NumericField,SELF.value:=LEFT.val,SELF.number:=0,SELF.id:=LEFT.id));
       EXPORT Comb1(DATASET(ClusterPair) d,REAL8 ev1,REAL8 ev2) := SUM(d,Value01*Value02);
-      EXPORT Types.t_FieldReal Background(Types.NumericField va1,Types.NumericField va2):=va1.value*va2.value;
-      EXPORT Types.t_FieldReal BackFront(Mat.Types.Element Back,ClusterPair Fro):=IF(Fro.id>0,1.0-(Fro.Value01/Back.value),1.0);
+      EXPORT ML.Types.t_FieldReal Background(ML.Types.NumericField va1,ML.Types.NumericField va2):=va1.value*va2.value;
+      EXPORT ML.Types.t_FieldReal BackFront(Mat.Types.Element Back,ClusterPair Fro):=IF(Fro.id>0,1.0-(Fro.Value01/Back.value),1.0);
     END;
     EXPORT Tanimoto := MODULE(Cosine),VIRTUAL
-      EXPORT Types.t_FieldReal BackFront(Mat.Types.Element Back,ClusterPair Fro):=IF(Fro.id>0,1.0-(Fro.Value01/(Back.value-Fro.Value01)),1.0);
+      EXPORT ML.Types.t_FieldReal BackFront(Mat.Types.Element Back,ClusterPair Fro):=IF(Fro.id>0,1.0-(Fro.Value01/(Back.value-Fro.Value01)),1.0);
     END;
 // These compute full Euclidean	the 'simple' way and have no obvious restrictions
 // Expect to wait a while
     EXPORT WEuclideanSquared := MODULE(Default),VIRTUAL
-			EXPORT IV1(Types.t_FieldReal x,Types.t_FieldReal y) := (x-y)*(x-y);
+			EXPORT IV1(ML.Types.t_FieldReal x,ML.Types.t_FieldReal y) := (x-y)*(x-y);
 			EXPORT Comb1(DATASET(ClusterPair) d,REAL8 ev1,REAL8 ev2) := SUM(D,Value01); 
     END;
     EXPORT WEuclidean := MODULE(WEuclideanSquared)
 			EXPORT Comb1(DATASET(ClusterPair) d,REAL8 ev1,REAL8 ev2) := SQRT( SUM(D,Value01) );
     END;
     EXPORT WManhattan := MODULE(Default),VIRTUAL
-			EXPORT IV1(Types.t_FieldReal x,Types.t_FieldReal y) := ABS(x-y);
-			EXPORT IV2(Types.t_FieldReal x,Types.t_FieldReal y) := 0;
+			EXPORT IV1(ML.Types.t_FieldReal x,ML.Types.t_FieldReal y) := ABS(x-y);
+			EXPORT IV2(ML.Types.t_FieldReal x,ML.Types.t_FieldReal y) := 0;
 			EXPORT Comb1(DATASET(ClusterPair) d,REAL8 ev1,REAL8 ev2) := SUM(D,Value01);
     END;
 		EXPORT Maximum := MODULE(WManhattan)
@@ -130,26 +131,26 @@ EXPORT Cluster := MODULE
 		// This attempts to approximate the missing values - it will have far few intermediates if the matrices were sparse
 		EXPORT MissingAppx := MODULE(Default),VIRTUAL
 		  EXPORT UNSIGNED1 Pmodel := 0;
-			EXPORT REAL8 EV1(DATASET(Types.NumericField) d) := AVE(d,value); // Average value
-			EXPORT REAL8 EV2(DATASET(Types.NumericField) d) := MAX(TABLE(d,{UNSIGNED C := COUNT(GROUP)},id),C);
-			EXPORT BOOLEAN JoinFilter(Types.t_FieldReal x,Types.t_FieldReal y,REAL8 ex1) := (x<>0 OR y<>0) AND ABS(x-y)<ex1; // Only produce record if closer
-			EXPORT Types.t_FieldReal IV1(Types.t_FieldReal x,Types.t_FieldReal y) := ABS(x-y);
-			EXPORT Types.t_FieldReal Comb1(DATASET(ClusterPair) d,REAL8 ev1,REAL8 ev2) := SUM(d,value01) + (ev2-COUNT(d))*ev1;
+			EXPORT REAL8 EV1(DATASET(ML.Types.NumericField) d) := AVE(d,value); // Average value
+			EXPORT REAL8 EV2(DATASET(ML.Types.NumericField) d) := MAX(TABLE(d,{UNSIGNED C := COUNT(GROUP)},id),C);
+			EXPORT BOOLEAN JoinFilter(ML.Types.t_FieldReal x,ML.Types.t_FieldReal y,REAL8 ex1) := (x<>0 OR y<>0) AND ABS(x-y)<ex1; // Only produce record if closer
+			EXPORT ML.Types.t_FieldReal IV1(ML.Types.t_FieldReal x,ML.Types.t_FieldReal y) := ABS(x-y);
+			EXPORT ML.Types.t_FieldReal Comb1(DATASET(ClusterPair) d,REAL8 ev1,REAL8 ev2) := SUM(d,value01) + (ev2-COUNT(d))*ev1;
 		END;
 
 		// Co-occurences - only counts number of fields with exact matches
 		// For this metric missing values are 'infinity'
 		EXPORT CoOccur := MODULE(Default),VIRTUAL
 		  EXPORT UNSIGNED1 Pmodel := 0;
-			EXPORT REAL8 EV1(DATASET(Types.NumericField) d) := MAX(d,number);
-			EXPORT BOOLEAN JoinFilter(Types.t_FieldReal x,Types.t_FieldReal y,REAL8 ex1) := x<>0 AND x=y;
-			EXPORT Types.t_FieldReal IV1(Types.t_FieldReal x,Types.t_FieldReal y) := 1;
-			EXPORT Types.t_FieldReal Comb1(DATASET(ClusterPair) d,REAL8 ev1,REAL8 ev2) := ev1 - COUNT(d);
+			EXPORT REAL8 EV1(DATASET(ML.Types.NumericField) d) := MAX(d,number);
+			EXPORT BOOLEAN JoinFilter(ML.Types.t_FieldReal x,ML.Types.t_FieldReal y,REAL8 ex1) := x<>0 AND x=y;
+			EXPORT ML.Types.t_FieldReal IV1(ML.Types.t_FieldReal x,ML.Types.t_FieldReal y) := 1;
+			EXPORT ML.Types.t_FieldReal Comb1(DATASET(ClusterPair) d,REAL8 ev1,REAL8 ev2) := ev1 - COUNT(d);
 		END;
 	END;
 
 // This is the 'distance computation engine'. It extremely configurable - see the 'Control' parameter
-	EXPORT Distances(DATASET(Types.NumericField) d01,DATASET(Types.NumericField) d02,DF.Default Control = DF.Euclidean) := FUNCTION
+	EXPORT Distances(DATASET(ML.Types.NumericField) d01,DATASET(ML.Types.NumericField) d02,DF.Default Control = DF.Euclidean) := FUNCTION
 		// If we are in dense model then fatten up the records; otherwise zeroes not needed
 		df1 := IF( Control.Pmodel & c_model.dense > 0, Utils.Fat(d01), d01(value<>0) );
 		df2 := IF( Control.Pmodel & c_model.dense > 0, Utils.Fat(d02), d02(value<>0) );
@@ -217,23 +218,23 @@ EXPORT Cluster := MODULE
   //   fDist    : [OPTIONAL] The distance calculation to use when determining
   //              centroid allegiance.  Default is simple Euclidean.
   //---------------------------------------------------------------------------
-  EXPORT KMeans(DATASET(Types.NumericField) d01,DATASET(Types.NumericField) d02,UNSIGNED n=1,REAL nConverge=0.0,DF.Default fDist=DF.Euclidean):=MODULE
+  EXPORT KMeans(DATASET(ML.Types.NumericField) d01,DATASET(ML.Types.NumericField) d02,UNSIGNED n=1,REAL nConverge=0.0,DF.Default fDist=DF.Euclidean):=MODULE
     SHARED iOffset:=IF(MAX(d01,id)>MIN(d02,id),MAX(d01,id),0);
     
     // For the internal storage of all iterations, we convert the VALUE field
     // in NumericField to a SET OF VALUES, where values[1] is the initial
     // location of the centroids, values[2] is after the first iteration, etc.
     SHARED lIterations:=RECORD
-      TYPEOF(Types.NumericField.id) id;
-      TYPEOF(Types.NumericField.number) number;
-      SET OF TYPEOF(Types.NumericField.value) values;
+      TYPEOF(ML.Types.NumericField.id) id;
+      TYPEOF(ML.Types.NumericField.number) number;
+      SET OF TYPEOF(ML.Types.NumericField.value) values;
     END;
     
     // Function to pull iteration N from a table of type lIterations
-    SHARED Types.NumericField dResult(UNSIGNED n=n,DATASET(lIterations) d):=PROJECT(d,TRANSFORM(Types.NumericField,SELF.value:=LEFT.values[n+1];SELF:=LEFT;));
+    SHARED ML.Types.NumericField dResult(UNSIGNED n=n,DATASET(lIterations) d):=PROJECT(d,TRANSFORM(ML.Types.NumericField,SELF.value:=LEFT.values[n+1];SELF:=LEFT;));
 
     // Determine the delta along each axis between any two iterations
-    Types.NumericField tGetDelta(Types.NumericField L,Types.NumericField R):=TRANSFORM
+    ML.Types.NumericField tGetDelta(ML.Types.NumericField L,ML.Types.NumericField R):=TRANSFORM
       SELF.id:=IF(L.id=0,R.id,L.id);
       SELF.number:=IF(L.number=0,R.number,L.number);
       SELF.value:=R.value-L.value;
@@ -244,8 +245,8 @@ EXPORT Cluster := MODULE
     // method specified by the user for this module
     SHARED dDistanceDelta(UNSIGNED n01=n-1,UNSIGNED n02=n,DATASET(lIterations) d):=FUNCTION
       iMax01:=MAX(dResult(n01,d),id);
-      dDistances:=Distances(dResult(n01,d),PROJECT(dResult(n02,d),TRANSFORM(Types.NumericField,SELF.id:=LEFT.id+iMax01;SELF:=LEFT;)),fDist);
-      RETURN PROJECT(dDistances(x=y-iMax01),TRANSFORM({Types.NumericField AND NOT [number];},SELF.id:=LEFT.x;SELF:=LEFT;));
+      dDistances:=Distances(dResult(n01,d),PROJECT(dResult(n02,d),TRANSFORM(ML.Types.NumericField,SELF.id:=LEFT.id+iMax01;SELF:=LEFT;)),fDist);
+      RETURN PROJECT(dDistances(x=y-iMax01),TRANSFORM({ML.Types.NumericField AND NOT [number];},SELF.id:=LEFT.x;SELF:=LEFT;));
     END;
 
     // Convert the input centroid dataset to our internal structure, then
@@ -258,18 +259,18 @@ EXPORT Cluster := MODULE
       // value is below the convergence threshold, then set bConverged to TRUE
       bConverged:=IF(c=1,FALSE,MAX(dDistanceDelta(c-1,c-2,d),value)<=nConverge);
       // set the current centroids to the results of the most recent iteration
-      dCentroids:=PROJECT(d,TRANSFORM(Types.NumericField,SELF.value:=LEFT.values[c];SELF:=LEFT;));
+      dCentroids:=PROJECT(d,TRANSFORM(ML.Types.NumericField,SELF.value:=LEFT.values[c];SELF:=LEFT;));
       // get all document-to-centroid distances, and determine centroid allegiance
       dDistances:=Distances(d01,dCentroids,fDist);
       dClosest:=Closest(dDistances);
       // Get a count of the number of documents allied to each centroid
       dClusterCounts:=TABLE(dClosest,{y;UNSIGNED c:=COUNT(GROUP);},y,FEW);
       // Join closest to the document set and replace the id with the centriod id
-      dClustered:=SORT(DISTRIBUTE(JOIN(d01,dClosest,LEFT.id=RIGHT.x,TRANSFORM(Types.NumericField,SELF.id:=RIGHT.y;SELF:=LEFT;),HASH),id),RECORD,LOCAL);
+      dClustered:=SORT(DISTRIBUTE(JOIN(d01,dClosest,LEFT.id=RIGHT.x,TRANSFORM(ML.Types.NumericField,SELF.id:=RIGHT.y;SELF:=LEFT;),HASH),id),RECORD,LOCAL);
       // Now roll up on centroid ID, summing up the values for each axis
-      dRolled:=ROLLUP(dClustered,TRANSFORM(Types.NumericField,SELF.value:=LEFT.value+RIGHT.value;SELF:=LEFT;),id,number,LOCAL);
+      dRolled:=ROLLUP(dClustered,TRANSFORM(ML.Types.NumericField,SELF.value:=LEFT.value+RIGHT.value;SELF:=LEFT;),id,number,LOCAL);
       // Join to cluster counts to calculate the new average on each axis
-      dJoined:=JOIN(dRolled,dClusterCounts,LEFT.id=RIGHT.y,TRANSFORM(Types.NumericField,SELF.value:=LEFT.value/RIGHT.c;SELF:=LEFT;),LOOKUP);
+      dJoined:=JOIN(dRolled,dClusterCounts,LEFT.id=RIGHT.y,TRANSFORM(ML.Types.NumericField,SELF.value:=LEFT.value/RIGHT.c;SELF:=LEFT;),LOOKUP);
       // Find any centroids with no document allegiance and pass those through also
 		  dPass:=JOIN(dCentroids,TABLE(dJoined,{id},id,LOCAL),LEFT.id=RIGHT.id,TRANSFORM(LEFT),LEFT ONLY,LOOKUP);
       // Now join to the existing centroid dataset to add the new values to
@@ -291,8 +292,8 @@ EXPORT Cluster := MODULE
     
     // Specific-instance exports for for the SHARED attributes at the top of
     // the KMeans module (with d assumed to be the iterated results). 
-    EXPORT Types.NumericField Result(UNSIGNED n=Convergence,DATASET(lIterations) d=dIterations):=dResult(MIN(Convergence,n),d);
-    EXPORT Types.NumericField Delta(UNSIGNED n01=Convergence-1,UNSIGNED n02=Convergence,DATASET(lIterations) d=dIterations):=dDelta(MIN(Convergence-1,n01),MIN(Convergence,n02),d);
+    EXPORT ML.Types.NumericField Result(UNSIGNED n=Convergence,DATASET(lIterations) d=dIterations):=dResult(MIN(Convergence,n),d);
+    EXPORT ML.Types.NumericField Delta(UNSIGNED n01=Convergence-1,UNSIGNED n02=Convergence,DATASET(lIterations) d=dIterations):=dDelta(MIN(Convergence-1,n01),MIN(Convergence,n02),d);
     EXPORT DistanceDelta(UNSIGNED n01=Convergence-1,UNSIGNED n02=Convergence,DATASET(lIterations) d=dIterations):=dDistanceDelta(MIN(Convergence-1,n01),MIN(Convergence,n02),d);
 
     // Quick re-directs to the Closest attribute specific to this module's
@@ -310,14 +311,14 @@ EXPORT Cluster := MODULE
   // Agglomerative (or Hierarchical clustering) - attempts to weld the clusters together bottom up
 	// N is the number of steps to take
 
-  EXPORT AggloN(DATASET(Types.NumericField) d,UNSIGNED4 N,DF.Default Dist=DF.QEuclidean, c_Method cm=c_Method.min_dist):= MODULE
+  EXPORT AggloN(DATASET(ML.Types.NumericField) d,UNSIGNED4 N,DF.Default Dist=DF.QEuclidean, c_Method cm=c_Method.min_dist):= MODULE
     Distance:=Distances(d,d,Dist)(x<>y);
 		dinit0 := DEDUP( d, ID, ALL );
 		// To go around the loop this has to be a combined 'distance metric' / 'clusters so far' format
 		ClusterRec := RECORD// Collect the full matrix of pair-pair distances
-		  Types.t_RecordID ClusterId := dinit0.id;
-			Types.t_RecordID Id := 0;
-			Types.t_FieldReal value := 0;
+		  ML.Types.t_RecordID ClusterId := dinit0.id;
+			ML.Types.t_RecordID Id := 0;
+			ML.Types.t_FieldReal value := 0;
 			STRING Members := (STRING)dinit0.id;
 			STRING newick := (STRING)dinit0.id;
 		END;
@@ -384,7 +385,7 @@ EXPORT Cluster := MODULE
 	SHARED res := LOOP(dinit,(COUNTER<=N) AND (COUNT(ROWS(LEFT))>1),Step(ROWS(LEFT)));
 	EXPORT Dendrogram := TABLE(res(Members<>''),{ClusterId,Members});
 	newick_dendrogram_rec := RECORD
-	    Types.t_RecordID ClusterId:=res.ClusterId;
+	    ML.Types.t_RecordID ClusterId:=res.ClusterId;
 	    STRING newick := '('+REGEXREPLACE(';',res.newick,',')+');';
 	END;
 	EXPORT NewickDendrogram := TABLE(res((newick<>'') and (newick<>'newick')),newick_dendrogram_rec);

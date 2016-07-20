@@ -4,22 +4,22 @@
 //Insert is used insert columns with a spacific value.  Typical use is building a matrix
 // for a solver where the first column is an inserted column of 1 values for the intercept.
 IMPORT PBblas;
-IMPORT PBblas.Types;
-Layout_Part := Types.Layout_Part;
-Layout_Cell := Types.Layout_Cell;
+IMPORT PBblas.Types as PBblas_Types;
+Layout_Part := PBblas_Types.Layout_Part;
+Layout_Cell := PBblas_Types.Layout_Cell;
 IMPORT ML.Types AS ML_Types;
 IMPORT ML.Mat.Types AS Mat_Types;
 
 EXPORT Converted := MODULE
-  SHARED Work1 := RECORD(Types.Layout_Cell)
-    Types.partition_t     partition_id;
-    Types.node_t          node_id;
-    Types.dimension_t     block_row;
-    Types.dimension_t     block_col;
+  SHARED Work1 := RECORD(PBblas_Types.Layout_Cell)
+    PBblas_Types.partition_t     partition_id;
+    PBblas_Types.node_t          node_id;
+    PBblas_Types.dimension_t     block_row;
+    PBblas_Types.dimension_t     block_col;
   END;
   EXPORT FromCells(PBblas.IMatrix_Map mat_map, DATASET(Layout_Cell) cells,
-                   Types.dimension_t insert_columns=0,
-                   Types.value_t insert_value=0.0d) := FUNCTION
+                   PBblas_Types.dimension_t insert_columns=0,
+                   PBblas_Types.value_t insert_value=0.0d) := FUNCTION
     Work1 cvt_2_xcell(Layout_Cell lr) := TRANSFORM
       block_row           := mat_map.row_block(lr.x);
       block_col           := mat_map.col_block(lr.y + insert_columns);
@@ -71,8 +71,8 @@ EXPORT Converted := MODULE
   // From ML Types
   EXPORT FromNumericFieldDS(DATASET(ML_Types.NumericField) cells,
                            PBblas.IMatrix_Map mat_map,
-                           Types.dimension_t insert_columns=0,
-                           Types.value_t insert_value=0.0d) := FUNCTION
+                           PBblas_Types.dimension_t insert_columns=0,
+                           PBblas_Types.value_t insert_value=0.0d) := FUNCTION
     Layout_Cell cvt_2_cell(ML_Types.NumericField lr) := TRANSFORM
       SELF.x              := lr.id;     // 1 based
       SELF.y              := lr.number; // 1 based
@@ -99,8 +99,8 @@ EXPORT Converted := MODULE
   END;
   EXPORT FromElement(DATASET(Mat_Types.Element) elms,
                      PBblas.IMatrix_Map mat_map,
-                     Types.dimension_t ins_cols=0,
-                     Types.value_t ins_val=0.0d)
+                     PBblas_Types.dimension_t ins_cols=0,
+                     PBblas_Types.value_t ins_val=0.0d)
         := FromCells(mat_map, PROJECT(elms, cvt(LEFT)), ins_cols, ins_val);
 
   // To Mat types

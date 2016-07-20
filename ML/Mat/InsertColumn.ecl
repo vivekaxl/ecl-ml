@@ -1,9 +1,9 @@
-IMPORT * FROM $;
-EXPORT InsertColumn(DATASET(Types.Element) d, Types.t_Index col_i, Types.t_value filler) := FUNCTION
+IMPORT ML.Mat AS ML_Mat;
+EXPORT InsertColumn(DATASET(ML_Mat.Types.Element) d, ML_Mat.Types.t_Index col_i, ML_Mat.Types.t_value filler) := FUNCTION
 
-filler_col := Vec.ToCol( Vec.From( MAX(d,x), filler ), col_i );
+        filler_col := ML_Mat.Vec.ToCol( ML_Mat.Vec.From( MAX(d,x), filler ), col_i );
 
-Types.Element shiftRight(d le) := TRANSFORM
+        ML_Mat.Types.Element shiftRight(d le) := TRANSFORM
 	  SELF.y := IF(le.y>= col_i, le.y +1, le.y);
 	  SELF := le;
 	END;
@@ -11,4 +11,4 @@ Types.Element shiftRight(d le) := TRANSFORM
 
 	RETURN filler_col+d1;
 
-  END;
+END;

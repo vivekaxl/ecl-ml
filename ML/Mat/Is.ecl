@@ -1,6 +1,6 @@
 ﻿// Various tests to see if a matrix is a particular type
-IMPORT * FROM $;
-EXPORT Is(DATASET(Types.Element) d) := MODULE
+IMPORT ML.Mat As ML_Mat;
+EXPORT Is(DATASET(ML_Mat.Types.Element) d) := MODULE
 
 SHARED dn := Thin(d);
 
@@ -11,7 +11,7 @@ EXPORT Zero := ~EXISTS(dn);
 EXPORT SingleColumn := COUNT(TABLE(dn,{COUNT(GROUP)}, y, FEW))<=1;
 
 // Matrix only has entries along diagonal - note - zero matrix is diagonal by this definition
-EXPORT Square := Has(dn).Stats.XMax = Has(dn).Stats.YMax;
+EXPORT Square := ML_Mat.Has(dn).Stats.XMax = Has(dn).Stats.YMax;
 
 // Matrix only has entries along diagonal - note - zero matrix is diagonal by this definition
 EXPORT TriDiagonal := ~EXISTS(dn(x>y+1)+dn(y>x+1));

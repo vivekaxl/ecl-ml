@@ -1,5 +1,5 @@
-﻿IMPORT * FROM ML;
-IMPORT * FROM $;
+﻿IMPORT ML;
+IMPORT $;
 IMPORT PBblas;
 Layout_Cell := PBblas.Types.Layout_Cell;
 
@@ -1603,7 +1603,7 @@ ML.ToField(sample_table, indepDataC);
 OUTPUT  (indepDataC, NAMED ('indepDataC'));
 ML.ToField(label_table, depDataC);
 OUTPUT  (depDataC, NAMED ('depDataC'));
-label := PROJECT(depDataC,Types.DiscreteField);
+label := PROJECT(depDataC,ML.Types.DiscreteField);
 OUTPUT  (label, NAMED ('label'));
 
 //initialize THETA
@@ -1611,9 +1611,9 @@ Numclass := MAX (label, label.value);
 OUTPUT  (Numclass, NAMED ('Numclass'));
 InputSize := MAX (indepDataC,indepDataC.number);
 OUTPUT  (InputSize, NAMED ('InputSize'));
-T1 := Mat.RandMat (Numclass,InputSize+1);
+T1 := ML.Mat.RandMat (Numclass,InputSize+1);
 OUTPUT  (T1, NAMED ('T1'));
-IntTHETA := Mat.Scale (T1,0.005);
+IntTHETA := ML.Mat.Scale (T1,0.005);
 OUTPUT  (IntTHETA, NAMED ('IntTHETA'));
 //SoftMax_Sparse Classfier
 UNSIGNED4 prows:=0;

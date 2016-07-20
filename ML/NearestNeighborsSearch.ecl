@@ -1,5 +1,5 @@
 IMPORT ML;
-IMPORT * FROM $;
+IMPORT ML.Types;
 EXPORT NearestNeighborsSearch:= MODULE
     EXPORT leafData := RECORD
       Types.t_RecordID qp_id;
@@ -21,7 +21,7 @@ EXPORT NearestNeighborsSearch:= MODULE
     CoverTree
   Thus we create NearestNeighborsSearch as Virtual, all of them need to implement the algorithm in SearchC and return K-Nearest Neighbors
 */
-  EXPORT KDTreeNNSearch(CONST Types.t_count NN_count=5, Trees.t_level Depth=10,Trees.t_level MedianDepth=0) := MODULE(DEFAULT)
+  EXPORT KDTreeNNSearch(CONST Types.t_count NN_count=5, Types.t_level Depth=10,Types.t_level MedianDepth=0) := MODULE(DEFAULT)
     SHARED query_point := RECORD
       Types.t_RecordID id;                    // id of query point
       Types.t_FieldNumber p_number:=    0;    // qp attribute
@@ -38,7 +38,7 @@ EXPORT NearestNeighborsSearch:= MODULE
       BOOLEAN BOB:=           FALSE;        // Bound Overlap Ball flag
       BOOLEAN isTerminal:=    FALSE;        // isTerminal flag
     END;
-    EXPORT KNNeighbors(DATASET(Types.NumericField) queryPointsData, DATASET(Trees.Node) KDTFullTree, DATASET(Trees.Node) KDTPartitioned, DATASET(Trees.sNode) KDTBoundaries) := FUNCTION
+    EXPORT KNNeighbors(DATASET(Types.NumericField) queryPointsData, DATASET(ML.Trees.Node) KDTFullTree, DATASET(ML.Trees.Node) KDTPartitioned, DATASET(ML.Trees.sNode) KDTBoundaries) := FUNCTION
       root:= KDTFullTree(node_id =1);
       queryPoints(DATASET(Types.NumericField) qp_ids):= FUNCTION
         seed:= DATASET([{0,0,99999999}], NN);
@@ -180,7 +180,7 @@ EXPORT NearestNeighborsSearch:= MODULE
     END;
     EXPORT SearchC(DATASET(Types.NumericField) indepData , DATASET(Types.NumericField) queryPointsData):= FUNCTION
       // Partition the space using KDTree
-      KDT:= Trees.KdTree(indepData, Depth, MedianDepth);
+      KDT:= ML.Trees.KdTree(indepData, Depth, MedianDepth);
       fulltree:= KDT.FullTree;
       Partitioned:= KDT.Partitioned;
       Boundaries:= KDT.Boundaries;

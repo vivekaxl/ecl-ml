@@ -1,5 +1,5 @@
-﻿IMPORT * FROM ML;
-IMPORT * FROM $;
+﻿IMPORT ML;
+IMPORT $;
 IMPORT PBblas;
 Layout_Cell := PBblas.Types.Layout_Cell;
 //net is the structure of the Back Propagation Network that shows number of neurons in each layer
@@ -11,7 +11,7 @@ net := DATASET([
 {2,1,3},
 {3,1,4},
 {4,1,2}],
-Types.DiscreteField);
+ML.Types.DiscreteField);
 
 //input data
 value_record := RECORD
@@ -55,7 +55,7 @@ ML.ToField(sample_table, indepDataC);
 OUTPUT  (indepDataC, ALL, NAMED ('indepDataC'));
 ML.ToField(label_table, depDataC);
 OUTPUT  (depDataC, ALL, NAMED ('depDataC'));
-label := PROJECT(depDataC,Types.DiscreteField);
+label := PROJECT(depDataC,ML.Types.DiscreteField);
 OUTPUT  (label, ALL, NAMED ('label'));
 //define the parameters for the back propagation algorithm
 //ALPHA is learning rate
@@ -68,8 +68,8 @@ UNSIGNED4 pcols:=0;
 UNSIGNED4 Maxrows:=0;
 UNSIGNED4 Maxcols:=0;
 //initialize weight and bias values for the Back Propagation algorithm
-IntW := NeuralNetworks(net).IntWeights;
-Intb := NeuralNetworks(net).IntBias;
+IntW := ML.NeuralNetworks(net).IntWeights;
+Intb := ML.NeuralNetworks(net).IntBias;
 output(IntW,ALL, named ('IntW'));
 output(IntB,ALL, named ('IntB'));
 //define the Neural Network Module
@@ -77,7 +77,7 @@ NNClassifier := ML.Classify.NeuralNetworksClassifier(net, IntW, Intb,  LAMBDA, A
 
 
 Dep := label;
-Y := PROJECT(Dep,Types.NumericField);
+Y := PROJECT(Dep,ML.Types.NumericField);
 // groundTruth:= Utils.ToGroundTruth (Y);
 // groundTruth_t := Mat.trans(groundTruth);
 // groundTruth_NumericField := Types.FromMatrix (groundTruth_t);

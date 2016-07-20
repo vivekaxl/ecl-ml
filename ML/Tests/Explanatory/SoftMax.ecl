@@ -1,5 +1,5 @@
-﻿IMPORT * FROM ML;
-IMPORT * FROM $;
+﻿IMPORT ML;
+IMPORT $;
 
 //Set Parameters
 LoopNum := 100; // Number of iterations in softmax algortihm
@@ -48,7 +48,7 @@ ML.ToField(sample_table, indepDataC);
 OUTPUT  (indepDataC, ALL, NAMED ('indepDataC'));
 ML.ToField(label_table, depDataC);
 OUTPUT  (depDataC, ALL, NAMED ('depDataC'));
-label := PROJECT(depDataC,Types.DiscreteField);
+label := PROJECT(depDataC,ML.Types.DiscreteField);
 OUTPUT  (label, ALL, NAMED ('label'));
 
 //initialize THETA
@@ -56,9 +56,9 @@ Numclass := MAX (label, label.value);
 OUTPUT  (Numclass, ALL, NAMED ('Numclass'));
 InputSize := MAX (indepDataC,indepDataC.number);
 OUTPUT  (InputSize, ALL, NAMED ('InputSize'));
-T1 := Mat.RandMat (Numclass,InputSize+1);
+T1 := ML.Mat.RandMat (Numclass,InputSize+1);
 OUTPUT  (T1, ALL, NAMED ('T1'));
-IntTHETA := Mat.Scale (T1,0.005);
+IntTHETA := ML.Mat.Scale (T1,0.005);
 OUTPUT  (IntTHETA, ALL, NAMED ('IntTHETA'));
 //SoftMax_Sparse Classfier
 

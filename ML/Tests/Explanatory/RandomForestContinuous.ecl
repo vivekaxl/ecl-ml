@@ -1,12 +1,12 @@
-﻿IMPORT * FROM ML;
-IMPORT * FROM ML.Types;
+﻿IMPORT ML;
+IMPORT ML.Types;
 
 dsRecord := RECORD
-  Types.t_FieldReal a1 ;
-  Types.t_FieldReal a2 ;
-  Types.t_FieldReal a3 ;
-  Types.t_FieldReal a4 ;
-  Types.t_FieldReal class;
+  ML.Types.t_FieldReal a1 ;
+  ML.Types.t_FieldReal a2 ;
+  ML.Types.t_FieldReal a3 ;
+  ML.Types.t_FieldReal a4 ;
+  ML.Types.t_FieldReal class;
 END;
 
 irisDS := DATASET([
@@ -162,13 +162,13 @@ irisDS := DATASET([
 {5.9,3.0,5.1,1.8,2}], dsRecord);
 
 OUTPUT(irisDS, NAMED('irisDS'), ALL);
-AppendID(irisDS, id, iris_data);
+ML.AppendID(irisDS, id, iris_data);
 ML.ToField(iris_Data, full_ds);
 //OUTPUT(full_ds, NAMED('full_ds'), ALL);
 indepData:= full_ds(number<5);
 depData:= PROJECT(full_ds(number=5),TRANSFORM(Types.DiscreteField, SELF.number:=1, SELF:=LEFT));
 
-learner := Classify.RandomForest(25, 3, 1.0, 5);
+learner := ML.Classify.RandomForest(25, 3, 1.0, 5);
 result := learner.learnc(IndepData, DepData); // model to use when classifying
 OUTPUT(result,NAMED('learnc_output'), ALL); // group_id represent number of tree
 model:= learner.modelC(result);  // transforming model to a easier way to read it
@@ -180,15 +180,15 @@ OUTPUT(ClassDist, NAMED('ClassDist'), ALL);
 class:= learner.classifyC(IndepData, result); // classifying
 OUTPUT(class, NAMED('class_result'), ALL); // conf show voting percentage
 //Measuring Performance of Classifier
-performance:= Classify.Compare(depData, class);
+performance:= ML.Classify.Compare(depData, class);
 OUTPUT(performance.CrossAssignments, NAMED('CrossAssig'));
 OUTPUT(performance.RecallByClass, NAMED('RecallByClass'));
 OUTPUT(performance.PrecisionByClass, NAMED('PrecisionByClass'));
 OUTPUT(performance.FP_Rate_ByClass, NAMED('FP_Rate_ByClass'));
 //Calculating Area Under the Curve for each Class
-AUC1:= Classify.AUC_ROC(ClassDist, 1, depData); //Area under ROC Curve for class "1"
+AUC1:= ML.Classify.AUC_ROC(ClassDist, 1, depData); //Area under ROC Curve for class "1"
 OUTPUT(AUC1, ALL, NAMED('AUC_1'));
-AUC2:= Classify.AUC_ROC(ClassDist, 2, depData); //Area under ROC Curve for class "2"
+AUC2:= ML.Classify.AUC_ROC(ClassDist, 2, depData); //Area under ROC Curve for class "2"
 OUTPUT(AUC2, ALL, NAMED('AUC_2'));
-AUC3:= Classify.AUC_ROC(ClassDist, 3, depData); //Area under ROC Curve for class "3"
+AUC3:= ML.Classify.AUC_ROC(ClassDist, 3, depData); //Area under ROC Curve for class "3"
 OUTPUT(AUC3, ALL, NAMED('AUC_3'));

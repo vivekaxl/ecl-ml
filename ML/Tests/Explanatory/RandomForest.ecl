@@ -1,15 +1,15 @@
 ﻿//RandomForest.ecl
-IMPORT * FROM ML;
+IMPORT ML;
 IMPORT ML.Tests.Explanatory as TE;
 /* 
 //Tiny dataset for tests
 weatherRecord := RECORD
-	Types.t_RecordID id;
-	Types.t_FieldNumber outlook;
-	Types.t_FieldNumber temperature;
-	Types.t_FieldNumber humidity;
-	Types.t_FieldNumber windy;
-	Types.t_FieldNumber play;
+	ML.Types.t_RecordID id;
+	ML.Types.t_FieldNumber outlook;
+	ML.Types.t_FieldNumber temperature;
+	ML.Types.t_FieldNumber humidity;
+	ML.Types.t_FieldNumber windy;
+	ML.Types.t_FieldNumber play;
 END;
 weather_Data := DATASET([
 {1,0,0,1,0,0},
@@ -56,7 +56,7 @@ OUTPUT(depData, NAMED('depData'), ALL);
 
 // Generating a random forest of 100 trees selecting 7 features for splits using impurity:=1.0 and max depth:= 100. 
 //learner := Classify.RandomForest(100, 7, 1.0, 100);         // GiniSplit = TRUE (default) uses Gini Impurity as split criteria
-learner := Classify.RandomForest(100, 7, 1.0, 100, FALSE);  // GiniSplit = FALSE uses Info Gain Ratio as split criteria
+learner := ML.Classify.RandomForest(100, 7, 1.0, 100, FALSE);  // GiniSplit = FALSE uses Info Gain Ratio as split criteria
 result := learner.LearnD(IndepData, DepData); // model to use when classifying
 // OUTPUT(result,NAMED('learnd_output'), ALL); // group_id represent number of tree
 model:= learner.model(result);  // transforming model to a easier way to read it
@@ -73,14 +73,14 @@ class:= learner.classifyD(IndepData, result); // classifying
 OUTPUT(class, NAMED('class_result'), ALL); // conf show voting percentage
 
 //Measuring Performance of Classifier
-performance:= Classify.Compare(depData, class);
+performance:= ML.Classify.Compare(depData, class);
 OUTPUT(performance.CrossAssignments, NAMED('CrossAssig'));
 OUTPUT(performance.RecallByClass, NAMED('RecallByClass'));
 OUTPUT(performance.PrecisionByClass, NAMED('PrecisionByClass'));
 OUTPUT(performance.FP_Rate_ByClass, NAMED('FP_Rate_ByClass'));
 OUTPUT(performance.Accuracy, NAMED('Accuracy'));
 //AUC_ROC returns all the ROC points and the value of the Area under the curve in the LAST_RECORD(AUC FIELD)
-AUC0:= Classify.AUC_ROC(ClassDist, 0, depData); //Area under ROC Curve for class "0"
+AUC0:= ML.Classify.AUC_ROC(ClassDist, 0, depData); //Area under ROC Curve for class "0"
 OUTPUT(AUC0, ALL, NAMED('AUC_0'));
-AUC1:= Classify.AUC_ROC(ClassDist, 1, depData); //Area under ROC Curve for class "1"
+AUC1:= ML.Classify.AUC_ROC(ClassDist, 1, depData); //Area under ROC Curve for class "1"
 OUTPUT(AUC1, ALL, NAMED('AUC_1'));

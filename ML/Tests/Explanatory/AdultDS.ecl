@@ -1,23 +1,23 @@
 ﻿/* Automated by roboscript https://goo.gl/vgjEXz*/
-IMPORT * FROM ML;
+IMPORT ML;
 EXPORT AdultDS := MODULE 
 	 SHARED AdultRecord  := RECORD 
-		 Types.t_FieldNumber id;
-		 Types.t_FieldNumber Age;
-		 Types.t_FieldNumber WorkClass;
-		 Types.t_FieldNumber fnlwgt;
-		 Types.t_FieldNumber education;
-		 Types.t_FieldNumber education_num;
-		 Types.t_FieldNumber marital_status;
-		 Types.t_FieldNumber occupation;
-		 Types.t_FieldNumber relationship;
-		 Types.t_FieldNumber race;
-		 Types.t_FieldNumber sex;
-		 Types.t_FieldNumber capital_gain;
-		 Types.t_FieldNumber capital_loss;
-		 Types.t_FieldNumber hours_per_week;
-		 Types.t_FieldNumber native_country;
-		 Types.t_FieldNumber Outcome;
+		 ML.Types.t_FieldNumber id;
+		 ML.Types.t_FieldNumber Age;
+		 ML.Types.t_FieldNumber WorkClass;
+		 ML.Types.t_FieldNumber fnlwgt;
+		 ML.Types.t_FieldNumber education;
+		 ML.Types.t_FieldNumber education_num;
+		 ML.Types.t_FieldNumber marital_status;
+		 ML.Types.t_FieldNumber occupation;
+		 ML.Types.t_FieldNumber relationship;
+		 ML.Types.t_FieldNumber race;
+		 ML.Types.t_FieldNumber sex;
+		 ML.Types.t_FieldNumber capital_gain;
+		 ML.Types.t_FieldNumber capital_loss;
+		 ML.Types.t_FieldNumber hours_per_week;
+		 ML.Types.t_FieldNumber native_country;
+		 ML.Types.t_FieldNumber Outcome;
 	END;
 	EXPORT Train_Data := DATASET([ 
 		{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},

@@ -1,12 +1,12 @@
-﻿IMPORT * FROM ML;
-IMPORT * FROM $;
+﻿IMPORT ML;
+IMPORT $;
 //NaiveBayes classifier
 trainer:= ML.Classify.NaiveBayes();
 
 // Monk Dataset - Discrete dataset 124 instances x 6 attributes + class
-MonkData:= MonkDS.Train_Data;
+MonkData:= ML.Tests.Explanatory.MonkDS.Train_Data;
 ML.ToField(MonkData, fullmds, id);
-full_mds:=PROJECT(fullmds, TRANSFORM(Types.DiscreteField, SELF:= LEFT));
+full_mds:=PROJECT(fullmds, TRANSFORM(ML.Types.DiscreteField, SELF:= LEFT));
 indepDataD:= full_mds(number>1);
 depDataD := full_mds(number=1);
 // Learning Phase
@@ -16,9 +16,9 @@ dmodel:= trainer.Model(D_model);
 D_classDist:= trainer.ClassProbDistribD(indepDataD, D_Model); // Class Probalility Distribution
 D_results:= trainer.ClassifyD(indepDataD, D_Model);
 // Performance Metrics
-D_compare:= Classify.Compare(depDataD, D_results);   // Comparing results with original class
-AUC_D0:= Classify.AUC_ROC(D_classDist, 0, depDataD); // Area under ROC Curve for class "0"
-AUC_D1:= Classify.AUC_ROC(D_classDist, 1, depDataD); // Area under ROC Curve for class "1"
+D_compare:= ML.Classify.Compare(depDataD, D_results);   // Comparing results with original class
+AUC_D0:= ML.Classify.AUC_ROC(D_classDist, 0, depDataD); // Area under ROC Curve for class "0"
+AUC_D1:= ML.Classify.AUC_ROC(D_classDist, 1, depDataD); // Area under ROC Curve for class "1"
 // OUPUTS
 OUTPUT(MonkData, NAMED('MonkData'), ALL);
 OUTPUT(SORT(dmodel, id), ALL, NAMED('DiscModel'));

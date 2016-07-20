@@ -1,5 +1,5 @@
 ﻿// Utilities for the implementation of ML (rather than the interface to it)
-IMPORT * FROM $;
+IMPORT ML;
 IMPORT Std.Str;
 EXPORT Utils := MODULE
 
@@ -254,11 +254,11 @@ END;
 
 // In constrast to the matrix function thin
 // Will take a potentially sparse file d and fill in the blanks with value v
-EXPORT Fat(DATASET(Types.NumericField) d0,Types.t_FieldReal v=0) := FUNCTION
+EXPORT Fat(DATASET(ML.Types.NumericField) d0,ML.Types.t_FieldReal v=0) := FUNCTION
   dn := DISTRIBUTE(d0,HASH(id)); // all the values for a given ID now on one node
   seeds := TABLE(dn,{id,m := MAX(GROUP,number)},id,LOCAL); // get the list of ids on each node (and get 'max' number for free
 	mn := MAX(seeds,m); // The number of fields to fill in
-	Types.NumericField bv(seeds le,UNSIGNED C) := TRANSFORM
+	ML.Types.NumericField bv(seeds le,UNSIGNED C) := TRANSFORM
 	  SELF.value := v;
 		SELF.id := le.id;
 		SELF.number := c;
@@ -271,11 +271,11 @@ EXPORT Fat(DATASET(Types.NumericField) d0,Types.t_FieldReal v=0) := FUNCTION
 END;
 
 // Same function for discrete fields	
-EXPORT FatD(DATASET(Types.DiscreteField) d0,Types.t_Discrete v=0) := FUNCTION
+EXPORT FatD(DATASET(ML.Types.DiscreteField) d0,ML.Types.t_Discrete v=0) := FUNCTION
   dn := DISTRIBUTE(d0,HASH(id)); // all the values for a given ID now on one node
   seeds := TABLE(dn,{id,m := MAX(GROUP,number)},id,LOCAL); // get the list of ids on each node (and get 'max' number for free
 	mn := MAX(seeds,m); // The number of fields to fill in
-	Types.DiscreteField bv(seeds le,UNSIGNED C) := TRANSFORM
+	ML.Types.DiscreteField bv(seeds le,UNSIGNED C) := TRANSFORM
 	  SELF.value := v;
 		SELF.id := le.id;
 		SELF.number := c;
@@ -339,20 +339,20 @@ ENDMACRO;
 
 // Shift the column-numbers of a file of discretefields so that the left-most column is now new_lowval
 // Can move colums left or right (or not at all)
-EXPORT RebaseDiscrete(DATASET(Types.DiscreteField) cl,Types.t_FieldNumber new_lowval) := FUNCTION
+EXPORT RebaseDiscrete(DATASET(ML.Types.DiscreteField) cl,ML.Types.t_FieldNumber new_lowval) := FUNCTION
   CurrentBase := MIN(cl,number);
 	INTEGER Delta := new_lowval-CurrentBase;
-	RETURN PROJECT(cl,TRANSFORM(Types.DiscreteField,SELF.number := LEFT.number+Delta,SELF := LEFT));
+	RETURN PROJECT(cl,TRANSFORM(ML.Types.DiscreteField,SELF.number := LEFT.number+Delta,SELF := LEFT));
   END;
 
-EXPORT RebaseNumericField(DATASET(Types.NumericField) cl) := MODULE
+EXPORT RebaseNumericField(DATASET(ML.Types.NumericField) cl) := MODULE
   SHARED MapRec:=RECORD
-		Types.t_FieldNumber old;
-		Types.t_FieldNumber new;
+		ML.Types.t_FieldNumber old;
+		ML.Types.t_FieldNumber new;
 	END;
   olds := TABLE(cl, {cl.number,COUNT(GROUP)}, number, FEW);	
 	
-	EXPORT Mapping(Types.t_FieldNumber new_lowval=1) := FUNCTION
+	EXPORT Mapping(ML.Types.t_FieldNumber new_lowval=1) := FUNCTION
 	MapRec mapthem(olds le, UNSIGNED c) := TRANSFORM
 		SELF.old := le.number;
 		SELF.new := c-1+new_lowval;
@@ -361,27 +361,27 @@ EXPORT RebaseNumericField(DATASET(Types.NumericField) cl) := MODULE
 	END;
 		
 	EXPORT ToNew(DATASET(MapRec) MapTable) := FUNCTION
- 		RETURN JOIN(cl,MapTable,LEFT.number=RIGHT.old,TRANSFORM(Types.NumericField, SELF.number := RIGHT.new, SELF:=LEFT),LOOKUP);
+ 		RETURN JOIN(cl,MapTable,LEFT.number=RIGHT.old,TRANSFORM(ML.Types.NumericField, SELF.number := RIGHT.new, SELF:=LEFT),LOOKUP);
   END;	
 	
-	EXPORT ToOld(DATASET(Types.NumericField) cl, DATASET(MapRec) MapTable) := FUNCTION
- 		RETURN JOIN(cl,MapTable,LEFT.number=RIGHT.new,TRANSFORM(Types.NumericField, SELF.number := RIGHT.old, SELF:=LEFT),LOOKUP);
+	EXPORT ToOld(DATASET(ML.Types.NumericField) cl, DATASET(MapRec) MapTable) := FUNCTION
+ 		RETURN JOIN(cl,MapTable,LEFT.number=RIGHT.new,TRANSFORM(ML.Types.NumericField, SELF.number := RIGHT.old, SELF:=LEFT),LOOKUP);
   END;	
   
-    EXPORT ToOldFromElemToPart(DATASET(Types.NumericField) cl, DATASET(MapRec) MapTable) := FUNCTION
- 		RETURN JOIN(cl,MapTable,LEFT.id=RIGHT.new,TRANSFORM(Types.NumericField, SELF.id := RIGHT.old, SELF.number:=LEFT.number,SELF:=LEFT),LOOKUP);
+    EXPORT ToOldFromElemToPart(DATASET(ML.Types.NumericField) cl, DATASET(MapRec) MapTable) := FUNCTION
+ 		RETURN JOIN(cl,MapTable,LEFT.id=RIGHT.new,TRANSFORM(ML.Types.NumericField, SELF.id := RIGHT.old, SELF.number:=LEFT.number,SELF:=LEFT),LOOKUP);
   END;
 	
   END;	
 
-EXPORT RebaseNumericFieldID(DATASET(Types.NumericField) cl) := MODULE
+EXPORT RebaseNumericFieldID(DATASET(ML.Types.NumericField) cl) := MODULE
   SHARED MapRec:=RECORD
-		Types.t_RecordID old;
-		Types.t_RecordID new;
+		ML.Types.t_RecordID old;
+		ML.Types.t_RecordID new;
 	END;
   olds := TABLE(cl, {cl.id,COUNT(GROUP)}, id, FEW);
 	
-	EXPORT MappingID(Types.t_FieldNumber new_lowval=1) := FUNCTION
+	EXPORT MappingID(ML.Types.t_FieldNumber new_lowval=1) := FUNCTION
 	MapRec mapthem(olds le, UNSIGNED c) := TRANSFORM
 		SELF.old := le.id;
 		SELF.new := c-1+new_lowval;
@@ -392,11 +392,11 @@ EXPORT RebaseNumericFieldID(DATASET(Types.NumericField) cl) := MODULE
 	
 		
 	EXPORT ToNew(DATASET(MapRec) MapTable) := FUNCTION
- 		RETURN JOIN(cl,MapTable,LEFT.id=RIGHT.old,TRANSFORM(Types.NumericField, SELF.id := RIGHT.new, SELF:=LEFT),LOOKUP);
+ 		RETURN JOIN(cl,MapTable,LEFT.id=RIGHT.old,TRANSFORM(ML.Types.NumericField, SELF.id := RIGHT.new, SELF:=LEFT),LOOKUP);
   END;	
 	
-	EXPORT ToOld(DATASET(Types.NumericField) cl, DATASET(MapRec) MapTable) := FUNCTION
- 		RETURN JOIN(cl,MapTable,LEFT.id=RIGHT.new,TRANSFORM(Types.NumericField, SELF.id := RIGHT.old, SELF:=LEFT),LOOKUP);
+	EXPORT ToOld(DATASET(ML.Types.NumericField) cl, DATASET(MapRec) MapTable) := FUNCTION
+ 		RETURN JOIN(cl,MapTable,LEFT.id=RIGHT.new,TRANSFORM(ML.Types.NumericField, SELF.id := RIGHT.old, SELF:=LEFT),LOOKUP);
   END;	
 	
   END;
@@ -434,17 +434,17 @@ RETURN TABLE(LOOP(Init,K,Permutate(ROWS(LEFT))), {Kperm});
 
 END;
 	
-EXPORT ToGroundTruth(DATASET(Types.NumericField) Y ) := FUNCTION
+EXPORT ToGroundTruth(DATASET(ML.Types.NumericField) Y ) := FUNCTION
 
 
-zero_mat    := DATASET ([{1,1,0}],Mat.Types.Element);
+zero_mat    := DATASET ([{1,1,0}],ML.Mat.Types.Element);
 sample_num  := MAX (Y,Y.id);
 class_num   := MAX (Y, Y.value);
-scratch_mat := Mat.Repmat (zero_mat, class_num, sample_num);
+scratch_mat := ML.Mat.Repmat (zero_mat, class_num, sample_num);
 
 
 
-Mat.Types.Element ToGT(scratch_mat l, Y r) := TRANSFORM
+ML.Mat.Types.Element ToGT(scratch_mat l, Y r) := TRANSFORM
   SELF.value := IF(l.x=r.value,1,0);
   SELF := l;
 END;
