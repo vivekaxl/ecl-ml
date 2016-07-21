@@ -1,12 +1,12 @@
-﻿IMPORT * FROM ML;
-IMPORT * FROM $;
+﻿IMPORT ML;
+IMPORT $;
 //NaiveBayes classifier
 trainer:= ML.Classify.NaiveBayes();
 
 // Monk Dataset - Discrete dataset 124 instances x 6 attributes + class
-MonkData:= MonkDS.Train_Data;
+MonkData:= ML.Tests.Explanatory.MonkDS.Train_Data;
 ML.ToField(MonkData, fullmds, id);
-full_mds:=PROJECT(fullmds, TRANSFORM(Types.DiscreteField, SELF:= LEFT));
+full_mds:=PROJECT(fullmds, TRANSFORM(ML.Types.DiscreteField, SELF:= LEFT));
 indepDataD:= full_mds(number>1);
 depDataD := full_mds(number=1);
 // Learning Phase
@@ -16,9 +16,9 @@ dmodel:= trainer.Model(D_model);
 D_classDist:= trainer.ClassProbDistribD(indepDataD, D_Model); // Class Probalility Distribution
 D_results:= trainer.ClassifyD(indepDataD, D_Model);
 // Performance Metrics
-D_compare:= Classify.Compare(depDataD, D_results);   // Comparing results with original class
-AUC_D0:= Classify.AUC_ROC(D_classDist, 0, depDataD); // Area under ROC Curve for class "0"
-AUC_D1:= Classify.AUC_ROC(D_classDist, 1, depDataD); // Area under ROC Curve for class "1"
+D_compare:= ML.Classify.Compare(depDataD, D_results);   // Comparing results with original class
+AUC_D0:= ML.Classify.AUC_ROC(D_classDist, 0, depDataD); // Area under ROC Curve for class "0"
+AUC_D1:= ML.Classify.AUC_ROC(D_classDist, 1, depDataD); // Area under ROC Curve for class "1"
 // OUPUTS
 OUTPUT(MonkData, NAMED('MonkData'), ALL);
 OUTPUT(SORT(dmodel, id), ALL, NAMED('DiscModel'));
@@ -28,3 +28,28 @@ OUTPUT(SORT(D_compare.CrossAssignments, c_actual, c_modeled), NAMED('DiscCrossAs
 OUTPUT(AUC_D0, ALL, NAMED('AUC_D0'));
 OUTPUT(AUC_D1, ALL, NAMED('AUC_D1'));
 
+// Iris Dataset - Continuous dataset
+irisData := ML.Tests.Explanatory.irisds;
+ML.AppendID(irisData, id, t_irisData);
+ML.ToField(t_irisData, full_lds);
+//OUTPUT(full_lds_Map,ALL, NAMED('DatasetFieldMap'));
+indepDataC:= full_lds(number<3);
+depDataC:= ML.Discretize.ByRounding(full_lds(number=3));
+// Learning Phase
+C_Model:= trainer.LearnC(indepDataC, depDataC);
+cmodel:= trainer.ModelC(C_model);
+//Classification Phase
+C_classDist:= trainer.ClassProbDistribC(indepDataC, C_Model); // Class Probalility Distribution
+C_results:= trainer.ClassifyC(indepDataC, C_Model);
+//Performance Metrics
+C_compare:= ML.Classify.Compare(depDataC, C_results);   // Comparing results with original class
+AUC_C0:= ML.Classify.AUC_ROC(C_classDist, 0, depDataC); // Area under ROC Curve for class "0"
+AUC_C1:= ML.Classify.AUC_ROC(C_classDist, 1, depDataC); // Area under ROC Curve for class "1"
+// OUPUTS
+OUTPUT(t_irisData, NAMED('irisData'), ALL);
+OUTPUT(SORT(cmodel, id), ALL, NAMED('ContModel'));
+OUTPUT(C_classDist, ALL, NAMED('ContClassDist'));
+OUTPUT(C_results, NAMED('ContClassifResults'), ALL);
+OUTPUT(SORT(C_compare.CrossAssignments, c_actual, c_modeled), NAMED('ContCrossAssig'), ALL); // Confusion Matrix
+OUTPUT(AUC_C0, ALL, NAMED('AUC_C0'));
+OUTPUT(AUC_C1, ALL, NAMED('AUC_C1'));
