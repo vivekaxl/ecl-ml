@@ -1,4 +1,4 @@
-﻿IMPORT * FROM ML;
+﻿IMPORT ML;
 
 OLS2Use := ML.Regression.Sparse.OLS_Cholesky;
 //OLS2Use := ML.Regression.Sparse.OLS_LU;
@@ -97,15 +97,15 @@ cerial := DATASET([{1,1,6,68.402973},
 									{77,1,8,36.187559}],CerialRec);
                                                                                                                 
 // Turn into regular NumericField file (with continuous variables)
-ToField(cerial,o);
+ML.ToField(cerial,o);
 X := O(Number in [1,2]); // Pull out fat and sugars
 // See if you can predict the rating
-Y := PROJECT(O(Number IN [3]), TRANSFORM(Types.NumericField, SELF.Number:=1, SELF:=LEFT));
+Y := PROJECT(O(Number IN [3]), TRANSFORM(ML.Types.NumericField, SELF.Number:=1, SELF:=LEFT));
 
 // http://www.stat.yale.edu/Courses/1997-98/101/anovareg.htm
 //Rating = 61.1 - 2.21 Sugars - 3.07 Fat
 ols := OLS2Use(X,Y);
-Betas := Mat.Thin(Mat.RoundDelta(Types.ToMatrix(ols.Betas)));
+Betas := ML.Mat.Thin(ML.Mat.RoundDelta(ML.Types.ToMatrix(ols.Betas)));
 OUTPUT(Betas, named('RegressionTest_betaResult'));
 
 // r^2=0.622, indicating that 62.2% of the variability

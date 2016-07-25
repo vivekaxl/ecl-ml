@@ -7,7 +7,7 @@ value_record := RECORD
   real weight;
   real age;
   integer1 species;
-  END;
+END;
                 
 d := dataset([
               {1,5*12+7,156*16,43,1},
