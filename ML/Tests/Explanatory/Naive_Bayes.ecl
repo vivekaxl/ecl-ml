@@ -27,7 +27,7 @@ OUTPUT(SORT(D_compare.CrossAssignments, c_actual, c_modeled), NAMED('DiscCrossAs
 OUTPUT(AUC_D0, ALL, NAMED('AUC_D0'));
 OUTPUT(AUC_D1, ALL, NAMED('AUC_D1'));
 
-// Iris Dataset - Continuous dataset 96 instances x 4026 attributes + class
+// Iris Dataset -- Continuous dataset 150 instances x 3 attributes + class
 irisData := ML.Tests.Explanatory.irisds;
 ML.AppendID(irisData, id, t_irisData);
 ML.ToField(t_irisData, full_lds);
