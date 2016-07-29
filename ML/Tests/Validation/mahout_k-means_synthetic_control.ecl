@@ -611,7 +611,7 @@ ML.ToField(dSequenced,dThin);
 
 dThin;
 
-centroids:=dThin(ID in[10, 20, 30, 40]); //4 centroids and their initial locations are IDs 10 20 30 40 
+centroids:=dThin(ID in[10, 20, 30, 40]); //4 centroids and their initial locations are IDs 10 20 30 40
 KMeans:=ML.Cluster.KMeans(dThin, centroids, 50, 0.01);
 KMeans.result(); //Final centroid locations, use allResults to get all iterations
 KMeans.convergence; //In how many iterations

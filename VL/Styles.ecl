@@ -14,24 +14,24 @@ EXPORT Styles:=MODULE
     EXPORT STRING ChartAdvanced:='';
     EXPORT STRING HTMLAdvanced:='';
   END;
-  
+
   EXPORT SetValue(m,i,v):=FUNCTIONMACRO
     n:=MODULE(m),VIRTUAL
       EXPORT #EXPAND(#TEXT(i)):=#EXPAND(#TEXT(v));
     END;
     RETURN n;
   ENDMACRO;
-  
+
   EXPORT Small:=MODULE(Default),VIRTUAL
     EXPORT UNSIGNED2 Height:=100;
     EXPORT UNSIGNED2 Width:=150;
   END;
-  
+
   EXPORT Large:=MODULE(Default),VIRTUAL
     EXPORT UNSIGNED2 Height:=600;
     EXPORT UNSIGNED2 Width:=900;
   END;
-  
+
   EXPORT FloatRight:=MODULE(Default),VIRTUAL
     EXPORT Float:=FloatStyles.Right;
   END;

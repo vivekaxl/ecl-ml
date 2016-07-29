@@ -1,11 +1,11 @@
 ﻿IMPORT ML;
 /*
  Poly Tests:
-		Use different seed column distributions dx (1,2,3..., 10,20,30..., 100, 200, 300..., 1, 10, 100...)
+        Use different seed column distributions dx (1,2,3..., 10,20,30..., 100, 200, 300..., 1, 10, 100...)
     Create multiple columns Yi from it by applying log, x, xlog,... functions to it
     Create Linear Regression Model using dx as a dependent variable and Y as an independent variable
     Expected result: if Yi = dx(log) then beta result for Yi should have beta1 close to 1 and all other beta
-     values close to zero 
+     values close to zero
 */
 d1 := dataset([{1,1,1},{2,1,2},{3,1,3},{4,1,4.0}, {5,1,5.0},{6,1,6.0},{7,1,7.0},{8,1,8.0}, {9,1,9.0}, {10,1,10}], ML.Types.NumericField );
 d2 := dataset([{1,1,10},{2,1,20},{3,1,30},{4,1,40.0}, {5,1,50.0},{6,1,60.0},{7,1,70.0},{8,1,80.0}, {9,1,90.0}, {10,1,100}], ML.Types.NumericField );

@@ -11,7 +11,7 @@ EXPORT CoLocation:=MODULE
   // Dataset containing all unique id/ngram combinations. User passes in the
   // following parameters:
   //   Words  : The output of a Tokenize.Split call
-  //   Lexicon: [OPTIONAL] If the user desires integer substitution, this is 
+  //   Lexicon: [OPTIONAL] If the user desires integer substitution, this is
   //            the output of a Tokenize.Lexicon call using the Words dataset
   //            as input.
   //   n      : [OPTIONAL] The Maximum wordcount for the N-Grams.  Default is 3
@@ -37,64 +37,64 @@ EXPORT CoLocation:=MODULE
     RETURN PROJECT(TABLE(EveryNGram,{id;ngram},id,ngram,LOCAL)(ngram!=''),AllNGramsLayout);
   END;
 
-	//-------------------------------------------------------------------------
-	// Mutual Information for all words in corpus
-	// dIn :	Documents in class
-	// dOut : Documents not in class
-	// minf : [OPTIONAL] Minimum document frequency for inclusion. Default is 1
-	// units : [OPTIONAL] unit of measurement for mutual information. Default is 2 (bits)
-	//-------------------------------------------------------------------------
-	EXPORT MutualInfo(DATASET(Docs.Types.Raw) dIn, DATASET(Docs.Types.Raw) dOut,UNSIGNED minf=1, UNSIGNED units=2)	:= FUNCTION
-		MutualInfoLayout	:= RECORD
-			STRING word;
-			REAL mi;
-		END;
+    //-------------------------------------------------------------------------
+    // Mutual Information for all words in corpus
+    // dIn :    Documents in class
+    // dOut : Documents not in class
+    // minf : [OPTIONAL] Minimum document frequency for inclusion. Default is 1
+    // units : [OPTIONAL] unit of measurement for mutual information. Default is 2 (bits)
+    //-------------------------------------------------------------------------
+    EXPORT MutualInfo(DATASET(Docs.Types.Raw) dIn, DATASET(Docs.Types.Raw) dOut,UNSIGNED minf=1, UNSIGNED units=2)    := FUNCTION
+        MutualInfoLayout    := RECORD
+            STRING word;
+            REAL mi;
+        END;
 
-		rDocCount := RECORD
-			STRING word;
-			REAL n11 := 0;
-			REAL n10 := 0;
-			REAL n00 := 0;
-			REAL n01 := 0;
-		END;
+        rDocCount := RECORD
+            STRING word;
+            REAL n11 := 0;
+            REAL n10 := 0;
+            REAL n00 := 0;
+            REAL n01 := 0;
+        END;
 
-		cIn := COUNT(dIn);
-		cOut := COUNT(dOut);
-		cAll := cOut + cIn;
-		dInLexicon := Docs.Tokenize.Lexicon(Docs.Tokenize.Split(Docs.Tokenize.Clean(dIn)));
-		dOutLexicon := Docs.Tokenize.Lexicon(Docs.Tokenize.Split(Docs.Tokenize.Clean(dOut)));
-		dInN := PROJECT(dInLexicon,TRANSFORM(rDocCount,SELF.word := LEFT.word,SELF.n11 := LEFT.total_docs,SELF.n01 := cIn - LEFT.total_docs));
-		dOutN := PROJECT(dOutLexicon,TRANSFORM(rDocCount,SELF.word := LEFT.word,SELF.n00 := cOut - LEFT.total_docs,SELF.n10 := LEFT.total_docs));
-		dDocN	:= dInN + dOutN;
+        cIn := COUNT(dIn);
+        cOut := COUNT(dOut);
+        cAll := cOut + cIn;
+        dInLexicon := Docs.Tokenize.Lexicon(Docs.Tokenize.Split(Docs.Tokenize.Clean(dIn)));
+        dOutLexicon := Docs.Tokenize.Lexicon(Docs.Tokenize.Split(Docs.Tokenize.Clean(dOut)));
+        dInN := PROJECT(dInLexicon,TRANSFORM(rDocCount,SELF.word := LEFT.word,SELF.n11 := LEFT.total_docs,SELF.n01 := cIn - LEFT.total_docs));
+        dOutN := PROJECT(dOutLexicon,TRANSFORM(rDocCount,SELF.word := LEFT.word,SELF.n00 := cOut - LEFT.total_docs,SELF.n10 := LEFT.total_docs));
+        dDocN    := dInN + dOutN;
 
-		rRollup := RECORD
-			dDocN.word;
-			n11 := SUM(GROUP,dDocN.n11);
-			n10 := SUM(GROUP,dDocN.n10);
-			n00 := SUM(GROUP,dDocN.n00);
-			n01 := SUM(GROUP,dDocN.n01);
-		END;
-		rRollup AdjDocCount(rRollup X) := TRANSFORM
-			SELF.word := IF(X.n11+X.n10 >= minf,X.word,SKIP);
-			SELF.n01 := IF(X.n11 = 0,cIn,X.n01);
-			SELF.n00 := IF(X.n10 = 0,cOut,X.n00);
-			SELF := X;
-		END;
+        rRollup := RECORD
+            dDocN.word;
+            n11 := SUM(GROUP,dDocN.n11);
+            n10 := SUM(GROUP,dDocN.n10);
+            n00 := SUM(GROUP,dDocN.n00);
+            n01 := SUM(GROUP,dDocN.n01);
+        END;
+        rRollup AdjDocCount(rRollup X) := TRANSFORM
+            SELF.word := IF(X.n11+X.n10 >= minf,X.word,SKIP);
+            SELF.n01 := IF(X.n11 = 0,cIn,X.n01);
+            SELF.n00 := IF(X.n10 = 0,cOut,X.n00);
+            SELF := X;
+        END;
 
-		tDocCount := PROJECT(TABLE(dDocN,rRollup,word,MERGE),AdjDocCount(LEFT));
+        tDocCount := PROJECT(TABLE(dDocN,rRollup,word,MERGE),AdjDocCount(LEFT));
 
-		MutualInfoLayout CalcMI(rRollup X, UNSIGNED total_doc) := TRANSFORM
-			SELF.word := X.word;
-			m := (X.n11/total_doc) * (LOG((total_doc * X.n11)/((X.n11 + X.n10) * (X.n01 + X.n11)))/LOG(units));
-			o := (X.n01/total_doc) * (LOG((total_doc * X.n01)/((X.n01 + X.n00) * (X.n01 + X.n11)))/LOG(units));
-			p := (X.n10/total_doc) * (LOG((total_doc * X.n10)/((X.n10 + X.n11) * (X.n00 + X.n10)))/LOG(units));
-			q := (x.n00/total_doc) * (LOG((total_doc * X.n00)/((X.n00 + X.n01) * (X.n00 + X.n10)))/LOG(units));
-			SELF.mi := m + o + p + q;
-		END;
-		dMI := PROJECT(tDocCount,CalcMI(LEFT,cAll));
+        MutualInfoLayout CalcMI(rRollup X, UNSIGNED total_doc) := TRANSFORM
+            SELF.word := X.word;
+            m := (X.n11/total_doc) * (LOG((total_doc * X.n11)/((X.n11 + X.n10) * (X.n01 + X.n11)))/LOG(units));
+            o := (X.n01/total_doc) * (LOG((total_doc * X.n01)/((X.n01 + X.n00) * (X.n01 + X.n11)))/LOG(units));
+            p := (X.n10/total_doc) * (LOG((total_doc * X.n10)/((X.n10 + X.n11) * (X.n00 + X.n10)))/LOG(units));
+            q := (x.n00/total_doc) * (LOG((total_doc * X.n00)/((X.n00 + X.n01) * (X.n00 + X.n10)))/LOG(units));
+            SELF.mi := m + o + p + q;
+        END;
+        dMI := PROJECT(tDocCount,CalcMI(LEFT,cAll));
 
-		RETURN dMI;
-	END;
+        RETURN dMI;
+    END;
 
   //-------------------------------------------------------------------------
   // Support for a set of ngrams is the ratio of the number of documents that
@@ -115,7 +115,7 @@ EXPORT CoLocation:=MODULE
     nSupportTotal:=Support(ss01+ss02,d);
     RETURN nSupportTotal/nSupport01;
   END;
-  
+
   //-------------------------------------------------------------------------
   // Lift is similar to Confidence, but the denominator is the product of
   // the supports for each of the two subsets
@@ -163,23 +163,23 @@ EXPORT CoLocation:=MODULE
     END;
     RETURN LOOP(WithComponent,MaxN,JOIN(ROWS(LEFT),Unigrams,Str.GetNthWord(LEFT.ngram,COUNTER)=RIGHT.ngram,tJoin(LEFT,RIGHT,COUNTER),LOOKUP,LEFT OUTER));
   END;
-	
-	EXPORT	SubGramsLayout	:= {NGramsLayout;Docs.Types.t_value components;};
-	
-	//-------------------------------------------------------------------------
-	// Pointwise Mutual Information for all Subgrams
-	//-------------------------------------------------------------------------
+
+    EXPORT    SubGramsLayout    := {NGramsLayout;Docs.Types.t_value components;};
+
+    //-------------------------------------------------------------------------
+    // Pointwise Mutual Information for all Subgrams
+    //-------------------------------------------------------------------------
   EXPORT PMI(DATASET(SubGramsLayout) d):= FUNCTION
     PMILayout:={SubGramsLayout;Docs.Types.t_value pmi;};
     PMI:=PROJECT(d,TRANSFORM(PMILayout,SELF.pmi := LOG(LEFT.pct/LEFT.components)/-LOG(LEFT.pct),SELF :=LEFT));
 
-		PMILayout normPMI(PMILayout L)	:= TRANSFORM
-			n := Str.FindCount(L.ngram,' ');
-			SELF.pmi := IF(n>1,L.pmi/n,L.pmi);
-			SELF := L;
+        PMILayout normPMI(PMILayout L)    := TRANSFORM
+            n := Str.FindCount(L.ngram,' ');
+            SELF.pmi := IF(n>1,L.pmi/n,L.pmi);
+            SELF := L;
     END;
 
-		RETURN PROJECT(PMI,normPMI(LEFT));
+        RETURN PROJECT(PMI,normPMI(LEFT));
   END;
 
   //-------------------------------------------------------------------------

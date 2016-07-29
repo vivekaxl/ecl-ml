@@ -1,4 +1,4 @@
-// 
+//
 import ml;
 
 value_record := RECORD
@@ -8,7 +8,7 @@ value_record := RECORD
   real age;
   integer1 species;
 END;
-                
+
 d := dataset([
               {1,5*12+7,156*16,43,1},
               {2,5*12+7,128*16,31,1},
@@ -23,11 +23,11 @@ d := dataset([
               {11,4,15,1,2},
               {12,3,10.5,1,2},
               {13,2.5,3,0.8,2},
-              {14,1,1,0.4,2}                                                                                                      
+              {14,1,1,0.4,2}
              ]
              ,value_record);
 output(d,named('d'));
-                                                                                                                
+
 // Turn into regular NumericField file (with continuous variables)
 ml.ToField(d,o);
 output(o,named('o'));

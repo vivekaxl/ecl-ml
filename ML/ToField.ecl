@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
 // Macro takes a matrix dataset, with each row contianing an ID and one or
-// more axis fields containing numeric values, and expands it into the 
+// more axis fields containing numeric values, and expands it into the
 // NumericField format used by ML.
 //
 //   dIn       : The name of the input dataset
@@ -23,7 +23,7 @@
 //  The macro also produces a mapping table named "dOut_Map", again where
 //  "dOut" refers to the parameter, that contains a table of the field
 //  mappings
-//  
+//
 //  Examples:
 //    ML.ToField(dOrig,dMatrix);
 //    ML.ToField(dOrig,dMatrix,myid,'field5,field7,field10');
@@ -43,7 +43,7 @@ EXPORT ToField(dIn,dOut,idfield='',datafields=''):=MACRO
   #DECLARE(iNumberOfFields) #SET(iNumberOfFields,0)
   // A list of every field in the original table and the field number (or "ID")
   // to which it is mapped in the output.  "NA" indicates that the field was
-  // not mapped.  The string is formatted so it can be easily #EXPANDED into 
+  // not mapped.  The string is formatted so it can be easily #EXPANDED into
   // the data portion of a DATASET assignment.
   #DECLARE(mapping) #SET(mapping,'')
   // Variables to contain the definitions of the ToName and ToNumber functions

@@ -1,4 +1,4 @@
-//
+﻿//
 IMPORT ML.SVM.LibSVM.Types;
 IMPORT ML.SVM.LibSVM.Constants;
 IMPORT ML.SVM.LibSVM.Converted;
@@ -142,4 +142,4 @@ EXPORT Result svm_cross_validate(SVM_Parms prm,
     free(problem.y);
     free(problem.x);
     free(all_x);
-  ENDC++;
+ENDC++;

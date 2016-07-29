@@ -50,10 +50,10 @@ col30 := ML.Distribution.GenData(TestSize,a1,30);
 
 preindep := col01+col02+col03+col04+col05+
            col06+col07+col08+col09+col10+
-					 col11+col12+col13+col14+col15+
-					 col16+col17+col18+col19+col20+
-					 col21+col22+col23+col24+col25+
-					 col26+col27+col28+col29+col30;
+                     col11+col12+col13+col14+col15+
+                     col16+col17+col18+col19+col20+
+                     col21+col22+col23+col24+col25+
+                     col26+col27+col28+col29+col30;
 pretargets := ML.Distribution.GenData(TestSize,a1,31);
 
 //Creates sparse matrix
@@ -64,7 +64,7 @@ SELF := L;
 
 END;
 
-//Create Sparse representation of matrix 
+//Create Sparse representation of matrix
 Indep := PROJECT(preindep,remove(LEFT))(value<>0);
 Dep := ML.Discretize.ByRounding(pretargets);
 

@@ -16,19 +16,19 @@ summary(model)
 
 Output :
 Residuals:
-        Min          1Q      Median          3Q         Max 
--11.2473853  -5.1166972   0.4066936   3.0663545  13.3339088 
+        Min          1Q      Median          3Q         Max
+-11.2473853  -5.1166972   0.4066936   3.0663545  13.3339088
 
 Coefficients:
-              Estimate Std. Error  t value   Pr(>|t|)    
-(Intercept) 11.6216846  4.2395234  2.74127  0.0139203 *  
+              Estimate Std. Error  t value   Pr(>|t|)
+(Intercept) 11.6216846  4.2395234  2.74127  0.0139203 *
 X1          10.1230313  0.1471263 68.80502 < 2.22e-16 ***
-X2          21.6110019  5.6660185  3.81414  0.0013876 ** 
+X2          21.6110019  5.6660185  3.81414  0.0013876 **
 ---
 Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 
 Residual standard error: 7.585232 on 17 degrees of freedom
-Multiple R-squared:  0.9964462, Adjusted R-squared:  0.9960281 
+Multiple R-squared:  0.9964462, Adjusted R-squared:  0.9960281
 F-statistic: 2383.296 on 2 and 17 DF,  p-value: < 2.2204e-16
 
 Code : confint(model, level=0.95)
@@ -74,7 +74,7 @@ X2           5.1895742 38.03243
    model.AdjRSquared;
    model.confInt(95);
    model.confInt(99);
-   
+
    model_dense := ML.Regression.Dense.OLS_LU(X, Y);
    model_dense.Betas;
    model_dense.var_covar;

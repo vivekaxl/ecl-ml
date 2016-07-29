@@ -3,7 +3,7 @@ R-Code :
 """""""""""""""
 B <- matrix(c(1,35,149,0,2,11,138,0,3,12,148,1,4,16,156,0,
                  5,32,152,0,6,16,157,0,7,14,165,0,8,8,152,1,
-                 9,35,177,0,10,33,158,1,11,40,166,0,12,28,165,0,  
+                 9,35,177,0,10,33,158,1,11,40,166,0,12,28,165,0,
                  13,23,160,0,14,52,178,1,15,46,169,0,16,29,173,1,
                  17,30,172,0,18,21,163,0,19,21,164,0,20,20,189,1,
                  21,34,182,1,22,43,184,1,23,35,174,1,24,39,177,1,
@@ -25,14 +25,14 @@ Output :
 Call:
 glm(formula = Y ~ X1 + X2, family = "binomial")
 
-Deviance Residuals: 
-    Min       1Q   Median       3Q      Max  
--1.7073  -0.9834   0.3804   0.8413   2.0504  
+Deviance Residuals:
+    Min       1Q   Median       3Q      Max
+-1.7073  -0.9834   0.3804   0.8413   2.0504
 
 Coefficients:
-             Estimate Std. Error z value Pr(>|z|)  
+             Estimate Std. Error z value Pr(>|z|)
 (Intercept) -22.08094    9.03417  -2.444   0.0145 *
-X1           -0.03758    0.05049  -0.744   0.4566  
+X1           -0.03758    0.05049  -0.744   0.4566
 X2            0.13892    0.05870   2.367   0.0179 *
 ---
 Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
@@ -64,14 +64,14 @@ Analysis of Deviance Table
 
 Model 1: Y ~ 1
 Model 2: Y ~ X1 + X2
-  Resid. Df Resid. Dev Df Deviance Pr(>Chi)   
-1        31     44.236                        
+  Resid. Df Resid. Dev Df Deviance Pr(>Chi)
+1        31     44.236
 2        29     34.071  2   10.166 0.006202 **
 ---
 Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 """"""""""""""
 
-*/ 
+*/
 
    IMPORT ML;
 
@@ -84,7 +84,7 @@ Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’
 
    d := DATASET([{1,35,149,0},{2,11,138,0},{3,12,148,1},{4,16,156,0},
                  {5,32,152,0},{6,16,157,0},{7,14,165,0},{8,8,152,1},
-                 {9,35,177,0},{10,33,158,1},{11,40,166,0},{12,28,165,0},  
+                 {9,35,177,0},{10,33,158,1},{11,40,166,0},{12,28,165,0},
                  {13,23,160,0},{14,52,178,1},{15,46,169,0},{16,29,173,1},
                  {17,30,172,0},{18,21,163,0},{19,21,164,0},{20,20,189,1},
                  {21,34,182,1},{22,43,184,1},{23,35,174,1},{24,39,177,1},
@@ -93,7 +93,7 @@ Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’
                  ,value_record);
 
    ML.ToField(d,flds0);
-   f4 := 
+   f4 :=
       PROJECT(flds0(Number=3)
               ,TRANSFORM(ML.Types.NumericField
                          ,SELF.Number := 4
@@ -114,7 +114,7 @@ Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’
    OUTPUT(DevD.NullDev, NAMED('DenseNullDev'));
    OUTPUT(DevD.AIC, NAMED('DenseAIC'));
    OUTPUT(LogRegDense.AOD(DevD.NullDev, DevD.ResidDev), NAMED('DenseAOD'));
-   
+
    LogRegSparse := ML.Classify.Logistic_sparse(0.0);
    ModelS := LogRegSparse.LearnC(flds1(Number<=2),flds(Number=3));
    OUTPUT(LogRegSparse.Model(ModelS), NAMED('SparseModel'));

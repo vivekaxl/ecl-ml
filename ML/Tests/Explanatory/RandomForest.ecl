@@ -1,15 +1,15 @@
 ﻿//RandomForest.ecl
 IMPORT ML;
 IMPORT ML.Tests.Explanatory as TE;
-/* 
+/*
 //Tiny dataset for tests
 weatherRecord := RECORD
-	ML.Types.t_RecordID id;
-	ML.Types.t_FieldNumber outlook;
-	ML.Types.t_FieldNumber temperature;
-	ML.Types.t_FieldNumber humidity;
-	ML.Types.t_FieldNumber windy;
-	ML.Types.t_FieldNumber play;
+    ML.Types.t_RecordID id;
+    ML.Types.t_FieldNumber outlook;
+    ML.Types.t_FieldNumber temperature;
+    ML.Types.t_FieldNumber humidity;
+    ML.Types.t_FieldNumber windy;
+    ML.Types.t_FieldNumber play;
 END;
 weather_Data := DATASET([
 {1,0,0,1,0,0},
@@ -45,7 +45,7 @@ indepData := ML.Discretize.ByRounding(pr_indep);
 ToField(dep_data, pr_dep);
 depData := ML.Discretize.ByRounding(pr_dep);
 
-/* 
+/*
 // Wont work with the largest dataset, delete " , ALL"
 // As well as further commented lines will ", ALL"
 
@@ -54,7 +54,7 @@ OUTPUT(indepData, NAMED('indepData'), ALL);
 OUTPUT(depData, NAMED('depData'), ALL);
 */
 
-// Generating a random forest of 100 trees selecting 7 features for splits using impurity:=1.0 and max depth:= 100. 
+// Generating a random forest of 100 trees selecting 7 features for splits using impurity:=1.0 and max depth:= 100.
 //learner := Classify.RandomForest(100, 7, 1.0, 100);         // GiniSplit = TRUE (default) uses Gini Impurity as split criteria
 learner := ML.Classify.RandomForest(100, 7, 1.0, 100, FALSE);  // GiniSplit = FALSE uses Info Gain Ratio as split criteria
 result := learner.LearnD(IndepData, DepData); // model to use when classifying

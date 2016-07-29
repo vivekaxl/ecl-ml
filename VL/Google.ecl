@@ -35,7 +35,7 @@ EXPORT Google:=MODULE
       IF(p.ChartAdvanced<>'',','+p.ChartAdvanced,'');
     RETURN IF(sOpt='','','var options={'+sOpt[2..]+'};');
   END;
-  
+
   // Same as above, but for page-specific options (float, etc).
   SHARED STRING PageOptions(STRING sChartName,VL.Styles.Default p):=FUNCTION
     sOpt:=''+

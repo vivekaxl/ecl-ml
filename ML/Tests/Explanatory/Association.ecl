@@ -1,6 +1,6 @@
 IMPORT ML;
 IMPORT ML.Docs AS Docs;
-d11 := DATASET([                                                                                                                
+d11 := DATASET([
 {'In the beginning God created the heavens and the earth. '},
 {'The earth was without form, and void; and darkness was[a] on the face of the deep. And the Spirit of God was hovering over the face of the waters.'},
 {'Then God said, "Let there be light"; and there was light. '},

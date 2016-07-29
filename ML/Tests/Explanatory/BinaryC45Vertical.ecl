@@ -112,7 +112,7 @@ indepData:= full_ds(number<101);
 depData:= ML.Discretize.ByRounding(full_ds(number=101));
 minNumObj:= 2;    maxLevel := 50;
 
-trainer1:= ML.Classify.DecisionTree.C45Binary(minNumObj, maxLevel); 
+trainer1:= ML.Classify.DecisionTree.C45Binary(minNumObj, maxLevel);
 tmod:= trainer1.LearnC(indepData, depData);
 tmodel:= trainer1.Model(tmod);
 OUTPUT(SORT(tmodel, node_id, new_node_id), ALL, NAMED('TreeModel'));

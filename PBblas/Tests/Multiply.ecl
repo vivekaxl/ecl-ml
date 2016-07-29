@@ -34,9 +34,9 @@ b_cells := NORMALIZE(W0, 8*8, gen(COUNTER, 8, COUNTER));
 b1 := DMAT.Converted.FromCells(map_8x8_1, b_cells);
 b9 := DMAT.Converted.FromCells(map_8x8_9, b_cells);
 
-// 2.0 AB 
-t_2AB_0_1 := PBblas.PB_dgemm(FALSE, FALSE, 
-                             2.0, map_11x8_1, a1, map_8x8_1, b1, 
+// 2.0 AB
+t_2AB_0_1 := PBblas.PB_dgemm(FALSE, FALSE,
+                             2.0, map_11x8_1, a1, map_8x8_1, b1,
                              map_11x8_1);
 t_2AB_0_9 := PBblas.PB_dgemm(FALSE, FALSE,
                              2.0, map_11x8_9, a9, map_8x8_9, b9,
@@ -44,8 +44,8 @@ t_2AB_0_9 := PBblas.PB_dgemm(FALSE, FALSE,
 test1 := Tests.DiffReport.Compare_Parts('2.0 * AB', t_2AB_0_1, t_2AB_0_9);
 
 // 1.0 ABt
-t_ABt_0_1 := PBblas.PB_dgemm(FALSE, TRUE, 
-                             1.0, map_11x8_1, a1, map_8x8_1, b1, 
+t_ABt_0_1 := PBblas.PB_dgemm(FALSE, TRUE,
+                             1.0, map_11x8_1, a1, map_8x8_1, b1,
                              map_11x8_1);
 t_ABt_0_9 := PBblas.PB_dgemm(FALSE, TRUE,
                              1.0, map_11x8_9, a9, map_8x8_9, b9,

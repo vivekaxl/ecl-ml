@@ -1,4 +1,4 @@
-﻿/* Example of how to use ConcordV1 is ecl 
+﻿/* Example of how to use ConcordV1 is ecl
 */
 
 IMPORT ML;
@@ -18,7 +18,7 @@ END;
 
 MaxAbsDff(DATASET(Mat.Types.Element) zz1, DATASET(Mat.Types.Element) zz2) := FUNCTION
              Mat.Types.Element MatAbsDifference(Mat.Types.Element x1, Mat.Types.Element y1) := TRANSFORM
-                        SELF.x:=x1.x;  
+                        SELF.x:=x1.x;
                         SELF.y:=x1.y;
                    SELF.value:=ABS(x1.value-y1.value);
              END;

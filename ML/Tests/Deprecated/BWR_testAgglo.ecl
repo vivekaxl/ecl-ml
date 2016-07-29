@@ -1,7 +1,7 @@
 IMPORT ML;
 IMPORT ML.Docs AS Docs;
 
-d := DATASET([                                                                                                                
+d := DATASET([
 {'In the beginning God created the heavens and the earth. '},
 {'The earth was without form, and void; and darkness was[a] on the face of the deep. And the Spirit of God was hovering over the face of the waters.'},
 {'Then God said, "Let there be light"; and there was light. '},
@@ -13,14 +13,14 @@ d := DATASET([
 {'Then God said, "Let the waters under the heavens be gathered together into one place, and let the dry land appear"; and it was so. '},
 {'And God called the dry land Earth, and the gathering together of the waters He called Seas. And God saw that it was good. '}],
 {STRING r});
-																																																								
+
 d1 := PROJECT(d,TRANSFORM(Docs.Types.Raw,SELF.Txt := LEFT.r));
 
 d2 := Docs.Tokenize.Enumerate(d1);
 
 d3 := Docs.Tokenize.Clean(d2);
 
-d4 := Docs.Tokenize.Split(d3);                                                                                                    
+d4 := Docs.Tokenize.Split(d3);
 
 lex := Docs.Tokenize.Lexicon(d4);
 

@@ -48,12 +48,12 @@ Modes:=
         JOIN(
              T
              , dModeVals
-             , LEFT.number=RIGHT.number 
+             , LEFT.number=RIGHT.number
                AND LEFT.valcount=RIGHT.modeval
              , TRANSFORM(
                          {TYPEOF(T.number) number;TYPEOF(T.value) mode;TYPEOF(T.valcount) valcount;}
                          ,SELF.mode:=LEFT.value
-												 ,SELF.valcount := LEFT.valcount
+                                                 ,SELF.valcount := LEFT.valcount
                          ,SELF:=LEFT
                )
              , LOOKUP

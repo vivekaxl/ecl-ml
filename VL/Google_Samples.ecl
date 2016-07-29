@@ -30,7 +30,7 @@ dRegions:=DATASET([
 // Break down the surface area data by continent
 dContinentArea:=TABLE(dRegions,{continent;UNSIGNED surface_area:=SUM(GROUP,surface_area);},continent);
 ContinentStyle:=VL.Styles.SetValue(Vl.Styles.Default,title,'Surface Area by Continent');  // Modified styles to include a title on the graph
-dContinentChart:=VL.FormatCartesianData(dContinentArea,continent);                                 // 
+dContinentChart:=VL.FormatCartesianData(dContinentArea,continent);                                 //
 VL.Google.Cartesian('PieChart','SurfaceAreaPie',dContinentChart,ContinentStyle);
 VL.Google.Cartesian('BarChart','SurfaceAreaBar',dContinentChart,ContinentStyle);
 VL.Google.Cartesian('ColumnChart','SurfaceAreaColumn',dContinentChart,ContinentStyle);

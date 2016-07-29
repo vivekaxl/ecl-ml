@@ -1,16 +1,16 @@
 ﻿/*
-	Lanczos Algorithm Validation Test:
-		[T,V] = Lanczos(A); // T represents approximation of eigenvalues of A
+    Lanczos Algorithm Validation Test:
+        [T,V] = Lanczos(A); // T represents approximation of eigenvalues of A
     Approximation quality = norm(V*T*V'-A)
 
-		[eigT_vec,eigT_val] = eig(T)
-		eigA_vec = V*eigT_vec
-		A*eigA_vec = eigA_vec*T
+        [eigT_vec,eigT_val] = eig(T)
+        eigA_vec = V*eigT_vec
+        A*eigA_vec = eigA_vec*T
 */
 IMPORT ML;
 A := dataset([{1,1,12.0},{2,1,6.0},{3,1,4.0},
               {1,2,6.0},{2,2,167.0},{3,2,24.0},
-	            {1,3,4.0},{2,3,24.0},{3,3,-41.0}], ML.MAT.Types.Element);
+                {1,3,4.0},{2,3,24.0},{3,3,-41.0}], ML.MAT.Types.Element);
 
 T:=ML.Mat.Lanczos(A,3).TComp;
 V:=ML.Mat.Lanczos(A,3).VComp;

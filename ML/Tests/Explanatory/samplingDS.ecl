@@ -1,9 +1,9 @@
 ﻿IMPORT ML;
 dsRecord := RECORD
-	ML.Types.t_FieldNumber ab1;
-	ML.Types.t_FieldNumber ab2;
-	ML.Types.t_FieldNumber ab3;
-	ML.Types.t_FieldNumber ac;
+    ML.Types.t_FieldNumber ab1;
+    ML.Types.t_FieldNumber ab2;
+    ML.Types.t_FieldNumber ab3;
+    ML.Types.t_FieldNumber ac;
 END;
 
 EXPORT samplingDS := dataset([

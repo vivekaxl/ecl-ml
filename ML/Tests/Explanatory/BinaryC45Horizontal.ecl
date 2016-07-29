@@ -7,7 +7,7 @@ OUTPUT(full_ds_Map,ALL, NAMED('DatasetFieldMap'));
 indepData:= full_ds(number<4027);
 depData:= ML.Discretize.ByRounding(full_ds(number=4027));
 minNumObj:= 2;    maxLevel := 10;
-trainer1:= ML.Classify.DecisionTree.C45Binary(minNumObj, maxLevel); 
+trainer1:= ML.Classify.DecisionTree.C45Binary(minNumObj, maxLevel);
 tmod:= trainer1.LearnC(indepData, depData);
 tmodel:= trainer1.Model(tmod);
 OUTPUT(SORT(tmodel, node_id, new_node_id), ALL, NAMED('TreeModel'));

@@ -8,8 +8,8 @@ OUTPUT(dOrig, NAMED('OrigSeq'));
 ML.ToField(dOrig,dMatrix);
 D2 := ML.Discretize.ByRounding(dMatrix);
 OUTPUT(D2, NAMED('OrigMatrix'));
-indep	:= D2(Number<=3);
-dep		:= D2(Number=4);
+indep    := D2(Number<=3);
+dep        := D2(Number=4);
 OUTPUT(indep, NAMED('Indep'));
 OUTPUT(dep, NAMED('Dep'));
 
@@ -28,7 +28,7 @@ OUTPUT(results1.Accuracy, NAMED('Acc1'));
 // Example 2:
 // Generate one NaiveBayes model with complete dataset
 // Test the model with partitions obtained from NFold
-model:=	BayesModule.LearnD(Indep, Dep);
+model:=    BayesModule.LearnD(Indep, Dep);
 // Folding the dataset into 4 partitions
 parts:= ML.Sampling.NFold(dMatrix, 4);
 OUTPUT(parts.NFoldList, NAMED('FoldList'),ALL);
@@ -72,7 +72,7 @@ trainAll := ML.Discretize.ByRounding(train1 + train2 + train3 + train4);
 depTrainAll := PROJECT(trainAll(number=4), TRANSFORM(RECORDOF(LEFT), SELF.number:= LEFT.id DIV 1000, SELF:= LEFT));
 OUTPUT(depTrainAll, NAMED('depTrainAll'),ALL);
 // Build 4 different models, one per training fold
-CVModels:=	BayesModule.LearnD(trainAll(number<4), depTrainAll);
+CVModels:=    BayesModule.LearnD(trainAll(number<4), depTrainAll);
 // Getting test datasets
 test1 := CV.FoldNTestDS(1, 1000);
 test2 := CV.FoldNTestDS(2, 2000);

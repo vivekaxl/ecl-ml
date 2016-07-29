@@ -5,10 +5,10 @@ dimension_t := PBblas.Types.dimension_t;
 value_t := PBblas.Types.value_t;
 
 Cell := RECORD
-  value_t v;
+    value_t v;
 END;
 Cell makeCell(value_t v) := TRANSFORM
-  SELF.v := v;
+    SELF.v := v;
 END;
 vec_dataset(dimension_t m, value_t v) := DATASET(m, makeCell(v));
 

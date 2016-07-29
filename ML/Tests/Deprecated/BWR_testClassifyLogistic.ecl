@@ -1,14 +1,14 @@
 IMPORT ML;
 value_record := RECORD
                 unsigned rid;
-								real dummy;
+                                real dummy;
                 real length;
                 integer1 class; // 0 = f, 1 = m
 END;
 
 /*
 Dummy dataset created to demponstrate that modelY values represent/follow sigmoid function;
-*/                
+*/
 d := dataset([{1,0,1,0},
               {2,0,2,0},
               {3,0,3,0},
@@ -22,10 +22,10 @@ d := dataset([{1,0,1,0},
               {11,0,11,1},
               {12,0,12,1},
               {13,0,13,1},
-              {14,0,14,1}                                                                                                  
+              {14,0,14,1}
              ]
              ,value_record);
-                                                                                                                
+
 // Turn into regular NumericField file (with continuous variables)
 ML.ToField(d,o);
 Y := O(Number=3);  // pull out class

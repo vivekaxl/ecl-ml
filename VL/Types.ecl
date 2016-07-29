@@ -9,7 +9,7 @@ EXPORT Types:=MODULE
     STRING segment;
     REAL8 val;
   END;
-  
+
   EXPORT GraphLabels:=RECORD
     UNSIGNED id;
     STRING label;
@@ -20,5 +20,5 @@ EXPORT Types:=MODULE
     STRING linklabel:='';
     REAL weight:=0;
   END;
-  
+
 END;

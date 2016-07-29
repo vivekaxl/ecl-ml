@@ -4,12 +4,12 @@ IMPORT ML.Tests.Explanatory as TE;
 /*
 //This is the tennis-weather dataset transformed to discrete number values.
 weatherRecord := RECORD
-	Types.t_RecordID id;
-	Types.t_FieldNumber outlook;
-	Types.t_FieldNumber temperature;
-	Types.t_FieldNumber humidity;
-	Types.t_FieldNumber windy;
-	Types.t_FieldNumber play;
+    Types.t_RecordID id;
+    Types.t_FieldNumber outlook;
+    Types.t_FieldNumber temperature;
+    Types.t_FieldNumber humidity;
+    Types.t_FieldNumber windy;
+    Types.t_FieldNumber play;
 END;
 
 weather_Data := DATASET([
@@ -51,7 +51,7 @@ indep_t := ML.Discretize.ByRounding(t_indep);
 ML.ToField(dep_test, t_dep);
 dep_t := ML.Discretize.ByRounding(t_dep);
 
-trainer1:= ML.Classify.DecisionTree.GiniImpurityBased(5, 1); 
+trainer1:= ML.Classify.DecisionTree.GiniImpurityBased(5, 1);
 model1:= trainer1.LearnD(Indep, Dep);
 trainer2:= ML.Classify.DecisionTree.C45(FALSE); // Unpruned
 model2:= trainer2.LearnD(Indep, Dep);
@@ -71,7 +71,7 @@ OUTPUT(SORT(trainer2.Model(model2b), level, node_id), NAMED('DecTree_2b'), ALL);
 OUTPUT(model3, NAMED('Model3'));
 OUTPUT(SORT(trainer2.Model(model3), level, node_id), NAMED('DecTree_3'), ALL);
 
-//Classifying independent test data and comparing with dependent test data 
+//Classifying independent test data and comparing with dependent test data
 ClassDist1:= trainer1.ClassProbDistribD(indep_t, model1);
 AUC1_0:= ML.Classify.AUC_ROC(ClassDist1, 0, dep_t); //Area under ROC Curve for class "0"
 AUC1_1:= ML.Classify.AUC_ROC(ClassDist1, 1, dep_t); //Area under ROC Curve for class "1"

@@ -134,7 +134,7 @@ KMeans.Result(12);                                       // The results of itera
 KMeans.Delta(5,15);                                      // The distance every centroid travelled across each axis from iterations 5 to 15
 KMeans.Delta(0);                                         // The total distance the centroids travelled on each axis
 KMeans.DistanceDelta(5,15);                              // The straight-line distance travelled by each centroid from iterations 5 to 15
-KMeans.DistanceDelta(0);                                 // The total straight-line distance each centroid travelled 
+KMeans.DistanceDelta(0);                                 // The total straight-line distance each centroid travelled
 KMeans.DistanceDelta();                                  // The distance travelled by each centroid during the last iteration.
 
 

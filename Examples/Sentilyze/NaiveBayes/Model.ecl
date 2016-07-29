@@ -1,9 +1,9 @@
 /*****************************************************
 * SENTILYZE - TWITTER SENTIMENT CLASSIFICATION
 * NAIVE BAYES CLASSIFIER - Model
-* DESCRIPTION: Creates a model for the ECL-ML 
-* Naive Bayes classifier from two datasets of 
-* positive and negative tagged tweets. 
+* DESCRIPTION: Creates a model for the ECL-ML
+* Naive Bayes classifier from two datasets of
+* positive and negative tagged tweets.
 ******************************************************/
 IMPORT Examples.Sentilyze AS Sentilyze;
 IMPORT ML;
@@ -11,24 +11,24 @@ IMPORT ML;
 ML.Docs.Types.LexiconElement AddOne(ML.Docs.Types.LexiconElement L) := TRANSFORM
 //Increases word_id value by 1
 //This is so the number "1" can be used for the dependent sentiment variable
-	SELF.word_id := L.word_id + 1;
-	SELF := L;
+    SELF.word_id := L.word_id + 1;
+    SELF := L;
 END;
 
 ML.Types.NumericField ToIndep(ML.Docs.Types.OWordElement L) := TRANSFORM
 //Takes relevant data from ML.Docs.Trans.Wordsbag
 //and converts to numericfield
-	SELF.id := L.id;
-	SELF.number := L.word;
-	//Depending on NB Model value is either words_in_doc (term frequency) or 1 (term presence)
-	SELF.value := L.words_in_doc;
+    SELF.id := L.id;
+    SELF.number := L.word;
+    //Depending on NB Model value is either words_in_doc (term frequency) or 1 (term presence)
+    SELF.value := L.words_in_doc;
 END;
 
 ML.Types.NumericField ToDep(Sentilyze.Types.SentimentType L) := TRANSFORM
 // to extract document ids and sentiment values to a numericfield
-	SELF.id := L.id;
-	SELF.number := 1;
-	SELF.value := L.sentiment;
+    SELF.id := L.id;
+    SELF.number := 1;
+    SELF.value := L.sentiment;
 END;
 
 //Pre-Process Training Data
@@ -63,6 +63,6 @@ dfDep := ML.Discretize.ByRounding(nfDep);
 SentiModel := ML.Classify.NaiveBayes.LearnD(dfIndep,dfDep);
 
 EXPORT Model := MODULE
-	EXPORT Vocab := Senticon:PERSIST(Sentilyze.Strings.BayesVocab);
-	EXPORT Model := SentiModel:PERSIST(Sentilyze.Strings.BayesModel);
+    EXPORT Vocab := Senticon:PERSIST(Sentilyze.Strings.BayesVocab);
+    EXPORT Model := SentiModel:PERSIST(Sentilyze.Strings.BayesModel);
 END;

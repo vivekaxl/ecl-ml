@@ -4,23 +4,23 @@ export string PorterStem(string WORD) := FUNCTION
     // This is a consonant. Not "aiueo" and "y" only if preceded by a vowel
     c := '(?:[^aiueoy]|(?:(?<=[aiueo])y)|\\by)';
     c0 := '(?:[^aiueoy]|(?:(?<=[aiueo])y))';
-      
+
     // This is a vowel. "aiueo" and "y" if preceded by a consonant
     v := '(?:[aiueo]|(?:(?<![aiueo])y))';
-       
+
     // The re "/^(?:$c+)?(?:$v+$c+){m}(?:$v+)?$/" is [C](VC)**m[V] in perl
     // Matches if (m > 0)
     m_gt_0  :=  '^(?:' + c + '+)?(?:' + v + '+' + c + '+){1,}(?:' + v + '+)?$';
-    
+
     // Matches if (m > 1)
     m_gt_1  :=  '^(?:' + c + '+)?(?:' + v + '+' + c + '+){2,}(?:' + v + '+)?$';
-    
+
     // Matches if (m = 1)
     m_eq_1 := '^(?:' + c + '+)?(?:' + v + '+' + c + '+){1}(?:' + v + '+)?$';
-    
+
     // Matches *o
     o := c + v + '(?:[^aiueowxy])$';
-    
+
     // Matches *d
     d := '(' + c + ')\\1$';
     //---END Regular expressions -------------------------
@@ -38,7 +38,7 @@ export string PorterStem(string WORD) := FUNCTION
       string stemmed := IF(precon, stemmed0, WORD);
     return stemmed;
     END;
-    
+
     string stemMapForLetterA1( string WORD) := FUNCTION
       stemmed := map(
         regexfind('^.+' + 'ational'  + '$', WORD) => stem( WORD, 'ational' , 'ate', m_gt_0, ''),
@@ -47,7 +47,7 @@ export string PorterStem(string WORD) := FUNCTION
        );
       return stemmed;
     END;
-    
+
     string stemMapForLetterC1( string WORD) := FUNCTION
       stemmed := map(
         regexfind('^.+' + 'enci'     + '$', WORD) => stem( WORD, 'enci'    , 'ence', m_gt_0, ''),
@@ -56,7 +56,7 @@ export string PorterStem(string WORD) := FUNCTION
        );
       return stemmed;
     END;
-    
+
     string stemMapForLetterE1( string WORD) := FUNCTION
       stemmed := map(
         regexfind('^.+' + 'izer'     + '$', WORD) => stem( WORD, 'izer'    , 'ize', m_gt_0, ''),
@@ -64,7 +64,7 @@ export string PorterStem(string WORD) := FUNCTION
        );
       return stemmed;
     END;
-    
+
     string stemMapForLetterG1( string WORD) := FUNCTION
       stemmed := map(
         regexfind('^.+' + 'logi'     + '$', WORD) => stem( WORD, 'logi'    , 'log', m_gt_0, ''),
@@ -72,7 +72,7 @@ export string PorterStem(string WORD) := FUNCTION
        );
       return stemmed;
     END;
-    
+
     string stemMapForLetterL1( string WORD) := FUNCTION
       stemmed := map(
         regexfind('^.+' + 'bli'      + '$', WORD) => stem( WORD, 'bli'     , 'ble', m_gt_0, ''),
@@ -84,7 +84,7 @@ export string PorterStem(string WORD) := FUNCTION
        );
       return stemmed;
     END;
-    
+
     string stemMapForLetterO1( string WORD) := FUNCTION
       stemmed := map(
         regexfind('^.+' + 'ization'  + '$', WORD) => stem( WORD, 'ization' , 'ize', m_gt_0, ''),
@@ -94,7 +94,7 @@ export string PorterStem(string WORD) := FUNCTION
        );
       return stemmed;
     END;
-    
+
     string stemMapForLetterS1( string WORD) := FUNCTION
       stemmed := map(
         regexfind('^.+' + 'alism'    + '$', WORD) => stem( WORD, 'alism'   , 'al' , m_gt_0, ''),
@@ -105,7 +105,7 @@ export string PorterStem(string WORD) := FUNCTION
        );
       return stemmed;
     END;
-    
+
     string stemMapForLetterT1( string WORD) := FUNCTION
       stemmed := map(
         regexfind('^.+' + 'aliti'    + '$', WORD) => stem( WORD, 'aliti'   , 'al' , m_gt_0, ''),
@@ -115,7 +115,7 @@ export string PorterStem(string WORD) := FUNCTION
        );
       return stemmed;
     END;
-    
+
     string stemMapForLetterE2( string WORD) := FUNCTION
       stemmed := map(
         regexfind('^.+' + 'icate'    + '$', WORD) => stem( WORD, 'icate'   , 'ic' , m_gt_0, ''),
@@ -125,7 +125,7 @@ export string PorterStem(string WORD) := FUNCTION
        );
       return stemmed;
     END;
-    
+
     string stemMapForLetterI2( string WORD) := FUNCTION
       stemmed := map(
         regexfind('^.+' + 'iciti'    + '$', WORD) => stem( WORD, 'iciti'   , 'ic' , m_gt_0, ''),
@@ -133,7 +133,7 @@ export string PorterStem(string WORD) := FUNCTION
        );
       return stemmed;
     END;
-    
+
     string stemMapForLetterL2( string WORD) := FUNCTION
       stemmed := map(
         regexfind('^.+' + 'ical'     + '$', WORD) => stem( WORD, 'ical'    , 'ic' , m_gt_0, ''),
@@ -142,7 +142,7 @@ export string PorterStem(string WORD) := FUNCTION
        );
       return stemmed;
     END;
-    
+
     string stemMapForLetterS2( string WORD) := FUNCTION
       stemmed := map(
         regexfind('^.+' + 'ness'     + '$', WORD) => stem( WORD, 'ness'    , ''   , m_gt_0, ''),
@@ -150,7 +150,7 @@ export string PorterStem(string WORD) := FUNCTION
        );
       return stemmed;
     END;
-    
+
     string stemMapForLetterA3( string WORD) := FUNCTION
       stemmed := map(
         regexfind('^.+' + 'al'       + '$', WORD) => stem( WORD, 'al'      , ''   , m_gt_1, ''),
@@ -158,7 +158,7 @@ export string PorterStem(string WORD) := FUNCTION
        );
       return stemmed;
     END;
-    
+
     string stemMapForLetterC3( string WORD) := FUNCTION
       stemmed := map(
         regexfind('^.+' + 'ance'     + '$', WORD) => stem( WORD, 'ance'    , ''   , m_gt_1, ''),
@@ -167,7 +167,7 @@ export string PorterStem(string WORD) := FUNCTION
        );
       return stemmed;
     END;
-    
+
     string stemMapForLetterE3( string WORD) := FUNCTION
       stemmed := map(
         regexfind('^.+' + 'er'       + '$', WORD) => stem( WORD, 'er'      , ''   , m_gt_1, ''),
@@ -175,7 +175,7 @@ export string PorterStem(string WORD) := FUNCTION
        );
       return stemmed;
     END;
-    
+
     string stemMapForLetterI3( string WORD) := FUNCTION
       stemmed := map(
         regexfind('^.+' + 'ic'       + '$', WORD) => stem( WORD, 'ic'      , ''   , m_gt_1, ''),
@@ -183,7 +183,7 @@ export string PorterStem(string WORD) := FUNCTION
        );
       return stemmed;
     END;
-    
+
     string stemMapForLetterL3( string WORD) := FUNCTION
       stemmed := map(
         regexfind('^.+' + 'able'     + '$', WORD) => stem( WORD, 'able'    , ''   , m_gt_1, ''),
@@ -192,7 +192,7 @@ export string PorterStem(string WORD) := FUNCTION
        );
       return stemmed;
     END;
-    
+
     string stemMapForLetterN3( string WORD) := FUNCTION
       stemmed := map(
         regexfind('^.+' + 'ant'      + '$', WORD) => stem( WORD, 'ant'     , ''   , m_gt_1, ''),
@@ -203,7 +203,7 @@ export string PorterStem(string WORD) := FUNCTION
        );
       return stemmed;
     END;
-    
+
     string stemMapForLetterO3( string WORD) := FUNCTION
       stemmed := map(
         regexfind('^.+' + 'ion'      + '$', WORD) => stem( WORD, 'ion'     , ''   , '[st]$', m_gt_1),
@@ -212,7 +212,7 @@ export string PorterStem(string WORD) := FUNCTION
        );
       return stemmed;
     END;
-    
+
     string stemMapForLetterS3( string WORD) := FUNCTION
       stemmed := map(
         regexfind('^.+' + 'ism'      + '$', WORD) => stem( WORD, 'ism'     , ''   , m_gt_1, ''),
@@ -220,7 +220,7 @@ export string PorterStem(string WORD) := FUNCTION
        );
       return stemmed;
     END;
-    
+
     string stemMapForLetterT3( string WORD) := FUNCTION
       stemmed := map(
         regexfind('^.+' + 'ate'      + '$', WORD) => stem( WORD, 'ate'     , ''   , m_gt_1, ''),
@@ -229,7 +229,7 @@ export string PorterStem(string WORD) := FUNCTION
        );
       return stemmed;
     END;
-    
+
     string stemMapForLetterU3( string WORD) := FUNCTION
       stemmed := map(
         regexfind('^.+' + 'ous'      + '$', WORD) => stem( WORD, 'ous'     , ''   , m_gt_1, ''),
@@ -237,7 +237,7 @@ export string PorterStem(string WORD) := FUNCTION
        );
       return stemmed;
     END;
-    
+
     string stemMapForLetterV3( string WORD) := FUNCTION
       stemmed := map(
         regexfind('^.+' + 'ive'      + '$', WORD) => stem( WORD, 'ive'     , ''   , m_gt_1, ''),
@@ -245,7 +245,7 @@ export string PorterStem(string WORD) := FUNCTION
        );
       return stemmed;
     END;
-    
+
     string stemMapForLetterZ3( string WORD) := FUNCTION
       stemmed := map(
         regexfind('^.+' + 'ize'      + '$', WORD) => stem( WORD, 'ize'     , ''   , m_gt_1, ''),
@@ -253,9 +253,9 @@ export string PorterStem(string WORD) := FUNCTION
        );
       return stemmed;
     END;
-    
+
     //STEP 1a
-    word1a := 
+    word1a :=
        IF( regexfind('^.+sses$', WORD)
            , regexreplace('^(.+)sses$',WORD, '$1ss')
            , IF( regexfind('^.+ies$', WORD)
@@ -309,7 +309,7 @@ export string PorterStem(string WORD) := FUNCTION
                      )
                )
          );
-  
+
   //STEP 1c
   word1c := IF(regexfind('y$', wordextra),stem( wordextra, 'y' , 'i', v, ''), wordextra);
 
@@ -357,7 +357,7 @@ export string PorterStem(string WORD) := FUNCTION
          letter4='z' => stemMapForLetterZ3(word3),
          word3
         );
-  
+
 
   string Step5a( string WORD) := FUNCTION
     string pre := regexreplace('^(.+)e$', WORD, '$1');
@@ -365,10 +365,10 @@ export string PorterStem(string WORD) := FUNCTION
         IF(regexfind(m_gt_1, pre) or ( regexfind(m_eq_1, pre) and not regexfind(o, pre)), pre, WORD);
   return stemmed;
   END;
-    
+
   //STEP 5a
   word5a := Step5a( word4 );
- 
+
   //STEP 5b
   word5b :=
      IF(regexfind('ll$', word5a) and regexfind(m_gt_1, word5a)
@@ -376,15 +376,15 @@ export string PorterStem(string WORD) := FUNCTION
      , word5a);
 
 /*
-output(word1a,named('word1a'));    
-output(word1b,named('word1b'));    
-output(wordextra,named('wordextra'));    
-output(word1c,named('word1c'));    
-output(word2,named('word2'));    
-output(word3,named('word3'));    
-output(word4,named('word4'));    
-output(word5a,named('word5a'));    
-output(word5b,named('word5b')); 
-*/   
+output(word1a,named('word1a'));
+output(word1b,named('word1b'));
+output(wordextra,named('wordextra'));
+output(word1c,named('word1c'));
+output(word2,named('word2'));
+output(word3,named('word3'));
+output(word4,named('word4'));
+output(word5a,named('word5a'));
+output(word5b,named('word5b'));
+*/
 return IF(length(WORD)<3, WORD,word5b);
 END;

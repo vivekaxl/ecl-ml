@@ -12,11 +12,11 @@ D := b1+b2+b3; // This is the test data
 // Now construct a fourth column which is the sum of them all
 
 B4 := PROJECT(TABLE(D,{Id,Val := SUM(GROUP,Value)},Id),TRANSFORM(ML.Types.NumericField,
-																															SELF.Number:=4,
-																															SELF.Value:=MAP(LEFT.Val < 6 => 0,
-																															LEFT.VAL < 10 => 1, // Normal
-																															  							 2 ); // Big
-																															SELF := LEFT));
+                                                                                                                            SELF.Number:=4,
+                                                                                                                            SELF.Value:=MAP(LEFT.Val < 6 => 0,
+                                                                                                                            LEFT.VAL < 10 => 1, // Normal
+                                                                                                                                                           2 ); // Big
+                                                                                                                            SELF := LEFT));
 D1 := D+B4;
 // We are going to use the 'discrete' classifier interface; so discretize our data first
 D2 := ML.Discretize.ByRounding(D1);

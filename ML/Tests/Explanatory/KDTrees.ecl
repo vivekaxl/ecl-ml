@@ -2,7 +2,7 @@
 
 TestSize := 10000000;
 
-a1 := ML.Distribution.Normal(5,5); 
+a1 := ML.Distribution.Normal(5,5);
 b1 := ML.Distribution.GenData(TestSize,a1,1);
 a2 := ML.Distribution.Normal(1000,10);
 b2 := ML.Distribution.GenData(TestSize,a2,2);

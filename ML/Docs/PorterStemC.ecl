@@ -319,18 +319,18 @@ int stem(char * p, int i, int j)
 }
 
 #body
-	char *s = (char *)rtlMalloc(word_len + 1);
-	int i;
-	for (i = 0; i < word_len + 1; i++)
-	{
-		s[i] = word[i];
-	}
-	int res = stem(s,0,word_len-1);
-	s[res+1] = 0;
-	return s;
+    char *s = (char *)rtlMalloc(word_len + 1);
+    int i;
+    for (i = 0; i < word_len + 1; i++)
+    {
+        s[i] = word[i];
+    }
+    int res = stem(s,0,word_len-1);
+    s[res+1] = 0;
+    return s;
 ENDC++;
 
 
 EXPORT STRING PorterStemC(STRING word) := FUNCTION
-	RETURN stem(word, LENGTH(word));
+    RETURN stem(word, LENGTH(word));
 END;
