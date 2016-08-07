@@ -69,12 +69,13 @@ EXPORT SWAY(DATASET(Types.NumericField) input_data, DATASET(PT.Types.TuningField
             
             population := GenerateTuningPoints(tuning_ranges, 100);
             stopping_point :=  (INTEGER)(SQRT(100));
-            final_population := LOOP(population,    
+            return_population := LOOP(population,    
                                     COUNTER <= stopping_point AND COUNT(ROWS(LEFT))/no_of_fields > (INTEGER)(COUNT(population)/no_of_fields)/10,
                                     run_one_split(ROWS(LEFT))
                                     );
-            // RETURN run_one_split(population);
-            RETURN final_population;
+
+            chosen_one := SORT(return_population, -value)[1].id;
+            RETURN return_population(id=chosen_one); // number <> no_of_fields+1 -> to remove the objective function
         END;
         
 END;
