@@ -418,7 +418,7 @@ REAL YCoordinate;
 END;
 
 //My dataset
-X2 := DATASET([      
+X2 := DATASET([
 {1, 1, 5},
 {2, 5, 7},
 {3, 8, 1},
@@ -662,9 +662,9 @@ o
         <emphasis>regular</emphasis> ECL style record using the FromField
         operation: <programlisting>ml.ToField(d,o);
 d;
-o; 
-ml.FromField(o,value_record,d1); 
-d1; 
+o;
+ml.FromField(o,value_record,d1);
+d1;
 </programlisting></para>
 
         <para>Will leave d1 = d.</para>
@@ -864,16 +864,16 @@ Bayes
           field value is a fairly advanced technique. The following inserts
           the square of the weight as a new column:<programlisting><?dbfo keep-together="always"?>ml.ToField(d,o);
 
-BelowW := o(Number &lt;= 2); 
+BelowW := o(Number &lt;= 2);
 // Those columns whose numbers are not changed
 // Shuffle the other columns up - this is not needed if appending a column
-AboveW := PROJECT(o(Number&gt;2),TRANSFORM(ML.Types.NumericField,SELF.Number := 
+AboveW := PROJECT(o(Number&gt;2),TRANSFORM(ML.Types.NumericField,SELF.Number :=
 LEFT.Number+1, SELF := LEFT));
 NewCol := PROJECT(o(Number=2),TRANSFORM(ML.Types.NumericField,
                                                         SELF.Number := 3,
                                                         SELF.Value := LEFT.Value*LEFT.Value,
                                                         SELF := LEFT) );
-    
+
 NewO := BelowW+AboveW+NewCol;
 
 NewO;
@@ -905,7 +905,7 @@ NewO;
       <para><programlisting><?dbfo keep-together="always"?>IMPORT ML;
 
 TestSize := 1000000;
-a1 := ML.Distribution.Uniform(0,100,10000); 
+a1 := ML.Distribution.Uniform(0,100,10000);
 ML.Distribution.GenData(TestSize,a1,1); // Field 1 Uniform
 
 </programlisting></para>
@@ -918,7 +918,7 @@ ML.Distribution.GenData(TestSize,a1,1); // Field 1 Uniform
 
 TestSize := 1000000;
 
-a1 := ML.Distribution.Uniform(0,100,10000); 
+a1 := ML.Distribution.Uniform(0,100,10000);
 b1 := ML.Distribution.GenData(TestSize,a1,1); // Field 1 Uniform
 // Field 2 Normally Distributed
 a2 := ML.Distribution.Normal2(0,10,10000);
@@ -929,7 +929,7 @@ b3 := ML.Distribution.GenData(TestSize,a3,3);
 
 D := b1+b2+b3; // This is the test data
 
-ML.FieldAggregates(D).Simple;  // Perform some statistics on the test data to ensure 
+ML.FieldAggregates(D).Simple;  // Perform some statistics on the test data to ensure
                                   it worked
 </programlisting>
 
@@ -974,7 +974,7 @@ ML.FieldAggregates(D).Simple;  // Perform some statistics on the test data to en
 TestSize := 100000;
 CoOccurs := TestSize/1000;
 
-a1 := ML.Distribution.Poisson(5,100); 
+a1 := ML.Distribution.Poisson(5,100);
 b1 := ML.Distribution.GenData(TestSize,a1,1); // Field 1 Uniform
 a2 := ML.Distribution.Poisson(3,100);
 b2 := ML.Distribution.GenData(TestSize,a2,2);
@@ -983,7 +983,7 @@ b3 := ML.Distribution.GenData(TestSize,a3,3);
 
 D := b1+b2+b3; // This is the test data
 // Now construct a fourth column which is a function of column 1
-B4 := PROJECT(b1,TRANSFORM(ML.Types.NumericField, SELF.Number:=4, SELF.Value:=LEFT.Value * 2, 
+B4 := PROJECT(b1,TRANSFORM(ML.Types.NumericField, SELF.Number:=4, SELF.Value:=LEFT.Value * 2,
       SELF.Id := LEFT.id));
 
 AD0 := PROJECT(ML.Discretize.ByRounding(B1+B2+B3+B4),ML.Types.ItemElement);
@@ -1128,7 +1128,7 @@ Asso.Rules(R)
 // First auto-generate some test data for us to classify
 
 TestSize := 100000;
-a1 := ML.Distribution.Poisson(5,100); 
+a1 := ML.Distribution.Poisson(5,100);
 b1 := ML.Distribution.GenData(TestSize,a1,1); // Field 1 Uniform
 a2 := ML.Distribution.Poisson(3,100);
 b2 := ML.Distribution.GenData(TestSize,a2,2);
@@ -1378,7 +1378,7 @@ Results;
 value_record := RECORD
                 UNSIGNED rid;
                 REAL length;
-                INTEGER1 class; 
+                INTEGER1 class;
 END;
 
 d := DATASET([{1,1,0}, {2,2,0}, {3,3,0}, {4,4,0}, {5,5,1},
@@ -1388,8 +1388,8 @@ d := DATASET([{1,1,0}, {2,2,0}, {3,3,0}, {4,4,0}, {5,5,1},
 ML.ToField(d,o);
 Y := O(Number=2);  // pull out class
 X := O(Number=1); // pull out lenghts
-                                                                                                                
-dY := ML.Discretize.ByRounding(Y);  
+
+dY := ML.Discretize.ByRounding(Y);
 LogisticModule := ML.Classify.Logistic(,,10);
 Model := LogisticModule.LearnC(X,dY);
 LogisticModule.ClassifyC(X,Model);
@@ -1552,19 +1552,19 @@ MyKMeans.Result(3); // The results of iteration 3
         specified number of iterations. If no number is passed, this will be
         the locations after the final iteration.</para>
 
-        <para><programlisting><?dbfo keep-together="always"?>MyKMeans.Delta(3,5); // The distance every centroid travelled across each axis from 
+        <para><programlisting><?dbfo keep-together="always"?>MyKMeans.Delta(3,5); // The distance every centroid travelled across each axis from
                         iterations 3 to 5
-MyKMeans.Delta(0);   // The total distance the centroids travelled on each axis from the 
+MyKMeans.Delta(0);   // The total distance the centroids travelled on each axis from the
                         beginning to the end
 </programlisting>Delta displays the distance traveled <emphasis>on each
         axis</emphasis> between the iterations specified in the parameters. If
         no parameters are passed, this will be the delta between the last two
         iterations.</para>
 
-        <para><programlisting><?dbfo keep-together="always"?>MyKMeans.DistanceDelta(3,5); // The straight-line distance travelled by each centroid from 
+        <para><programlisting><?dbfo keep-together="always"?>MyKMeans.DistanceDelta(3,5); // The straight-line distance travelled by each centroid from
                                 iterations 3 to 5
-MyKMeans.DistanceDelta(0);   // The total straight-line distance each centroid travelled 
-MyKMeans.DistanceDelta();    // The distance traveled by each centroid during the last 
+MyKMeans.DistanceDelta(0);   // The total straight-line distance each centroid travelled
+MyKMeans.DistanceDelta();    // The distance traveled by each centroid during the last
                                 iteration.
 </programlisting>DistanceDelta is the same as Delta, but displays the DISTANCE
         delta as calculated using whichever method the KMeans routine was
@@ -1764,7 +1764,7 @@ o;
       Auto-buckets columns 2 &amp; 3 into four bands, tiles column 1 into 6
       bands and the rounds the fourth column to the nearest integer:</para>
 
-      <para><programlisting>disc := ML.Discretize.ByBucketing(o(Number IN [2,3]),4)+ML.Discretize.ByTiling(o(Number IN 
+      <para><programlisting>disc := ML.Discretize.ByBucketing(o(Number IN [2,3]),4)+ML.Discretize.ByTiling(o(Number IN
                                               [1]),6)+ML.Discretize.ByRounding(o(Number=4));
 disc;
 </programlisting>It may be observed that in the description above I was able
@@ -2033,7 +2033,7 @@ dAllNGrams:=ML.Docs.CoLocation.AllNGrams(dWords,dLexicon,4);
         to uppercase:<programlisting><?dbfo keep-together="always"?>// SUPPORT: User passes a SET OF STRING and the output from the ALLNGrams attribute
 ML.Docs.CoLocation.Support(['MILK','BREAD','BUTTER'],dAllNGrams);
 
-// CONFIDENCE, LIFT and CONVICTION: User passes in two SETS OF STRING and the AllNGrams 
+// CONFIDENCE, LIFT and CONVICTION: User passes in two SETS OF STRING and the AllNGrams
    output.
 // In each case, set 1 and set 2 are read as “1=&gt;2”.  Note that 1=&gt;2 DOES NOT EQUAL 2=&gt;1.
 ML.Docs.CoLocation.Confidence(['MILK','BREAD'],['BUTTER'],dAllNGrams);
@@ -2090,7 +2090,7 @@ ML.Docs.CoLocation.Conviction(['MILK','BREAD'],['BUTTER'],dAllNGrams);
       <para><programlisting><?dbfo keep-together="always"?>IMPORT ML;
 // Generate random data for testing purposes
 TestSize := 10000000;
-a1 := ML.Distribution.Uniform(0,100,10000); 
+a1 := ML.Distribution.Uniform(0,100,10000);
 b1 := ML.Distribution.GenData(TestSize,a1,1); // Field 1 Uniform
 a2 := ML.Distribution.Poisson(3,100);
 b2 := ML.Distribution.GenData(TestSize,a2,2);
@@ -2118,7 +2118,7 @@ Agg.Simple; // Compute some common statistics
 
       <para><programlisting><?dbfo keep-together="always"?>IMPORT ML;
 TestSize := 50;
-a1 := ML.Distribution.Uniform(0,100,10000); 
+a1 := ML.Distribution.Uniform(0,100,10000);
 b1 := ML.Distribution.GenData(TestSize,a1,1); // Field 1 Uniform
 a2 := ML.Distribution.Poisson(3,100);
 b2 := ML.Distribution.GenData(TestSize,a2,2);
@@ -2179,7 +2179,7 @@ Agg.Ranked;
 
       <para><programlisting><?dbfo keep-together="always"?>IMPORT ML;
 TestSize := 100;
-a1 := ML.Distribution.Uniform(0,100,10000); 
+a1 := ML.Distribution.Uniform(0,100,10000);
 b1 := ML.Distribution.GenData(TestSize,a1,1); // Field 1 Uniform
 a2 := ML.Distribution.Poisson(3,100);
 b2 := ML.Distribution.GenData(TestSize,a2,2);
@@ -2207,7 +2207,7 @@ Agg.NTileRanges(4)
       level, you may wish to look at the graph for the following:
       <programlisting><?dbfo keep-together="always"?>IMPORT ML;
 TestSize := 10000000;
-a1 := ML.Distribution.Uniform(0,100,10000); 
+a1 := ML.Distribution.Uniform(0,100,10000);
 b1 := ML.Distribution.GenData(TestSize,a1,1); // Field 1 Uniform
 a2 := ML.Distribution.Poisson(3,100);
 b2 := ML.Distribution.GenData(TestSize,a2,2);
@@ -2244,7 +2244,7 @@ Mat.Add(d1,d);
 Mat.Sub(d1, d );
 Mat.Mul(d,d);
 Mat.Trans(d);
-Mat.Inv(d); 
+Mat.Inv(d);
 </programlisting>
 
       <sect2>
@@ -2257,7 +2257,7 @@ Mat.Inv(d);
 
         <programlisting>IMPORT * FROM ML;
 A := dataset([{1,1,2.0},{1,2,2.0},{1,3,2.0},
-              {2,1,2.0}, {2,2,2.0},{2,3,2.0}, 
+              {2,1,2.0}, {2,2,2.0},{2,3,2.0},
               {3,1,2.0},{3,2,2.0}, {3,3,2.0}], ML.Mat.Types.Element);
 AA := ML.Mat.Each.Mul(A,A);
 A_org := ML.Mat.Each.Sqrt(AA);
@@ -2302,7 +2302,7 @@ ML.Mat.Each.Mul(A_org,OneOverA);
 
         <programlisting>IMPORT * FROM ML;
 A := dataset([{1,1,2.0},{1,2,3.0},{1,3,4.0},
-              {2,1,2.0}, {2,2,3.0},{2,3,4.0}, 
+              {2,1,2.0}, {2,2,3.0},{2,3,4.0},
               {3,1,2.0},{3,2,3.0}, {3,3,4.0}], ML.Mat.Types.Element);
 ML.Mat.InsertColumn(A, 1, 1.0);
 </programlisting>
@@ -2328,18 +2328,18 @@ ML.Mat.InsertColumn(A, 1, 1.0);
         <programlisting>IMPORT * FROM ML;
 
 A1 := dataset([{1,1,1.0},{1,2,1.0},{1,3,1.0},
-                         {2,1,1.0}, {2,2,1.0},{2,3,1.0}, 
+                         {2,1,1.0}, {2,2,1.0},{2,3,1.0},
                          {3,1,1.0},{3,2,1.0}, {3,3,1.0}], ML.Mat.Types.Element);
 
 A2 := dataset([{1,1,2.0},{1,2,2.0},{1,3,2.0},
-                         {2,1,2.0}, {2,2,2.0},{2,3,2.0}, 
+                         {2,1,2.0}, {2,2,2.0},{2,3,2.0},
                          {3,1,2.0},{3,2,2.0}, {3,3,2.0}], ML.Mat.Types.Element);
 
 A1MU := ML.Mat.MU.To(A1, 4);
-A2MU := ML.Mat.MU.To(A2, 7); 
+A2MU := ML.Mat.MU.To(A2, 7);
 A1MU+A2MU;
 ML.Mat.MU.From(A1MU+A2MU, 4);
-ML.Mat.MU.From(A1MU+A2MU, 7); 
+ML.Mat.MU.From(A1MU+A2MU, 7);
 </programlisting>
       </sect2>
 
@@ -2379,9 +2379,9 @@ B := ML.Mat.Repmat(A,3,2);
 
         <programlisting id="Repmat">IMPORT * FROM ML;
 A := dataset([{1,1,2.0},{1,2,3.0},{1,3,4.0},
-              {2,1,2.0}, {2,2,3.0},{2,3,4.0}, 
-              {3,1,2.0},{3,2,3.0}, {3,3,4.0}], ML.Mat.Types.Element); 
-ZeroMeanA := ML.Mat.Sub(A, ML.Mat.Repmat(ML.Mat.Has(A).MeanCol, 
+              {2,1,2.0}, {2,2,3.0},{2,3,4.0},
+              {3,1,2.0},{3,2,3.0}, {3,3,4.0}], ML.Mat.Types.Element);
+ZeroMeanA := ML.Mat.Sub(A, ML.Mat.Repmat(ML.Mat.Has(A).MeanCol,
 ML.Mat.Has(A).Stats.XMax, 1));
 </programlisting>
       </sect2>
@@ -2429,7 +2429,7 @@ ML.Mat.Has(A).Stats.XMax, 1));
 
         <programlisting>IMPORT * FROM ML;
 A := dataset([{1,1,2.0},{1,2,-1.0},{1,3,3.0},{1,4,4.0},
-              {2,1,4.0}, {2,2,2.0},{2,3,1.0},{2,4,5.0}, 
+              {2,1,4.0}, {2,2,2.0},{2,3,1.0},{2,4,5.0},
               {3,1,-6.0},{3,2,-1.0}, {3,3,3.0}, {3,4,6.0},
               {4,1,-6.0},{4,2,-1.0}, {4,3,1.0}, {4,4,6.0}], ML.Mat.Types.Element);
 L := ML.Mat.Decomp.LComp(ML.Mat.Decomp.LU(A));
@@ -2458,7 +2458,7 @@ ML.MAT.RoundDelta(ML.Mat.Sub(A,LU));
 
         <programlisting>IMPORT * FROM ML;
 A := dataset([{1,1,2.0},{1,2,1.0},{1,3,1.0},
-              {2,1,1.0}, {2,2,3.0},{2,3,1.0}, 
+              {2,1,1.0}, {2,2,3.0},{2,3,1.0},
              {3,1,1.0},{3,2,1.0}, {3,3,4.0}], ML.Mat.Types.Element);
  L := ML.Mat.Decomp.Cholesky(A);
 LLt := ML.Mat.Mul(L,ML.Mat.Trans(L));
@@ -2544,7 +2544,7 @@ A := dataset([{1,1,12.0},{2,1,6.0},{3,1,4.0},
 eig_values:=ML.Mat.Eig(A).valuesM;
 eig_valuesV:=ML.Mat.Eig(A).valuesV;
 eig_vectors:=ML.Mat.Eig(A).vectors;
-cnt:=(INTEGER)ML.Mat.Eig(A).convergence;  
+cnt:=(INTEGER)ML.Mat.Eig(A).convergence;
 </programlisting>
 
         <para>The ValuesM attribute returns eigenvalues in the diagonal matrix
@@ -2565,7 +2565,7 @@ cnt:=(INTEGER)ML.Mat.Eig(A).convergence;
         <programlisting>eig_module:=ML.Mat.Eig(A,500);
 eig_valuesV:= eig_module.valuesV;
 eig_vectors:= eig_module.vectors;
-cnt:=(INTEGER) eig_module.convergence;  
+cnt:=(INTEGER) eig_module.convergence;
 </programlisting>
       </sect2>
 
@@ -2691,8 +2691,8 @@ eigA_vec := ML.Mat.Mul(V,eigT_vec);
 
         <programlisting>IMPORT * FROM ML;
 A := dataset([{1,1,2.0},{1,2,3.0},{1,3,4.0},
-              {2,1,2.0}, {2,2,3.0},{2,3,4.0}, 
-              {3,1,2.0},{3,2,3.0}, {3,3,4.0}], ML.Mat.Types.Element); 
+              {2,1,2.0}, {2,2,3.0},{2,3,4.0},
+              {3,1,2.0},{3,2,3.0}, {3,3,4.0}], ML.Mat.Types.Element);
 
 U := ML.Mat.Svd(A).UComp;
 S := ML.Mat.Svd(A).SComp;
@@ -2752,7 +2752,7 @@ points := DATASET([{1,2.5,2.4},{2,0.5,0.7},{3,2.2,2.9},{4,1.9,2.2},{5,3.1,3.0},
                    {6,2.3,2.7},{7,2.0,1.6},{8,1.0,1.1},{9,1.5,1.6},{10,1.1,0.9}],Rec);
 // Turn into regular NumericField file (with continuous variables)
 ToField(points,O);
-X := Types.ToMatrix(O(Number in [1,2])); 
+X := Types.ToMatrix(O(Number in [1,2]));
 Ur := Mat.Pca(X).Ureduce;
 z := Mat.PCA(X).ZComp;
 </programlisting>
@@ -3049,7 +3049,7 @@ X := O(Number =1); // Pull out the age
 Y := O(Number =2); // Pull out the height
 Reg := ML.Regression.Sparse.OLS_LU(X,Y);
 B := Reg.Beta();
-B;                         
+B;
 Reg.RSquared;
 Reg.Anova;
 </programlisting>In this example we have a dataset that contains 12 records
@@ -3175,7 +3175,7 @@ VL.Chart('SurfaceAreaColumn',dContinentChart,ContinentStyle).Column;
       removing the extraneous continent and surface_area fields. Then we can
       transform the result into our ChartData format.</para>
 
-      <programlisting>dPopOnly:=PROJECT(dRegions,{lRegions AND NOT [continent,surface_area]}); 
+      <programlisting>dPopOnly:=PROJECT(dRegions,{lRegions AND NOT [continent,surface_area]});
 dPopData:=VL.FormatData(dPopOnly,region);</programlisting>
 
       <para>At this point, if we were to paint the charts we would have the
@@ -3192,7 +3192,7 @@ dPopData:=VL.FormatData(dPopOnly,region);</programlisting>
       and area charts below. A call to the SetValue Styles function like in
       the above example adds in a title as before:</para>
 
-      <programlisting>PopStyle:=VL.Styles.SetValue(Vl.Styles.Default,title,'Population by Region over Time'); 
+      <programlisting>PopStyle:=VL.Styles.SetValue(Vl.Styles.Default,title,'Population by Region over Time');
 VL.Chart('PopulationByRegionLine',dSwapped,PopStyle).Line;
 VL.Chart('PopulationByRegionArea',dSwapped,PopStyle).Area;
 </programlisting>
@@ -3242,7 +3242,7 @@ dWithAverages:=dAfrica+TABLE(dAfrica,{
       options are available.</para>
 
       <programlisting>dFormatted:=VL.SwapAxes(VL.FormatData(dWithAverages,region),'Decade');
-ComboStyle:=Vl.Styles.SetValue(Vl.Styles.Default,ChartAdvanced,'title:"Population Growth in 
+ComboStyle:=Vl.Styles.SetValue(Vl.Styles.Default,ChartAdvanced,'title:"Population Growth in
 Africa",seriesType:"bars",series:{5:{type:"line"}}');
 VL.Chart('AfricanPopulationGrowthCombo',dFormatted,ComboStyle).Combo;
 </programlisting>
@@ -3458,11 +3458,11 @@ VL.Chart('AfricanPopulationGrowthCombo',dFormatted,ComboStyle).Combo;
       <para><programlisting role="nobrk"><?dbfo keep-together="always"?>IMPORT ML;
 IMPORT ML.Docs AS Docs;
 
-d11 := DATASET([{'One of the wonderful things about tiggers is tiggers are wonderful 
+d11 := DATASET([{'One of the wonderful things about tiggers is tiggers are wonderful
                  things'},
-                {'It is a little scary the drivel that enters ones mind when given the 
+                {'It is a little scary the drivel that enters ones mind when given the
                  task of entering random text'},
-                {'I almost quoted Oscar Wilde; but I considered that I had gotten a little 
+                {'I almost quoted Oscar Wilde; but I considered that I had gotten a little
                  too silly already!'},
                 {'I would hate to have quoted silly people!'},
                 {'Oscar Wilde is often quoted'},
@@ -3476,7 +3476,7 @@ d := d11;
 d1 := PROJECT(d,TRANSFORM(Docs.Types.Raw,SELF.Txt := LEFT.r));
 d2 := Docs.Tokenize.Enumerate(d1);
 d3 := Docs.Tokenize.Clean(d2);
-d4 := Docs.Tokenize.Split(d3);                                      
+d4 := Docs.Tokenize.Split(d3);
 
 lex := Docs.Tokenize.Lexicon(d4);
 
@@ -4102,7 +4102,7 @@ KMeans.Delta(3,5);
 KMeans.Delta(0);
 // The straight-line distance travelled by each centroid from iterations 3 to 5
 KMeans.DistanceDelta(3,5);
-// The total straight-line distance each centroid travelled 
+// The total straight-line distance each centroid travelled
 KMeans.DistanceDelta(0);
 // The distance travelled by each centroid during the last iteration.
 KMeans.DistanceDelta();
@@ -4350,7 +4350,7 @@ disc := ML.Discretize.ByBucketing(o(Number IN [2,3]),4)+ML.Discretize.ByTiling(o
 [1]),6)+ML.Discretize.ByRounding(o(Number=4));
 
 // Create instructions to be executed
-inst := 
+inst :=
 ML.Discretize.i_ByBucketing([2,3],4)+ML.Discretize.i_ByTiling([1],6)+
 ML.Discretize.i_ByRounding([4,5]);
 
@@ -4394,7 +4394,7 @@ d := dataset([{1,5*12+7,156*16,43,1},
               {11,4,15,1,2},
               {12,3,10.5,1,2},
               {13,2.5,3,0.8,2},
-              {14,1,1,0.4,2}             
+              {14,1,1,0.4,2}
               ]
               value_record);
 // Turn into regular NumericField file (with continuous variables)
@@ -4521,18 +4521,18 @@ done;
 EXPORT t_FieldReal Cumulative(t_FieldReal RH)
 // The cumulative probability function from – infinity[1] up to RH
 
-  EXPORT DensityV() 
-// A vector providing the probability density function at each range point – 
-   this is approximately equal to the ‘distribution tables’ that might be published 
+  EXPORT DensityV()
+// A vector providing the probability density function at each range point –
+   this is approximately equal to the ‘distribution tables’ that might be published
    in various books
 
 EXPORT CumulativeV()
-// A vector providing the cumulative probability density function at each range point 
-   – again roughly equal to ‘cumulative distribution tables’ as published in the back of 
+// A vector providing the cumulative probability density function at each range point
+   – again roughly equal to ‘cumulative distribution tables’ as published in the back of
    statistics books
 
 EXPORT Ntile(Pcnt
-//provides the value from the underlying domain that corresponds to the given percentile. 
+//provides the value from the underlying domain that corresponds to the given percentile.
   Thus .Ntile(99) gives the value beneath which 99% of all should observations will fall.
 </programlisting></para>
 
@@ -4797,7 +4797,7 @@ R := RECORD
                 INTEGER rid;
   INTEGER Recs;
                 REAL Time;
-                END;      
+                END;
 d := DATASET([{1,50000,1.00},{2,500000,2.29},         {3,5000000,16.15},{4,25000000,80.2},
                                                       {5,50000000,163},{6,100000000,316},
                                                       {7,10,0.83},{8,1500000,5.63}],R);
@@ -5196,13 +5196,13 @@ VL.Google(“MyLineChart”,dFormatted).Line;
 IMPORT ML.Docs AS Docs;
 
 d := DATASET([{'One of the wonderful things about tiggers is tiggers are wonderful things'},
-                                  {'It is a little scary the drivel that enters ones mind 
+                                  {'It is a little scary the drivel that enters ones mind
                                     when given the task of entering random text'},
-                                  {'I almost quoted Oscar Wilde; but I considered that I 
+                                  {'I almost quoted Oscar Wilde; but I considered that I
                                     had gotten a little too silly already!'},
-                                  {'In Hertford, Hereford and Hampshire Hurricanes hardly 
+                                  {'In Hertford, Hereford and Hampshire Hurricanes hardly
                                     ever happen'},
-                                  {'It is a far, far better thing that I do, than I have 
+                                  {'It is a far, far better thing that I do, than I have
                                     ever done'}],{string r});
 
 d1 := PROJECT(d,TRANSFORM(Docs.Types.Raw,SELF.Txt := LEFT.r));
@@ -5217,7 +5217,7 @@ d3 := Docs.Tokenize.Clean(d2);
 
 d3;
 
-d4 := Docs.Tokenize.Split(d3); 
+d4 := Docs.Tokenize.Split(d3);
 
 d4;
 
@@ -5869,7 +5869,7 @@ Mat.Trans(d);
            but are available for building custom time series analytics.</para>
 
            <informaltable>
-		<tgroup cols="2">
+        <tgroup cols="2">
           <colspec align="left" colwidth="110pt" />
           <colspec align="left" colwidth="490pt" />
           <thead>
@@ -5879,82 +5879,82 @@ Mat.Trans(d);
             </row>
           </thead>
           <tbody>
-		<row>
-			<entry>Accumulate Series</entry>
-			<entry>The TS/AccumSeries attribute is an internal function that
-			is used to restore a differenced series to the original values.
-			The function can be used for forecast and actual values.</entry>
-		</row>
-		<row>
-			<entry>Diagnosis</entry>
-			<entry>The TS/Diagnosis attribute performs a retro-cast of the time
-			series and compares the estimated values to the original
-			observations.  A dataset of scores is produced with one score record
-			for each model specified.</entry>
-		</row>
-		<row>
-			<entry>Estimated Observations</entry>
-			<entry>The TS/EstimatedObs internal function is used to apply the
-			model parameters to the observations to create a retro-cast or a
-			forecast time series.</entry>
-		</row>
-		<row>
-			<entry>Estimation</entry>
-			<entry>The TS/Estimation attribute performs the estimation of the
-			estimation of the model parameters for each model specified.  The
-			model specifies the degree of differencing and the number of Moving
-			Average and Auto-regression terms</entry>
-		</row>
-		<row>
-			<entry>Extended Parameters</entry>
-			<entry>The TS/ExtendedParameters nternal function is used to convert
-			the estimated model parameters for each model into coefficients.</entry>
-		</row>
-		<row>
-			<entry>Extract time series</entry>
-			<entry>The TS/extract_ts attribute is a function macro that will
-			convert	a dataset of time series observations into the format required.
-			The name of the field holding the observation value is the input
-			parameter.</entry>
-		</row>
-		<row>
-			<entry>Forecast</entry>
-			<entry>The TS/Forecast attribute produces a forecast time series
-			for each of the models specified.  The model specification used is
-			produced by the Estimation attribute and includes the estimated model
-			parameters.</entry>
-		</row>
-		<row>
-			<entry>Identification</entry>
-			<entry>The TS/Idnetification attribute produces the Autocorrelation
-			and Partial autocorrelation tables for each model specified.  At this
-			step, only the degree of differencing is specified for the model.</entry>
-		</row>
-		<row>
-			<entry>Lag Correlations</entry>
-			<entry>The TS/lagCorrelations function is an internal attribute that
-			is used to calculate the autocorrelation and partial autocorrelation
-			table for the specified number of lags.</entry>
-		</row>
-		<row>
-			<entry>Seasonal Adjustment</entry>
-			<entry>The TS/season_adj function can be used to perform either
-			additive or multiplicative adjustments to the original time series
-			data to produce a seasonally adjusted series.</entry>
-		</row>
-		<row>
-			<entry>Series by model</entry>
-			<entry>The TS/SeriesByModel attribute is an internal function that
-			conflates the original series data with the model dataset to produce
-			a time series dataset for each model.</entry>
-		</row>
-		<row>
-			<entry>Types</entry>
-			<entry>The TS/Types attribute provides the record definitions for
-			the Time Series analysis attributes.</entry>
-		</row>
+        <row>
+            <entry>Accumulate Series</entry>
+            <entry>The TS/AccumSeries attribute is an internal function that
+            is used to restore a differenced series to the original values.
+            The function can be used for forecast and actual values.</entry>
+        </row>
+        <row>
+            <entry>Diagnosis</entry>
+            <entry>The TS/Diagnosis attribute performs a retro-cast of the time
+            series and compares the estimated values to the original
+            observations.  A dataset of scores is produced with one score record
+            for each model specified.</entry>
+        </row>
+        <row>
+            <entry>Estimated Observations</entry>
+            <entry>The TS/EstimatedObs internal function is used to apply the
+            model parameters to the observations to create a retro-cast or a
+            forecast time series.</entry>
+        </row>
+        <row>
+            <entry>Estimation</entry>
+            <entry>The TS/Estimation attribute performs the estimation of the
+            estimation of the model parameters for each model specified.  The
+            model specifies the degree of differencing and the number of Moving
+            Average and Auto-regression terms</entry>
+        </row>
+        <row>
+            <entry>Extended Parameters</entry>
+            <entry>The TS/ExtendedParameters nternal function is used to convert
+            the estimated model parameters for each model into coefficients.</entry>
+        </row>
+        <row>
+            <entry>Extract time series</entry>
+            <entry>The TS/extract_ts attribute is a function macro that will
+            convert    a dataset of time series observations into the format required.
+            The name of the field holding the observation value is the input
+            parameter.</entry>
+        </row>
+        <row>
+            <entry>Forecast</entry>
+            <entry>The TS/Forecast attribute produces a forecast time series
+            for each of the models specified.  The model specification used is
+            produced by the Estimation attribute and includes the estimated model
+            parameters.</entry>
+        </row>
+        <row>
+            <entry>Identification</entry>
+            <entry>The TS/Idnetification attribute produces the Autocorrelation
+            and Partial autocorrelation tables for each model specified.  At this
+            step, only the degree of differencing is specified for the model.</entry>
+        </row>
+        <row>
+            <entry>Lag Correlations</entry>
+            <entry>The TS/lagCorrelations function is an internal attribute that
+            is used to calculate the autocorrelation and partial autocorrelation
+            table for the specified number of lags.</entry>
+        </row>
+        <row>
+            <entry>Seasonal Adjustment</entry>
+            <entry>The TS/season_adj function can be used to perform either
+            additive or multiplicative adjustments to the original time series
+            data to produce a seasonally adjusted series.</entry>
+        </row>
+        <row>
+            <entry>Series by model</entry>
+            <entry>The TS/SeriesByModel attribute is an internal function that
+            conflates the original series data with the model dataset to produce
+            a time series dataset for each model.</entry>
+        </row>
+        <row>
+            <entry>Types</entry>
+            <entry>The TS/Types attribute provides the record definitions for
+            the Time Series analysis attributes.</entry>
+        </row>
           </tbody>
-		</tgroup>
+        </tgroup>
            </informaltable>
    </sect1>
    <sect1 id="TS_Example">

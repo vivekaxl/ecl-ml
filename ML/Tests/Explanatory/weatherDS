@@ -1,11 +1,11 @@
 IMPORT * FROM ML;
 weatherRecord := RECORD
-	Types.t_RecordID id;
-	Types.t_FieldNumber outlook;
-	Types.t_FieldNumber temperature;
-	Types.t_FieldNumber humidity;
-	Types.t_FieldNumber windy;
-	Types.t_FieldNumber play;
+    Types.t_RecordID id;
+    Types.t_FieldNumber outlook;
+    Types.t_FieldNumber temperature;
+    Types.t_FieldNumber humidity;
+    Types.t_FieldNumber windy;
+    Types.t_FieldNumber play;
 END;
 
 EXPORT weatherDS := DATASET([

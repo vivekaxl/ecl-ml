@@ -16,7 +16,7 @@ Sentiment is determined by a supervised, multinomial (bag-of-words) Naïve Bayes
 ----------
 
 ##Sentilyze Requirments
-- Machine Learning Library 
+- Machine Learning Library
 - Tweets
 
 ###Aqcuiring Tweets From Twitter
@@ -44,7 +44,7 @@ Datasets of Positive and Negative words are required to train the Keyword Count 
 
 #####Generating Word Lists
 
-***Generate.ecl*** can be used to create lists of keywords to be used with the Keyword Count classifier. It uses two methods of weighting words, Term Frequency-Inverse Document Frequency (TF-IDF) and Mutual Information. 
+***Generate.ecl*** can be used to create lists of keywords to be used with the Keyword Count classifier. It uses two methods of weighting words, Term Frequency-Inverse Document Frequency (TF-IDF) and Mutual Information.
 
 > IMPORT Sentilyze;
 
@@ -73,7 +73,7 @@ Datasets of Positive and Negative words are required to train the Keyword Count 
 >OUTPUT(sentimentWordsMI,all,NAMED('SentimentMI_Words'));
 
 #####Training Keyword Count Classifier
-- In Strings.ecl, under "KeywordCount Sentiment Classifier" replace strings with the appropiate logical file names of keyword datasets. 
+- In Strings.ecl, under "KeywordCount Sentiment Classifier" replace strings with the appropiate logical file names of keyword datasets.
 
 ----------
 
@@ -238,7 +238,7 @@ ConvertToRaw(*recordset*)
 
 >END;
 
-####WordType 
+####WordType
 >WordType := RECORD
 
 > STRING word;
