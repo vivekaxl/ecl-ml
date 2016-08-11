@@ -1,4 +1,4 @@
-// Predict Y for a vector
+﻿// Predict Y for a vector
 // Create a model from training data
 IMPORT ML.SVM.LibSVM.Types;
 IMPORT ML.SVM.LibSVM.Constants;
@@ -85,7 +85,7 @@ EXPORT DATASET(R8Entry) svm_predict(Model ecl_model, DATASET(Node) ecl_nodes,
   for (uint32_t i=0; i<in_mdl->k-1; i++) {
     mdl->sv_coef[i] = (double*) malloc(in_mdl->l*sizeof(double));
     for (uint32_t j=0; j<in_mdl->l; j++) {
-      mdl->sv_coef[i][j] = sv_coef[((in_mdl->k-1)*i)+j];
+      mdl->sv_coef[i][j] = sv_coef[((in_mdl->l)*i)+j];
     }
   }
   // rho

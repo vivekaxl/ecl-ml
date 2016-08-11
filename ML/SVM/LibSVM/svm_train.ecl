@@ -1,4 +1,4 @@
-// Create a model from training data
+﻿// Create a model from training data
 IMPORT ML.SVM.LibSVM.Types;
 IMPORT ML.SVM.LibSVM.Constants;
 IMPORT ML.SVM.LibSVM.Converted;
@@ -182,7 +182,7 @@ DATA svm_train_d(SVM_Parms prm,
   double* sv_coef = (double*) (sv_array + elements);
   for (int i=0; i<model->nr_class-1; i++) {
     for (int j=0; j<model->l; j++) {
-      sv_coef[((model->nr_class-1)*i)+j] = model->sv_coef[i][j];
+      sv_coef[((model->l)*i)+j] = model->sv_coef[i][j];
     }
    }
   //
