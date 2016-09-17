@@ -85,6 +85,18 @@ EXPORT Compare(DATASET(Types.DiscreteField) Dep,DATASET(l_result) Computed) := M
                           TRANSFORM(FalseRate_rec, SELF.fp_rate:= LEFT.wcnt/RIGHT.not_actual, SELF:= LEFT));
 // Accuracy, it returns the proportion of instances correctly classified (total, without class distinction)
   EXPORT Accuracy := TABLE(CrossAssignments, {classifier, Accuracy:= SUM(GROUP,IF(c_actual=c_modeled,cnt,0))/SUM(GROUP, cnt)}, classifier);
+  SHARED counts_dependent := TABLE(Dep, {value, count_value:=COUNT(GROUP)}, value);
+  EXPORT MacroAveragePrecision := SUM(JOIN(counts_dependent, PrecisionByClass, LEFT.value=RIGHT.c_modeled, 
+                                            TRANSFORM(RECORDOF(PrecisionByClass), 
+                                                SELF.precision:=RIGHT.precision * (LEFT.count_value/COUNT(Dep));
+                                                SELF := RIGHT;
+                                                )), precision);
+  EXPORT MacroAverageRecall := SUM(JOIN(counts_dependent, RecallByClass, 
+                                            LEFT.value=RIGHT.c_actual, 
+                                            TRANSFORM(RECORDOF(RecallByClass), 
+                                                SELF.tp_rate:=RIGHT.tp_rate * (LEFT.count_value/COUNT(Dep));
+                                                SELF := RIGHT;
+                                                )), tp_rate);
 END;
 /*
   The purpose of this module is to provide a default interface to provide access to any of the 
