@@ -244,7 +244,8 @@ EXPORT Cluster := MODULE
     // method specified by the user for this module
     SHARED dDistanceDelta(UNSIGNED n01=n-1,UNSIGNED n02=n,DATASET(lIterations) d):=FUNCTION
       iMax01:=MAX(dResult(n01,d),id);
-      dDistances:=Distances(dResult(n01,d),PROJECT(dResult(n02,d),TRANSFORM(Types.NumericField,SELF.id:=LEFT.id+iMax01;SELF:=LEFT;)),fDist);
+      convergence:=COUNT(d[1].values)-1;
+      dDistances:=Distances(dResult(IF(convergence<n01,n02,n01),d),PROJECT(dResult(n02,d),TRANSFORM(Types.NumericField,SELF.id:=LEFT.id+iMax01;SELF:=LEFT;)),fDist);
       RETURN PROJECT(dDistances(x=y-iMax01),TRANSFORM({Types.NumericField AND NOT [number];},SELF.id:=LEFT.x;SELF:=LEFT;));
     END;
 
