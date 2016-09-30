@@ -21,20 +21,13 @@ ENDMACRO;
 
 
 SET OF STRING classificationDatasetNamesC := ['continious_ecoliDS',
-                                                'continious_glassDS'];/*,
+                                                'continious_glassDS',
                                                 'continious_ionosphereDS',
                                                 'continious_ringnormDataDS',
                                                 'continious_segmentationDS', 
                                                 'continious_waveformDS'
-                                                ];   */
+                                                ];  
                                                
-SET OF REAL rfc_performance_scoresC := [0.818382927,
-                                        0.703538248,
-                                        0.926703202,
-                                        0.95361631,
-                                        0.967285828,
-                                        0.723008983
-                                        ];
 
 INTEGER c_no_of_elements := COUNT(classificationDatasetNamesC);
 

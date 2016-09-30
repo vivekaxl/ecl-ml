@@ -12,7 +12,7 @@ QualifiedName(prefix, datasetname):=  FUNCTIONMACRO
         RETURN prefix + datasetname + '.content';
 ENDMACRO;
 
-SET OF STRING regressionDatasetNames := ['AbaloneDS'];//, 'friedman1DS', 'friedman2DS', 'friedman3DS', 'housingDS', 'servoDS'];                                                                                
+SET OF STRING regressionDatasetNames := ['AbaloneDS', 'friedman1DS', 'friedman2DS', 'friedman3DS', 'housingDS', 'servoDS'];                                                                                
 
 INTEGER r_no_of_elements := COUNT(regressionDatasetNames);
 

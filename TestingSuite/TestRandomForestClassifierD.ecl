@@ -12,10 +12,10 @@ QualifiedName(prefix, datasetname):=  FUNCTIONMACRO
 ENDMACRO;
 
 
-SET OF STRING classificationDatasetNamesD := ['discrete_GermanDS'];/*
+SET OF STRING classificationDatasetNamesD := ['discrete_GermanDS',
         , 'discrete_houseVoteDS',
         'discrete_letterrecognitionDS','discrete_liverDS', 'discrete_satimagesDS',
-        'discrete_soybeanDS', 'discrete_VehicleDS'];   */
+        'discrete_soybeanDS', 'discrete_VehicleDS'];  
                                                
 
 INTEGER c_no_of_elements := COUNT(classificationDatasetNamesD);
