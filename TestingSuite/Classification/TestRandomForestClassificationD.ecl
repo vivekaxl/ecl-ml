@@ -80,6 +80,5 @@ EXPORT TestRandomForestClassificationD(raw_dataset_name, repeats) := FUNCTIONMAC
         #END
     #END
     %source_code%;
-    o := output(results, named('results'));
-	RETURN when(results, o); 
+	RETURN results;
 ENDMACRO;

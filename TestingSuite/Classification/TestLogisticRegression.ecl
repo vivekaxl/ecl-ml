@@ -1,20 +1,19 @@
-﻿//RandomForest.ecl
+﻿
 IMPORT Std;
-IMPORT * FROM ML;
+IMPORT ML;
 IMPORT ML.Tests.Explanatory as TE;
-IMPORT * FROM ML.Types;
-IMPORT * FROM TestingSuite.Utils;
+IMPORT ML.Types;
+IMPORT TestingSuite.Utils;
 IMPORT TestingSuite.Classification as Classification;
 
 EXPORT TestLogisticRegression(raw_dataset_name, repeats) := FUNCTIONMACRO
-	//STRING dataset_name := 'Classification.Datasets.' + raw_dataset_name + '.content';
 	AnyDataSet :=  TABLE(raw_dataset_name);
 
-	RunLogisticRegression(DATASET(DiscreteField) trainIndepData, DATASET(DiscreteField) trainDepData, DATASET(DiscreteField) testIndepData, DATASET(DiscreteField) testDepData) := FUNCTION
-			learner := Classify.Logistic();  
+	RunLogisticRegression(DATASET(Types.NumericField) trainIndepData, DATASET(Types.DiscreteField) trainDepData, DATASET(Types.NumericField) testIndepData, DATASET(Types.DiscreteField) testDepData) := FUNCTION
+			learner := ML.Classify.Logistic();  
 			result := learner.LearnC(trainIndepData, trainDepData); 
 			class:= learner.ClassifyC(testIndepData, result); 
-			performance:= Classify.Compare(testDepData, class);
+			performance:= ML.Classify.Compare(testDepData, class);
 			return performance.Accuracy[1].accuracy;
 		END;
 
@@ -25,41 +24,56 @@ EXPORT TestLogisticRegression(raw_dataset_name, repeats) := FUNCTIONMACRO
 		// To create training and testing sets
 		new_data_set := TABLE(AnyDataSet, {AnyDataSet, select_number := RANDOM()%100});
 
+		t_raw_train_data := new_data_set(select_number <= 40);
+		raw_train_data := PROJECT(t_raw_train_data, TRANSFORM(RECORDOF(t_raw_train_data),
+																																				SELF.id := COUNTER;
+																																				SELF := LEFT));
+		t_raw_test_data := new_data_set(select_number > 40);
+		raw_test_data := PROJECT(t_raw_test_data, TRANSFORM(RECORDOF(t_raw_train_data),
+																																				SELF.id := COUNTER;
+																																				SELF := LEFT));
 
-		raw_train_data := new_data_set(select_number <= 40);
-		raw_test_data := new_data_set(select_number > 40);
 
 		// Splitting data into train and test	
-		ToTraining(raw_train_data, train_data_independent);
-		ToTesting(raw_train_data, train_data_dependent);
-		ToTraining(raw_test_data, test_data_independent);
-		ToTesting(raw_test_data, test_data_dependent);
+		Utils.ToTraining(raw_train_data, train_data_independent);
+		Utils.ToTesting(raw_train_data, train_data_dependent);
+		Utils.ToTraining(raw_test_data, test_data_independent);
+		Utils.ToTesting(raw_test_data, test_data_dependent);
 
-		ToField(train_data_independent, trainIndepData);
-		ToField(train_data_dependent, trainDepData);
+		ML.ToField(train_data_independent, trainIndepData);
+		ML.ToField(train_data_dependent, tr_dep);
+		trainDepData := ML.Discretize.ByRounding(tr_dep);
 
-		ToField(test_data_independent, testIndepData);
-		ToField(test_data_dependent, testDepData);
+		ML.ToField(test_data_independent, testIndepData);
+		ML.ToField(test_data_dependent, ts_dep);
+		testDepData := ML.Discretize.ByRounding(ts_dep); 
 		
 		result := RunLogisticRegression(trainIndepData, trainDepData, testIndepData, testDepData);
 		return result;
 	END;
 
 
-	numberFormat := RECORD
-		INTEGER run_id;
-		REAL result;
-	END;
-	IMPORT Std;
+    IMPORT Std;
 
-	results := DATASET(#EXPAND(repeats),
-							TRANSFORM(numberFormat,
-							SELF.run_id := COUNTER;
-							SELF.result := WrapperRunLogisticRegression(AnyDataSet);
-							));
+	results1 := DATASET([],Utils.Types.result_rec);
+    #DECLARE(source_code)
+    #SET(source_code, '');
+    #DECLARE(indexs);
+    #SET(indexs, 1);
+    #LOOP
+        #IF(%indexs%> repeats)	
+            #BREAK;
+        #ELSEIF(%indexs% = repeats)
+            #APPEND(source_code, 'results := results' + %indexs% + '+ DATASET([{'+%indexs% + ', WrapperRunLogisticRegression(AnyDataSet)}], Utils.Types.result_rec) : INDEPENDENT;\n');
+            #SET(indexs,%indexs%+1);
+        #ELSE
+            #APPEND(source_code, 'results'+(%indexs%+1) + ':= results' + %indexs% + '+ DATASET([{'+%indexs% + ', WrapperRunLogisticRegression(AnyDataSet)}], Utils.Types.result_rec) : INDEPENDENT;\n');
+            #SET(indexs,%indexs%+1);
+        #END
+    #END
+    %source_code%;
 
-
-	RETURN (REAL)AVE(results, results.result); 
+	RETURN results; 
 ENDMACRO;
 
-//OUTPUT(TestRandomForestClassification(Classification.Datasets.ecoliDS.content, 3));
+// OUTPUT(TestLogisticRegression(Classification.Datasets.discrete_GermanDS.content, 2));
